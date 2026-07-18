@@ -1,0 +1,25 @@
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+xcuserdata/
+DerivedData/
+build/
+*.xcworkspace/xcuserdata/
+
+# XcodeGen génère le .xcodeproj depuis project.yml
+OtterIsland.xcodeproj/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Divers
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM

@@ -1,0 +1,38 @@
+name: OtterIsland
+
+options:
+  bundleIdPrefix: com.otterwise
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_HARDENED_RUNTIME: true
+    SWIFT_STRICT_CONCURRENCY: minimal
+
+targets:
+  OtterIsland:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/OtterIsland
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.otterwise.otterisland
+        PRODUCT_NAME: OtterIsland
+        GENERATE_INFOPLIST_FILE: true
+        INFOPLIST_KEY_LSUIElement: true
+        INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Otterwise Solutions"
+        INFOPLIST_KEY_CFBundleDisplayName: OtterIsland
+        INFOPLIST_KEY_NSCalendarsUsageDescription: "OtterIsland affiche tes évènements à venir dans l'encoche."
+        INFOPLIST_KEY_NSRemindersUsageDescription: "OtterIsland affiche tes rappels dans l'encoche."
+        INFOPLIST_KEY_NSCameraUsageDescription: "OtterIsland utilise la caméra pour le mode miroir."
+        INFOPLIST_KEY_NSAppleEventsUsageDescription: "OtterIsland lit l'état de lecture de Spotify et Apple Music pour animer la loutre."
+        INFOPLIST_KEY_LSMinimumSystemVersion: "14.0"
+        COMBINE_HIDPI_IMAGES: true
