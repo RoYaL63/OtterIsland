@@ -19,12 +19,37 @@ struct CleaningCard: View {
             }
 
             if permissionDenied {
+                if AppInstall.needsRelocation {
+                    // Cause racine n°1 : app lancée hors de /Applications → App
+                    // Translocation → identité TCC mouvante → permissions cochées
+                    // mais jamais appliquées. Tout le reste est inutile tant que
+                    // ce n'est pas réglé.
+                    Text("L'app tourne depuis \(AppInstall.humanLocation) : macOS lui donne une identité différente à chaque lancement, les permissions ne peuvent PAS s'appliquer. Installe-la d'abord dans /Applications.")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+
+                    Button("Installer dans /Applications et relancer") {
+                        AppInstall.installInApplications()
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.cyan)
+                }
+
                 // Bloquer les frappes demande DEUX autorisations distinctes : Accessibilité
                 // ET Surveillance des saisies. Cocher seulement la première (l'erreur la
-                // plus fréquente) ne suffit pas — d'où le rappel explicite des deux, et
-                // du redémarrage nécessaire pour qu'une autorisation nouvellement
+                // plus fréquente) ne suffit pas — d'où l'état en direct de chacune, et
+                // le redémarrage nécessaire pour qu'une autorisation nouvellement
                 // accordée soit prise en compte.
-                Text("Il faut activer OtterIsland dans DEUX réglages distincts : Accessibilité ET Surveillance des saisies. Puis redémarre OtterIsland (la permission n'est prise en compte qu'au lancement).")
+                permissionStatus(
+                    "Accessibilité",
+                    granted: Paster.hasAccessibility
+                )
+                permissionStatus(
+                    "Surveillance des saisies",
+                    granted: CGPreflightListenEventAccess()
+                )
+                Text("Après avoir coché (ou re-coché) : redémarre OtterIsland — la permission n'est lue qu'au lancement. Signature ad-hoc oblige, macOS peut re-décocher à chaque mise à jour.")
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.8))
 
@@ -70,6 +95,18 @@ struct CleaningCard: View {
             .padding(.vertical, 5)
             .foregroundStyle(.white)
             .chipBackground(in: Capsule(), tint: .white.opacity(0.28))
+        }
+    }
+
+    /// Ligne d'état d'une permission : ✓ verte ou ✗ rouge, lisible en direct.
+    private func permissionStatus(_ name: String, granted: Bool) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: granted ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.system(size: 10))
+                .foregroundStyle(granted ? .green : .red)
+            Text(name)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.9))
         }
     }
 

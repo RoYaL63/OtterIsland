@@ -81,6 +81,36 @@ struct SettingsView: View {
 
             Divider()
 
+            // Diagnostic permissions : l'endroit où comprendre pourquoi le
+            // verrouillage clavier ou le collage auto ne répond pas.
+            LabeledContent("Emplacement") {
+                if AppInstall.needsRelocation {
+                    Button("Hors /Applications — installer et relancer") {
+                        AppInstall.installInApplications()
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .help("Lancée depuis \(AppInstall.humanLocation), les permissions ne s'appliquent jamais (App Translocation).")
+                } else {
+                    Text("✓ /Applications").font(.caption).foregroundStyle(.green)
+                }
+            }
+            LabeledContent("Accessibilité (collage auto)") {
+                Text(Paster.hasAccessibility ? "✓ accordée" : "✗ manquante")
+                    .font(.caption)
+                    .foregroundStyle(Paster.hasAccessibility ? .green : .red)
+            }
+            LabeledContent("Surveillance des saisies (verrouillage)") {
+                Text(CGPreflightListenEventAccess() ? "✓ accordée" : "✗ manquante")
+                    .font(.caption)
+                    .foregroundStyle(CGPreflightListenEventAccess() ? .green : .red)
+            }
+            Text("Une permission cochée n'est lue qu'au prochain lancement de l'app. Après une mise à jour (signature ad-hoc), macOS peut la re-décocher : − puis + dans le panneau correspondant.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Divider()
+
             Toggle("Aperçu des captures d'écran dans l'encoche", isOn: $settings.screenshotPreviewEnabled)
             Text("Redémarre OtterIsland après changement.")
                 .font(.caption)

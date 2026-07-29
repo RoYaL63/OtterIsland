@@ -10,7 +10,19 @@ struct ClipboardPanel: View {
         VStack(alignment: .leading, spacing: 4) {
             // Sans Accessibilité, le clic ne peut pas coller tout seul : le dire
             // ICI, à l'endroit exact où l'utilisateur constate le problème.
-            if !Paster.hasAccessibility {
+            if AppInstall.needsRelocation {
+                // Cause racine : hors de /Applications, la permission ne peut
+                // même pas s'appliquer (App Translocation, identité mouvante).
+                Button {
+                    AppInstall.installInApplications()
+                } label: {
+                    Label("App hors /Applications — installer et relancer", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
+                .help("Lancée depuis \(AppInstall.humanLocation), les permissions ne s'appliquent jamais. Clique pour l'installer dans /Applications.")
+            } else if !Paster.hasAccessibility {
                 Button {
                     Paster.ensureAccessibility()
                 } label: {
@@ -19,7 +31,7 @@ struct ClipboardPanel: View {
                         .foregroundStyle(.orange)
                 }
                 .buttonStyle(.plain)
-                .help("Sans cette permission, l'item est copié mais il faut faire ⌘V soi-même.")
+                .help("Sans cette permission, l'item est copié mais il faut faire ⌘V soi-même. Redémarre l'app après l'avoir cochée.")
             }
             if clipboard.items.isEmpty {
                 Text("Presse-papier vide")
