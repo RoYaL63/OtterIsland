@@ -33,6 +33,14 @@ final class CalendarProvider: ObservableObject {
     @Published private(set) var reminders: [AgendaReminder] = []
     @Published private(set) var hasAccess = false
 
+    /// Jour choisi dans le mini calendrier (nil = pas de sélection, la liste
+    /// affiche les prochains RDV). Partagé entre l'accueil et l'onglet Agenda :
+    /// cliquer un jour sur l'accueil ouvre l'Agenda déjà positionné dessus.
+    @Published private(set) var browsedDate: Date?
+    /// Évènements du jour choisi (journée entière, y compris déjà passés — on
+    /// consulte, on ne « rappelle » pas).
+    @Published private(set) var browsedEvents: [AgendaEvent] = []
+
     private let store = EKEventStore()
     private var refreshTimer: Timer?
 
@@ -80,6 +88,32 @@ final class CalendarProvider: ObservableObject {
         reminder.isCompleted = true
         try? store.save(reminder, commit: true)
         reloadReminders()
+    }
+
+    /// Sélectionne un jour (ou efface la sélection avec nil) et charge ses
+    /// évènements. Requête synchrone : une journée, c'est instantané.
+    func browse(_ date: Date?) {
+        browsedDate = date
+        guard let date, hasAccess,
+              let interval = Calendar.current.dateInterval(of: .day, for: date) else {
+            browsedEvents = []
+            return
+        }
+        let predicate = store.predicateForEvents(
+            withStart: interval.start, end: interval.end, calendars: nil
+        )
+        browsedEvents = store.events(matching: predicate)
+            .sorted { $0.startDate < $1.startDate }
+            .prefix(6)
+            .map {
+                AgendaEvent(
+                    id: $0.eventIdentifier ?? UUID().uuidString,
+                    title: $0.title ?? "(sans titre)",
+                    start: $0.startDate,
+                    cgColor: $0.calendar.cgColor,
+                    meetingURL: Self.meetingURL(for: $0)
+                )
+            }
     }
 
     /// Jours du mois de `date` ayant au moins un évènement (pour les points du

@@ -20,6 +20,9 @@ struct OtterStatusPanel: View {
     let showBattery: Bool
     let onToggleCleanup: () -> Void
     let onOpenMirror: () -> Void
+    /// Clic sur un jour du mini calendrier : bascule sur l'onglet Agenda,
+    /// déjà positionné sur ce jour.
+    let onOpenAgenda: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -30,7 +33,7 @@ struct OtterStatusPanel: View {
                     .fill(.white.opacity(0.15))
                     .frame(width: 1)
                     .padding(.vertical, 2)
-                MiniCalendarView(calendar: calendar)
+                MiniCalendarView(calendar: calendar, onPickDay: onOpenAgenda)
             }
 
             Spacer(minLength: 0)

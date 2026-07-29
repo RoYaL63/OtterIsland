@@ -28,7 +28,20 @@ struct AgendaPanel: View {
                         .frame(width: 1)
                         .padding(.vertical, 2)
                     VStack(alignment: .leading, spacing: 6) {
-                        if calendar.events.isEmpty && calendar.reminders.isEmpty {
+                        if let browsed = calendar.browsedDate {
+                            // Jour choisi dans le mini calendrier : sa journée
+                            // entière remplace la liste « à venir ».
+                            browsedHeader(browsed)
+                            if calendar.browsedEvents.isEmpty {
+                                Text("Rien ce jour-là")
+                                    .font(.caption)
+                                    .foregroundStyle(.white.opacity(0.7))
+                            } else {
+                                ForEach(calendar.browsedEvents.prefix(4)) { event in
+                                    eventRow(event)
+                                }
+                            }
+                        } else if calendar.events.isEmpty && calendar.reminders.isEmpty {
                             Text("Rien de prévu 🎉")
                                 .font(.subheadline)
                                 .foregroundStyle(.white.opacity(0.8))
@@ -47,6 +60,33 @@ struct AgendaPanel: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
+
+    /// En-tête du jour consulté : « Mar. 6 oct. » + croix pour revenir aux
+    /// prochains RDV.
+    private func browsedHeader(_ date: Date) -> some View {
+        HStack(spacing: 6) {
+            Text(Self.dayFormatter.string(from: date).capitalized)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.orange)
+            Spacer(minLength: 4)
+            Button {
+                calendar.browse(nil)
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+            .buttonStyle(.plain)
+            .help("Revenir aux prochains rendez-vous")
+        }
+    }
+
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = "EEE d MMM"
+        return f
+    }()
 
     private func reminderRow(_ reminder: AgendaReminder) -> some View {
         HStack(spacing: 6) {

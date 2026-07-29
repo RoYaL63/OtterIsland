@@ -6,6 +6,9 @@ import SwiftUI
 /// blanche, un point sous les jours qui ont au moins un évènement.
 struct MiniCalendarView: View {
     @ObservedObject var calendar: CalendarProvider
+    /// Appelé après la sélection d'un jour (l'accueil s'en sert pour basculer
+    /// sur l'onglet Agenda, déjà positionné sur ce jour).
+    var onPickDay: (() -> Void)?
 
     /// Premier jour du mois affiché.
     @State private var displayedMonth: Date = Date()
@@ -99,24 +102,63 @@ struct MiniCalendarView: View {
     private func dayCell(_ day: Int?) -> some View {
         if let day {
             let today = isToday(day)
-            Text("\(day)")
-                .font(.system(size: 9, weight: today ? .bold : .regular).monospacedDigit())
-                .foregroundStyle(today ? Color.black.opacity(0.85) : .white.opacity(0.9))
-                .frame(width: 15, height: 13)
-                .background(today ? Circle().fill(.white).frame(width: 13, height: 13) : nil)
-                // Point d'évènement en surimpression (pas empilé : la grille
-                // doit rester compacte pour tenir dans la carte).
-                .overlay(alignment: .bottom) {
-                    Circle()
-                        .fill(eventDays.contains(day) && !today ? Color.orange : .clear)
-                        .frame(width: 3, height: 3)
-                        .offset(y: 1)
-                }
-                .frame(maxWidth: .infinity)
+            let selected = isSelected(day)
+            Button {
+                pick(day)
+            } label: {
+                Text("\(day)")
+                    .font(.system(size: 9, weight: today || selected ? .bold : .regular).monospacedDigit())
+                    .foregroundStyle(
+                        selected ? Color.black.opacity(0.9)
+                        : today ? Color.black.opacity(0.85)
+                        : .white.opacity(0.9)
+                    )
+                    .frame(width: 15, height: 13)
+                    // Sélection = pastille orange (prioritaire), aujourd'hui = blanche.
+                    .background(
+                        selected ? Circle().fill(Color.orange).frame(width: 13, height: 13)
+                        : today ? Circle().fill(.white).frame(width: 13, height: 13)
+                        : nil
+                    )
+                    // Point d'évènement en surimpression (pas empilé : la grille
+                    // doit rester compacte pour tenir dans la carte).
+                    .overlay(alignment: .bottom) {
+                        Circle()
+                            .fill(eventDays.contains(day) && !today && !selected ? Color.orange : .clear)
+                            .frame(width: 3, height: 3)
+                            .offset(y: 1)
+                    }
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
         } else {
             Color.clear
                 .frame(maxWidth: .infinity)
                 .frame(height: 13)
+        }
+    }
+
+    // MARK: Sélection
+
+    private func date(for day: Int) -> Date? {
+        var comps = Self.cal.dateComponents([.year, .month], from: displayedMonth)
+        comps.day = day
+        return Self.cal.date(from: comps)
+    }
+
+    private func isSelected(_ day: Int) -> Bool {
+        guard let browsed = calendar.browsedDate, let date = date(for: day) else { return false }
+        return Self.cal.isDate(browsed, inSameDayAs: date)
+    }
+
+    private func pick(_ day: Int) {
+        guard let date = date(for: day) else { return }
+        if isSelected(day) {
+            calendar.browse(nil) // re-clic = désélection
+        } else {
+            calendar.browse(date)
+            onPickDay?()
         }
     }
 

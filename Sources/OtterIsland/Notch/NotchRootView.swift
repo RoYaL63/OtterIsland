@@ -131,7 +131,8 @@ struct NotchRootView: View {
                 memory: viewModel.memory,
                 showBattery: settings.showBattery,
                 onToggleCleanup: { viewModel.toggleCleanup() },
-                onOpenMirror: { viewModel.selectedTab = .mirror }
+                onOpenMirror: { viewModel.selectedTab = .mirror },
+                onOpenAgenda: { viewModel.selectedTab = .agenda }
             )
         case .music:
             MusicPanel(provider: viewModel.nowPlaying)
