@@ -50,6 +50,16 @@ struct NotchRootView: View {
             }
         }
         .frame(width: currentWidth, height: currentHeight)
+        .overlay(alignment: .leading) {
+            // Batterie flanquant l'encoche repliée à gauche — utilise l'espace
+            // de part et d'autre de l'encoche physique, comme le reste de la
+            // barre de menus. Symétrique au visualiseur audio à droite.
+            if !viewModel.isExpanded && settings.showBattery {
+                CompactBatteryBadge(monitor: viewModel.battery)
+                    .offset(x: -66)
+                    .transition(.opacity)
+            }
+        }
         .overlay(alignment: .trailing) {
             // Petit égaliseur qui prolonge l'encoche repliée quand de la musique
             // joue. Survol pour mettre en pause sans ouvrir l'encoche.
