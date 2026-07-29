@@ -29,10 +29,10 @@ struct OtterStatusPanel: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("OtterIsland")
                 .font(.headline)
-                .foregroundStyle(.black)
+                .foregroundStyle(.white)
             Text(moodLine)
                 .font(.caption)
-                .foregroundStyle(.black.opacity(0.7))
+                .foregroundStyle(.white.opacity(0.7))
                 .lineLimit(2)
 
             if let event = calendar.events.first {
@@ -50,7 +50,7 @@ struct OtterStatusPanel: View {
                     if let minutes = battery.minutesRemaining {
                         Text(timeText(minutes))
                             .font(.caption2)
-                            .foregroundStyle(.black.opacity(0.5))
+                            .foregroundStyle(.white.opacity(0.5))
                     }
                 }
                 Spacer(minLength: 0)
@@ -69,12 +69,12 @@ struct OtterStatusPanel: View {
                 .foregroundStyle(event.color)
             Text(event.title)
                 .font(.caption2.weight(.medium))
-                .foregroundStyle(.black)
+                .foregroundStyle(.white)
                 .lineLimit(1)
             Spacer(minLength: 4)
             Text(event.timeText)
                 .font(.caption2)
-                .foregroundStyle(.black.opacity(0.5))
+                .foregroundStyle(.white.opacity(0.5))
         }
         return Group {
             if let url = event.meetingURL {
@@ -92,10 +92,10 @@ struct OtterStatusPanel: View {
         HStack(spacing: 6) {
             Image(systemName: "music.note")
                 .font(.system(size: 9))
-                .foregroundStyle(.black.opacity(0.6))
+                .foregroundStyle(.white.opacity(0.6))
             Text("\(track.title) — \(track.artist)")
                 .font(.caption2)
-                .foregroundStyle(.black.opacity(0.8))
+                .foregroundStyle(.white.opacity(0.8))
                 .lineLimit(1)
             Spacer(minLength: 4)
             MediaControlsView(provider: nowPlaying)
@@ -119,7 +119,7 @@ struct OtterStatusPanel: View {
                 Text(pomodoro.display)
                     .font(.system(.caption2, design: .monospaced))
             }
-            .foregroundStyle(.black)
+            .foregroundStyle(.white)
         }
         .buttonStyle(.plain)
         .help("Minuteur Pomodoro")

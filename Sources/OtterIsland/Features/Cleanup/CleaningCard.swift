@@ -15,7 +15,7 @@ struct CleaningCard: View {
                     .foregroundStyle(.orange)
                 Text(permissionDenied ? "Verrouillage impossible" : "Clavier verrouillé")
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.white)
             }
 
             if permissionDenied {
@@ -26,7 +26,7 @@ struct CleaningCard: View {
                 // accordée soit prise en compte.
                 Text("Il faut activer OtterIsland dans DEUX réglages distincts : Accessibilité ET Surveillance des saisies. Puis redémarre OtterIsland (la permission n'est prise en compte qu'au lancement).")
                     .font(.caption)
-                    .foregroundStyle(.black.opacity(0.65))
+                    .foregroundStyle(.white.opacity(0.65))
 
                 Button("Ouvrir Accessibilité") {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
@@ -48,7 +48,7 @@ struct CleaningCard: View {
             } else {
                 Text("Nettoie tranquillement, aucune frappe ne passe.")
                     .font(.caption)
-                    .foregroundStyle(.black.opacity(0.65))
+                    .foregroundStyle(.white.opacity(0.65))
             }
 
             Button(action: onUnlock) {
@@ -58,8 +58,8 @@ struct CleaningCard: View {
             .buttonStyle(.plain)
             .font(.system(.caption, design: .rounded).weight(.semibold))
             .padding(.vertical, 5)
-            .foregroundStyle(.black)
-            .liquidGlassBackground(in: Capsule(), tint: .black.opacity(0.18))
+            .foregroundStyle(.white)
+            .liquidGlassBackground(in: Capsule(), tint: .white.opacity(0.18))
         }
     }
 }

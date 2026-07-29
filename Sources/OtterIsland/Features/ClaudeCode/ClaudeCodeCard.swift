@@ -12,14 +12,14 @@ struct ClaudeCodeCard: View {
                     .foregroundStyle(.orange)
                 Text(request.title)
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.white)
                     .lineLimit(1)
             }
 
             if let detail = request.detail {
                 Text(detail)
                     .font(.caption)
-                    .foregroundStyle(.black.opacity(0.65))
+                    .foregroundStyle(.white.opacity(0.65))
                     .lineLimit(2)
             }
 
@@ -30,7 +30,7 @@ struct ClaudeCodeCard: View {
                     Text("Refuser")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(PillButtonStyle(tint: .black.opacity(0.15), fg: .black))
+                .buttonStyle(PillButtonStyle(tint: .white.opacity(0.15), fg: .white))
 
                 Button {
                     onDecision(true)

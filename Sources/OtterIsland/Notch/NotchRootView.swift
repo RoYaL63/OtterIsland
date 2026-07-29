@@ -13,7 +13,10 @@ struct NotchRootView: View {
     private var currentWidth: CGFloat { viewModel.isExpanded ? 460 : notchWidth }
     private var currentHeight: CGFloat {
         let dropOffset = settings.dropOffset(for: viewModel.currentScreenID ?? "")
-        return viewModel.isExpanded ? 176 + CGFloat(dropOffset) : notchHeight
+        // 224 de base (pas 176) : le panneau par défaut affiche maintenant en plus
+        // le prochain RDV, la musique et les actions rapides — 176 ne laissait
+        // plus assez de place et coupait le contenu.
+        return viewModel.isExpanded ? 224 + CGFloat(dropOffset) : notchHeight
     }
 
     var body: some View {
@@ -55,28 +58,6 @@ struct NotchRootView: View {
             }
         }
         .frame(width: currentWidth, height: currentHeight)
-        .overlay(alignment: .leading) {
-            // Batterie flanquant l'encoche repliée à gauche — utilise l'espace
-            // de part et d'autre de l'encoche physique, comme le reste de la
-            // barre de menus. Symétrique au visualiseur audio à droite.
-            if !viewModel.isExpanded && settings.showBattery {
-                CompactBatteryBadge(monitor: viewModel.battery)
-                    .offset(x: -66)
-                    .transition(.opacity)
-            }
-        }
-        .overlay(alignment: .trailing) {
-            // Petit égaliseur qui prolonge l'encoche repliée quand de la musique
-            // joue. Survol pour mettre en pause sans ouvrir l'encoche.
-            if !viewModel.isExpanded, let track = viewModel.nowPlaying.current {
-                NotchAudioVisualizer(isPlaying: track.isPlaying) {
-                    viewModel.nowPlaying.togglePlayPause()
-                }
-                .offset(x: 38)
-                .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .leading)))
-            }
-        }
-        .animation(.easeInOut(duration: 0.25), value: viewModel.nowPlaying.current != nil)
         .contentShape(Rectangle())
         .onHover { hovering in
             viewModel.setExpanded(hovering)

@@ -25,7 +25,7 @@ struct ScreenshotsPanel: View {
                         Text("Vider").font(.caption2)
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(.black.opacity(0.5))
+                    .foregroundStyle(.white.opacity(0.5))
                 }
             }
         }
@@ -36,10 +36,10 @@ struct ScreenshotsPanel: View {
         VStack(spacing: 4) {
             Image(systemName: "camera.viewfinder")
                 .font(.system(size: 18))
-                .foregroundStyle(.black.opacity(0.4))
+                .foregroundStyle(.white.opacity(0.4))
             Text("Tes captures d'écran s'affichent ici")
                 .font(.caption)
-                .foregroundStyle(.black.opacity(0.5))
+                .foregroundStyle(.white.opacity(0.5))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -57,7 +57,7 @@ struct ScreenshotsPanel: View {
                         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .stroke(.black.opacity(0.1), lineWidth: 0.5)
+                                .stroke(.white.opacity(0.15), lineWidth: 0.5)
                         )
                 }
                 Button {

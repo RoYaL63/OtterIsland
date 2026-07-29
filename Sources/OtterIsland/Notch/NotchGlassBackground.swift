@@ -1,13 +1,11 @@
 import SwiftUI
 
-/// Fond de l'encoche : Liquid Glass natif sur macOS 26+, repli en matériau
-/// translucide sur les systèmes plus anciens (le projet cible macOS 14+).
-///
-/// Repliée : reste sombre pour se fondre avec l'encoche physique du Mac (pas
-/// de texte dessus). Agrandie : verre clair façon Centre de contrôle macOS —
-/// le fond sombre + texte blanc d'origine était peu lisible sur fond d'écran
-/// clair ; le Centre de contrôle d'Apple utilise justement un verre clair
-/// avec du texte sombre, quel que soit le fond derrière.
+/// Fond de l'encoche : noir plein et opaque, repliée comme agrandie — comme
+/// TheBoringNotch et les autres apps d'encoche établies (`background(.black)`,
+/// jamais de verre translucide sur la carte principale). Un essai de "liquid
+/// glass" clair façon Centre de contrôle a été tenté puis abandonné : trop
+/// transparent en pratique (on voyait le bureau/les fenêtres derrière), donc
+/// illisible malgré le texte sombre. Le noir plein règle ça définitivement.
 struct NotchGlassBackground: View {
     /// Largeur réelle de l'encoche physique (nil si le Mac n'en a pas).
     let topWidth: CGFloat?
@@ -21,13 +19,6 @@ struct NotchGlassBackground: View {
     }
 
     var body: some View {
-        Color.clear
-            .liquidGlassBackground(
-                in: shape,
-                tint: isExpanded ? .white.opacity(0.55) : .black.opacity(0.55)
-            )
-            .overlay(
-                shape.stroke(Color.white.opacity(isExpanded ? 0.5 : 0), lineWidth: 0.75)
-            )
+        shape.fill(Color.black)
     }
 }
