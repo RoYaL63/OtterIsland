@@ -12,7 +12,7 @@ struct MediaControlsView: View {
             }
             control("forward.fill") { provider.nextTrack() }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(.black)
     }
 
     private func control(_ symbol: String, action: @escaping () -> Void) -> some View {

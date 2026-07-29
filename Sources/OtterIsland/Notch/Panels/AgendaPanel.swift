@@ -10,7 +10,7 @@ struct AgendaPanel: View {
             if !calendar.hasAccess {
                 Text("Agenda non autorisé")
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.black.opacity(0.7))
                 Button("Autoriser") { calendar.requestAccess() }
                     .buttonStyle(.plain)
                     .font(.caption.weight(.semibold))
@@ -18,7 +18,7 @@ struct AgendaPanel: View {
             } else if calendar.events.isEmpty && calendar.reminders.isEmpty {
                 Text("Rien de prévu 🎉")
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.black.opacity(0.6))
             } else {
                 ForEach(calendar.events.prefix(2)) { event in
                     eventRow(event)
@@ -44,12 +44,12 @@ struct AgendaPanel: View {
             .help("Marquer comme fait")
             Text(reminder.title)
                 .font(.caption.weight(.medium))
-                .foregroundStyle(.white)
+                .foregroundStyle(.black)
                 .lineLimit(1)
             Spacer(minLength: 4)
             Text(reminder.dueText)
                 .font(.caption2)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.black.opacity(0.5))
         }
     }
 
@@ -61,12 +61,12 @@ struct AgendaPanel: View {
                 .foregroundStyle(event.color)
             Text(event.title)
                 .font(.caption.weight(.medium))
-                .foregroundStyle(.white)
+                .foregroundStyle(.black)
                 .lineLimit(1)
             Spacer(minLength: 4)
             Text(event.timeText)
                 .font(.caption2)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.black.opacity(0.5))
         }
 
         return Group {

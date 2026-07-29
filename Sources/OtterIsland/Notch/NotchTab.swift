@@ -8,6 +8,7 @@ enum NotchTab: String, CaseIterable, Identifiable {
     case shelf
     case clipboard
     case mirror
+    case screenshots
 
     var id: String { rawValue }
 
@@ -19,6 +20,7 @@ enum NotchTab: String, CaseIterable, Identifiable {
         case .shelf: return "tray.full.fill"
         case .clipboard: return "doc.on.clipboard"
         case .mirror: return "camera.fill"
+        case .screenshots: return "camera.viewfinder"
         }
     }
 
@@ -30,6 +32,7 @@ enum NotchTab: String, CaseIterable, Identifiable {
         case .shelf: return "Étagère"
         case .clipboard: return "Presse-papier"
         case .mirror: return "Miroir"
+        case .screenshots: return "Captures"
         }
     }
 }

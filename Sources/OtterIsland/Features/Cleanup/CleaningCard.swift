@@ -14,17 +14,17 @@ struct CleaningCard: View {
                     .foregroundStyle(.orange)
                 Text(permissionDenied ? "Verrouillage impossible" : "Clavier verrouillé")
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.black)
             }
 
             if permissionDenied {
                 Text("Autorise OtterIsland dans Réglages Système › Confidentialité et sécurité › Accessibilité, puis réessaie.")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(.black.opacity(0.65))
             } else {
                 Text("Nettoie tranquillement, aucune frappe ne passe.")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(.black.opacity(0.65))
             }
 
             Button(action: onUnlock) {
@@ -34,8 +34,8 @@ struct CleaningCard: View {
             .buttonStyle(.plain)
             .font(.system(.caption, design: .rounded).weight(.semibold))
             .padding(.vertical, 5)
-            .foregroundStyle(.white)
-            .liquidGlassBackground(in: Capsule(), tint: .white.opacity(0.18))
+            .foregroundStyle(.black)
+            .liquidGlassBackground(in: Capsule(), tint: .black.opacity(0.18))
         }
     }
 }

@@ -11,10 +11,10 @@ struct ClipboardPanel: View {
             if clipboard.items.isEmpty {
                 Text("Presse-papier vide")
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.black.opacity(0.6))
                 Text("Copie quelque chose, ça apparaîtra ici.")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(.black.opacity(0.4))
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 3) {
@@ -27,7 +27,7 @@ struct ClipboardPanel: View {
                     Text("Vider").font(.caption2)
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.black.opacity(0.5))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -46,14 +46,14 @@ struct ClipboardPanel: View {
                         .clipShape(RoundedRectangle(cornerRadius: 3))
                     Text("Image")
                         .font(.caption2)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.black)
                 } else if let text = item.text {
                     Image(systemName: "text.alignleft")
                         .font(.system(size: 8))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(.black.opacity(0.5))
                     Text(text.replacingOccurrences(of: "\n", with: " "))
                         .font(.caption2)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.black)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 0)

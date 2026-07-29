@@ -29,10 +29,10 @@ struct OtterStatusPanel: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("OtterIsland")
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(.black)
             Text(moodLine)
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.black.opacity(0.7))
                 .lineLimit(2)
 
             if let event = calendar.events.first {
@@ -50,7 +50,7 @@ struct OtterStatusPanel: View {
                     if let minutes = battery.minutesRemaining {
                         Text(timeText(minutes))
                             .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.5))
+                            .foregroundStyle(.black.opacity(0.5))
                     }
                 }
                 Spacer(minLength: 0)
@@ -69,12 +69,12 @@ struct OtterStatusPanel: View {
                 .foregroundStyle(event.color)
             Text(event.title)
                 .font(.caption2.weight(.medium))
-                .foregroundStyle(.white)
+                .foregroundStyle(.black)
                 .lineLimit(1)
             Spacer(minLength: 4)
             Text(event.timeText)
                 .font(.caption2)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.black.opacity(0.5))
         }
         return Group {
             if let url = event.meetingURL {
@@ -92,10 +92,10 @@ struct OtterStatusPanel: View {
         HStack(spacing: 6) {
             Image(systemName: "music.note")
                 .font(.system(size: 9))
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(.black.opacity(0.6))
             Text("\(track.title) — \(track.artist)")
                 .font(.caption2)
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(.black.opacity(0.8))
                 .lineLimit(1)
             Spacer(minLength: 4)
             MediaControlsView(provider: nowPlaying)
@@ -119,25 +119,31 @@ struct OtterStatusPanel: View {
                 Text(pomodoro.display)
                     .font(.system(.caption2, design: .monospaced))
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(.black)
         }
         .buttonStyle(.plain)
         .help("Minuteur Pomodoro")
     }
 
     private var quickActions: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Button { QuickActions.launchClaudeCode() } label: {
-                Image(systemName: "terminal.fill").font(.system(size: 11))
+                Image(systemName: "terminal.fill")
+                    .font(.system(size: 15))
+                    .frame(width: 30, height: 30)
             }
             .buttonStyle(.plain)
+            .liquidGlassBackground(in: Circle(), tint: .orange.opacity(0.25))
             .foregroundStyle(.orange)
             .help("Lancer Claude Code")
 
             Button(action: onToggleCleanup) {
-                Image(systemName: "sparkles").font(.system(size: 11))
+                Image(systemName: "sparkles")
+                    .font(.system(size: 15))
+                    .frame(width: 30, height: 30)
             }
             .buttonStyle(.plain)
+            .liquidGlassBackground(in: Circle(), tint: .cyan.opacity(0.25))
             .foregroundStyle(.cyan)
             .help("Verrouiller le clavier pour nettoyer")
         }

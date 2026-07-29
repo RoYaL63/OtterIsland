@@ -15,22 +15,29 @@ final class ScreenshotWatcher: ObservableObject {
     }
 
     @Published private(set) var latest: Shot?
+    /// Historique persistant des captures, le plus récent en premier — alimente
+    /// l'onglet "Captures" au lieu du seul aperçu transitoire de `latest`.
+    @Published private(set) var history: [URL] = []
 
     private let directory: URL
     private var source: DispatchSourceFileSystemObject?
     private var directoryHandle: CInt = -1
     private var seenPaths: Set<String> = []
+    private let fileName = "screenshots.json"
 
     private static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "heic", "tiff"]
 
     init() {
         directory = Self.screenshotDirectory()
+        let paths = Persistence.load([String].self, from: fileName) ?? []
+        history = paths.map { URL(fileURLWithPath: $0) }
+            .filter { FileManager.default.fileExists(atPath: $0.path) }
     }
 
     func start() {
         // Écarte ce qui existe déjà dans le dossier : seules les captures prises
-        // après le lancement doivent déclencher un aperçu.
-        seenPaths = Set(currentImageFiles().map(\.path))
+        // après le lancement doivent déclencher un aperçu / entrer dans l'historique.
+        seenPaths = Set(currentImageFiles().map(\.path)).union(history.map(\.path))
         watch()
     }
 
@@ -87,10 +94,26 @@ final class ScreenshotWatcher: ObservableObject {
         guard FileManager.default.fileExists(atPath: url.path),
               let image = NSImage(contentsOf: url) else { return }
         latest = Shot(url: url, image: image)
+        history.insert(url, at: 0)
+        persist()
     }
 
     func clear() {
         latest = nil
+    }
+
+    func remove(_ url: URL) {
+        history.removeAll { $0 == url }
+        persist()
+    }
+
+    func clearHistory() {
+        history.removeAll()
+        persist()
+    }
+
+    private func persist() {
+        Persistence.save(history.map(\.path), to: fileName)
     }
 
     deinit {

@@ -11,10 +11,10 @@ struct NotchTabBar: View {
                     withAnimation(.easeInOut(duration: 0.15)) { selection = tab }
                 } label: {
                     Image(systemName: tab.icon)
-                        .font(.system(size: 11, weight: .semibold))
-                        .frame(width: 22, height: 22)
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 30, height: 30)
                         .modifier(SelectedTabBackground(isSelected: selection == tab))
-                        .foregroundStyle(selection == tab ? .white : .white.opacity(0.5))
+                        .foregroundStyle(selection == tab ? .black : .black.opacity(0.4))
                 }
                 .buttonStyle(.plain)
                 .help(tab.title)
@@ -28,7 +28,7 @@ private struct SelectedTabBackground: ViewModifier {
 
     func body(content: Content) -> some View {
         if isSelected {
-            content.liquidGlassBackground(in: Circle(), tint: .white.opacity(0.3))
+            content.liquidGlassBackground(in: Circle(), tint: .black.opacity(0.1))
         } else {
             content
         }

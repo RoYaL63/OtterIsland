@@ -152,6 +152,8 @@ struct NotchRootView: View {
             }
         case .mirror:
             MirrorPanel()
+        case .screenshots:
+            ScreenshotsPanel(screenshot: viewModel.screenshot)
         }
     }
 }
