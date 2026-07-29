@@ -4,6 +4,10 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var settings: OtterSettings
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
+    @State private var selectedScreenID: String = {
+        guard let screen = NSScreen.main else { return "built-in" }
+        return ScreenIdentifier.stableID(for: screen)
+    }()
 
     var body: some View {
         TabView {
@@ -55,19 +59,40 @@ struct SettingsView: View {
 
     private var notch: some View {
         Form {
+            Picker("Écran", selection: $selectedScreenID) {
+                ForEach(NSScreen.screens, id: \.self) { screen in
+                    Text(ScreenIdentifier.label(for: screen))
+                        .tag(ScreenIdentifier.stableID(for: screen))
+                }
+            }
+
             VStack(alignment: .leading) {
-                Text("Ajustement largeur : \(Int(settings.notchWidthOffset)) pt")
-                Slider(value: $settings.notchWidthOffset, in: -40...40, step: 1)
+                Text("Ajustement largeur : \(Int(settings.widthOffset(for: selectedScreenID))) pt")
+                Slider(value: widthBinding, in: -40...40, step: 1)
             }
             VStack(alignment: .leading) {
-                Text("Débordement carte étendue : \(Int(settings.expandedDropOffset)) pt")
-                Slider(value: $settings.expandedDropOffset, in: 0...80, step: 1)
+                Text("Débordement carte étendue : \(Int(settings.dropOffset(for: selectedScreenID))) pt")
+                Slider(value: dropBinding, in: 0...80, step: 1)
             }
-            Text("Redémarre l'affichage après un changement de largeur.")
+            Text("Réglages propres à l'écran sélectionné ci-dessus. Redémarre l'affichage après un changement de largeur.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .padding()
+    }
+
+    private var widthBinding: Binding<Double> {
+        Binding(
+            get: { settings.widthOffset(for: selectedScreenID) },
+            set: { settings.setWidthOffset($0, for: selectedScreenID) }
+        )
+    }
+
+    private var dropBinding: Binding<Double> {
+        Binding(
+            get: { settings.dropOffset(for: selectedScreenID) },
+            set: { settings.setDropOffset($0, for: selectedScreenID) }
+        )
     }
 
     private var about: some View {

@@ -36,3 +36,4 @@ targets:
         INFOPLIST_KEY_NSAppleEventsUsageDescription: "OtterIsland lit l'état de lecture de Spotify et Apple Music pour animer la loutre."
         INFOPLIST_KEY_LSMinimumSystemVersion: "14.0"
         COMBINE_HIDPI_IMAGES: true
+    scheme: {}

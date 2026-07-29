@@ -40,13 +40,25 @@ final class OtterSettings: ObservableObject {
     }
 
     /// Ajustement fin de la largeur de l'encoche, en points. Négatif = plus étroit.
+    /// Sert de valeur par défaut pour un écran sans réglage propre.
     @Published var notchWidthOffset: Double {
         didSet { defaults.set(notchWidthOffset, forKey: Keys.widthOffset) }
     }
 
-    /// Décalage vertical de la carte étendue sous l'encoche.
+    /// Décalage vertical de la carte étendue sous l'encoche. Valeur par défaut,
+    /// idem `notchWidthOffset`.
     @Published var expandedDropOffset: Double {
         didSet { defaults.set(expandedDropOffset, forKey: Keys.dropOffset) }
+    }
+
+    /// Overrides par écran (clé = `ScreenIdentifier.stableID`), pour les setups
+    /// multi-écrans où chaque moniteur a une géométrie différente.
+    @Published var perScreenWidthOffset: [String: Double] {
+        didSet { defaults.set(perScreenWidthOffset, forKey: Keys.perScreenWidthOffset) }
+    }
+
+    @Published var perScreenDropOffset: [String: Double] {
+        didSet { defaults.set(perScreenDropOffset, forKey: Keys.perScreenDropOffset) }
     }
 
     init() {
@@ -70,6 +82,26 @@ final class OtterSettings: ObservableObject {
         clipboardUseCmdV = defaults.bool(forKey: Keys.clipboardUseCmdV)
         notchWidthOffset = defaults.double(forKey: Keys.widthOffset)
         expandedDropOffset = defaults.double(forKey: Keys.dropOffset)
+        perScreenWidthOffset = defaults.dictionary(forKey: Keys.perScreenWidthOffset) as? [String: Double] ?? [:]
+        perScreenDropOffset = defaults.dictionary(forKey: Keys.perScreenDropOffset) as? [String: Double] ?? [:]
+    }
+
+    /// Largeur pour un écran donné : son réglage propre s'il existe, sinon la valeur par défaut.
+    func widthOffset(for screenID: String) -> Double {
+        perScreenWidthOffset[screenID] ?? notchWidthOffset
+    }
+
+    func setWidthOffset(_ value: Double, for screenID: String) {
+        perScreenWidthOffset[screenID] = value
+    }
+
+    /// Débordement pour un écran donné : son réglage propre s'il existe, sinon la valeur par défaut.
+    func dropOffset(for screenID: String) -> Double {
+        perScreenDropOffset[screenID] ?? expandedDropOffset
+    }
+
+    func setDropOffset(_ value: Double, for screenID: String) {
+        perScreenDropOffset[screenID] = value
     }
 
     private enum Keys {
@@ -82,5 +114,7 @@ final class OtterSettings: ObservableObject {
         static let clipboardUseCmdV = "clipboardUseCmdV"
         static let widthOffset = "notchWidthOffset"
         static let dropOffset = "expandedDropOffset"
+        static let perScreenWidthOffset = "perScreenWidthOffset"
+        static let perScreenDropOffset = "perScreenDropOffset"
     }
 }

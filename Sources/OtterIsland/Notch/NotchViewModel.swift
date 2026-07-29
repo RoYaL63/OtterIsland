@@ -7,6 +7,8 @@ import Combine
 final class NotchViewModel: ObservableObject {
     @Published var isExpanded = false
     @Published var metrics: NotchMetrics?
+    /// Identifiant stable de l'écran actif, pour appliquer les réglages par écran.
+    @Published var currentScreenID: String?
     @Published var otterMood: OtterMood = .idle
     /// Dernier événement ponctuel joué par la loutre (coquillage, etc.).
     @Published var otterEvent: OtterEventToken?

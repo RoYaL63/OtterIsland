@@ -11,7 +11,8 @@ struct NotchRootView: View {
 
     private var currentWidth: CGFloat { viewModel.isExpanded ? 460 : notchWidth }
     private var currentHeight: CGFloat {
-        viewModel.isExpanded ? 176 + CGFloat(settings.expandedDropOffset) : notchHeight
+        let dropOffset = settings.dropOffset(for: viewModel.currentScreenID ?? "")
+        return viewModel.isExpanded ? 176 + CGFloat(dropOffset) : notchHeight
     }
 
     var body: some View {

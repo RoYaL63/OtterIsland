@@ -1,0 +1,54 @@
+name: Release
+
+# Se déclenche sur un tag de version (ex. v0.1.0), ou manuellement depuis l'onglet Actions.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Installer XcodeGen
+        run: brew install xcodegen
+
+      - name: Générer le projet Xcode
+        run: xcodegen generate
+
+      - name: Build Release (signature ad-hoc, pas de compte développeur payant)
+        run: |
+          xcodebuild \
+            -project OtterIsland.xcodeproj \
+            -scheme OtterIsland \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=YES \
+            DEVELOPMENT_TEAM="" \
+            ENABLE_HARDENED_RUNTIME=NO \
+            build
+
+      - name: Empaqueter le .app en zip
+        run: |
+          APP_PATH="build/Build/Products/Release/OtterIsland.app"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" OtterIsland.zip
+
+      - name: Créer la Release GitHub
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" OtterIsland.zip \
+            --title "OtterIsland ${{ github.ref_name }}" \
+            --generate-notes \
+            --notes "Build non signé (pas de compte Apple Developer payant). Au premier lancement, macOS va bloquer l'app : voir les instructions dans le README pour l'autoriser."

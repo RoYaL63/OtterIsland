@@ -30,6 +30,24 @@ Milestone 1 (ce dépôt) est un squelette qui **compile et tourne** sur un Mac �
 
 La suite des features est détaillée dans [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## Télécharger
+
+Chaque tag `vX.Y.Z` poussé sur GitHub déclenche une build automatique (GitHub Actions) qui publie un `OtterIsland.zip` dans l'onglet [Releases](../../releases).
+
+L'app n'est **pas signée** (pas de compte Apple Developer payant) : au premier lancement, macOS va bloquer l'ouverture ("Apple n'a pas pu vérifier..."). Pour l'autoriser :
+
+1. Dézippe et glisse `OtterIsland.app` dans `/Applications`.
+2. Double-clique dessus. macOS refuse de l'ouvrir.
+3. Va dans **Réglages Système → Confidentialité et sécurité**, descends jusqu'à la mention d'OtterIsland bloquée, clique **Ouvrir quand même**.
+
+Ou en une commande, avant le premier lancement :
+
+```bash
+xattr -cr /Applications/OtterIsland.app
+```
+
+Cette étape n'est nécessaire qu'une fois par machine et par version.
+
 ## Build
 
 Tu es sur Windows, la compilation se fait sur le MacBook Air M5. Sur le Mac:

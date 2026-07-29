@@ -38,11 +38,13 @@ final class NotchWindowController {
 
     func showOnActiveScreen() {
         guard let screen = NotchMetrics.activeScreen() else { return }
+        let screenID = ScreenIdentifier.stableID(for: screen)
         let metrics = NotchMetrics.current(
             for: screen,
-            widthOffset: CGFloat(settings.notchWidthOffset)
+            widthOffset: CGFloat(settings.widthOffset(for: screenID))
         )
         viewModel.metrics = metrics
+        viewModel.currentScreenID = screenID
 
         let rect = panelFrame(for: metrics)
         let win = window ?? makeWindow(rect: rect)
