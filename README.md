@@ -34,19 +34,13 @@ La suite des features est détaillée dans [docs/ROADMAP.md](docs/ROADMAP.md).
 
 Chaque tag `vX.Y.Z` poussé sur GitHub déclenche une build automatique (GitHub Actions) qui publie un `OtterIsland.zip` dans l'onglet [Releases](../../releases).
 
-L'app n'est **pas signée** (pas de compte Apple Developer payant) : au premier lancement, macOS va bloquer l'ouverture ("Apple n'a pas pu vérifier..."). Pour l'autoriser :
-
-1. Dézippe et glisse `OtterIsland.app` dans `/Applications`.
-2. Double-clique dessus. macOS refuse de l'ouvrir.
-3. Va dans **Réglages Système → Confidentialité et sécurité**, descends jusqu'à la mention d'OtterIsland bloquée, clique **Ouvrir quand même**.
-
-Ou en une commande, avant le premier lancement :
+L'app n'est **pas signée** (pas de compte Apple Developer payant) : au premier lancement, macOS va bloquer l'ouverture ("Apple n'a pas pu vérifier..."). Pour l'autoriser, dézippe et glisse `OtterIsland.app` dans `/Applications`, puis dans le Terminal :
 
 ```bash
-xattr -cr /Applications/OtterIsland.app
+sudo spctl --add /Applications/OtterIsland.app
 ```
 
-Cette étape n'est nécessaire qu'une fois par machine et par version.
+(demande ton mot de passe admin). Sur macOS 15/26+, Gatekeeper rejette purement et simplement les apps ad-hoc au téléchargement — `xattr -cr` seul (qui suffisait sur les anciennes versions) ne change rien à ce verdict, vérifié avec `spctl -a -vv`. La commande `spctl --add` reste nécessaire à chaque nouvelle version téléchargée, la signature étant recréée à chaque build.
 
 ## Build
 
