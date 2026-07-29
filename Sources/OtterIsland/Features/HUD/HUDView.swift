@@ -38,6 +38,6 @@ struct HUDView: View {
         }
         .padding(.horizontal, 14)
         .frame(width: 200, height: 34)
-        .background(.black, in: Capsule())
+        .liquidGlassBackground(in: Capsule())
     }
 }

@@ -8,11 +8,6 @@ final class HotKey {
     private var eventHandler: EventHandlerRef?
     private let handler: () -> Void
 
-    /// Code de touche V.
-    static let keyV = UInt32(kVK_ANSI_V)
-    static let cmd = UInt32(cmdKey)
-    static let cmdShift = UInt32(cmdKey | shiftKey)
-
     init(keyCode: UInt32, modifiers: UInt32, handler: @escaping () -> Void) {
         self.handler = handler
         install(keyCode: keyCode, modifiers: modifiers)

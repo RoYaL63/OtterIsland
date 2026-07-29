@@ -38,7 +38,7 @@ struct ShelfPanel: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-            handleDrop(providers)
+            shelf.handleDrop(providers)
         }
     }
 

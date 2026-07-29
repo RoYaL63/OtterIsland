@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Panneau Agenda : prochains évènements et rappels (rempli par CalendarProvider).
 struct AgendaPanel: View {
@@ -20,7 +21,7 @@ struct AgendaPanel: View {
                     .foregroundStyle(.white.opacity(0.6))
             } else {
                 ForEach(calendar.events.prefix(2)) { event in
-                    row(icon: "calendar", title: event.title, subtitle: event.timeText, color: event.color)
+                    eventRow(event)
                 }
                 ForEach(calendar.reminders.prefix(2)) { reminder in
                     reminderRow(reminder)
@@ -52,19 +53,30 @@ struct AgendaPanel: View {
         }
     }
 
-    private func row(icon: String, title: String, subtitle: String, color: Color) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
+    /// Cliquable si un lien de visio est associé : l'ouvre directement.
+    private func eventRow(_ event: AgendaEvent) -> some View {
+        let content = HStack(spacing: 6) {
+            Image(systemName: event.meetingURL != nil ? "video.fill" : "calendar")
                 .font(.system(size: 9))
-                .foregroundStyle(color)
-            Text(title)
+                .foregroundStyle(event.color)
+            Text(event.title)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.white)
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Text(subtitle)
+            Text(event.timeText)
                 .font(.caption2)
                 .foregroundStyle(.white.opacity(0.5))
+        }
+
+        return Group {
+            if let url = event.meetingURL {
+                Button { NSWorkspace.shared.open(url) } label: { content }
+                    .buttonStyle(.plain)
+                    .help("Rejoindre la visio")
+            } else {
+                content
+            }
         }
     }
 }

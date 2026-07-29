@@ -13,14 +13,24 @@ struct NotchTabBar: View {
                     Image(systemName: tab.icon)
                         .font(.system(size: 11, weight: .semibold))
                         .frame(width: 22, height: 22)
-                        .background(
-                            Circle().fill(selection == tab ? Color.white.opacity(0.22) : .clear)
-                        )
+                        .modifier(SelectedTabBackground(isSelected: selection == tab))
                         .foregroundStyle(selection == tab ? .white : .white.opacity(0.5))
                 }
                 .buttonStyle(.plain)
                 .help(tab.title)
             }
+        }
+    }
+}
+
+private struct SelectedTabBackground: ViewModifier {
+    let isSelected: Bool
+
+    func body(content: Content) -> some View {
+        if isSelected {
+            content.liquidGlassBackground(in: Circle(), tint: .white.opacity(0.3))
+        } else {
+            content
         }
     }
 }

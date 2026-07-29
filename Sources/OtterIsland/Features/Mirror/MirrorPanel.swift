@@ -1,13 +1,42 @@
 import SwiftUI
 import AVFoundation
+import AppKit
 
 /// Panneau Miroir : aperçu de la caméra frontale. La session ne tourne que
 /// tant que l'onglet est affiché.
 struct MirrorPanel: View {
+    @State private var authStatus = AVCaptureDevice.authorizationStatus(for: .video)
+
     var body: some View {
-        CameraPreview()
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        Group {
+            switch authStatus {
+            case .denied, .restricted:
+                deniedHint
+            default:
+                CameraPreview()
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var deniedHint: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "camera.fill")
+                .font(.system(size: 16))
+                .foregroundStyle(.white.opacity(0.4))
+            Text("Caméra non autorisée")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.7))
+            Button("Ouvrir les réglages") {
+                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.plain)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.orange)
+        }
     }
 }
 
@@ -19,7 +48,9 @@ final class CameraPreviewNSView: NSView {
     init() {
         super.init(frame: .zero)
         wantsLayer = true
-        previewLayer.videoGravity = .resizeAspectFill
+        // .resizeAspect (et non .resizeAspectFill) : on voit tout le champ de la
+        // caméra, quitte à avoir des bandes, plutôt qu'un recadrage qui coupe le visage.
+        previewLayer.videoGravity = .resizeAspect
         previewLayer.session = session
         layer = previewLayer
     }

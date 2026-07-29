@@ -1,10 +1,14 @@
 import SwiftUI
+import AppKit
 
-/// Panneau Loutre : petit mot d'humeur et batterie.
+/// Panneau Loutre : petit mot d'humeur, batterie, et un coup d'œil sur le
+/// prochain rendez-vous / la musique en cours sans changer d'onglet.
 struct OtterStatusPanel: View {
     let mood: OtterMood
     @ObservedObject var battery: BatteryMonitor
     @ObservedObject var pomodoro: PomodoroTimer
+    @ObservedObject var calendar: CalendarProvider
+    @ObservedObject var nowPlaying: AppleScriptNowPlaying
     let showBattery: Bool
 
     private var moodLine: String {
@@ -28,6 +32,14 @@ struct OtterStatusPanel: View {
                 .font(.caption)
                 .foregroundStyle(.white.opacity(0.7))
                 .lineLimit(2)
+
+            if let event = calendar.events.first {
+                nextEventRow(event)
+            }
+            if let track = nowPlaying.current {
+                musicRow(track)
+            }
+
             Spacer(minLength: 0)
 
             HStack(spacing: 10) {
@@ -45,6 +57,49 @@ struct OtterStatusPanel: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    /// Prochain évènement du jour, cliquable s'il a un lien de visio.
+    private func nextEventRow(_ event: AgendaEvent) -> some View {
+        let content = HStack(spacing: 6) {
+            Image(systemName: event.meetingURL != nil ? "video.fill" : "calendar")
+                .font(.system(size: 9))
+                .foregroundStyle(event.color)
+            Text(event.title)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Text(event.timeText)
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.5))
+        }
+        return Group {
+            if let url = event.meetingURL {
+                Button { NSWorkspace.shared.open(url) } label: { content }
+                    .buttonStyle(.plain)
+                    .help("Rejoindre la visio")
+            } else {
+                content
+            }
+        }
+    }
+
+    /// Morceau en cours + contrôles, directement dans le panneau par défaut.
+    private func musicRow(_ track: NowPlayingInfo) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "music.note")
+                .font(.system(size: 9))
+                .foregroundStyle(.white.opacity(0.6))
+            Text("\(track.title) — \(track.artist)")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.8))
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            MediaControlsView(provider: nowPlaying)
+                .scaleEffect(0.75)
+                .frame(width: 60)
+        }
     }
 
     private func timeText(_ minutes: Int) -> String {

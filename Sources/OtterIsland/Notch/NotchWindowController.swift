@@ -23,13 +23,15 @@ final class NotchWindowController {
             gestures.start()
         }
         if settings.clipboardEnabled {
-            installClipboardHotKey(useCmdV: settings.clipboardUseCmdV, viewModel: viewModel)
+            installClipboardHotKey(viewModel: viewModel)
         }
     }
 
-    private func installClipboardHotKey(useCmdV: Bool, viewModel: NotchViewModel) {
-        let modifiers = useCmdV ? HotKey.cmd : HotKey.cmdShift
-        clipboardHotKey = HotKey(keyCode: HotKey.keyV, modifiers: modifiers) { [weak viewModel] in
+    private func installClipboardHotKey(viewModel: NotchViewModel) {
+        clipboardHotKey = HotKey(
+            keyCode: UInt32(settings.clipboardHotKeyCode),
+            modifiers: UInt32(settings.clipboardHotKeyModifiers)
+        ) { [weak viewModel] in
             MainActor.assumeIsolated {
                 viewModel?.openClipboard()
             }

@@ -5,6 +5,7 @@ import SwiftUI
 struct NotchRootView: View {
     @ObservedObject var viewModel: NotchViewModel
     @EnvironmentObject var settings: OtterSettings
+    @State private var isFileDragTargeted = false
 
     private var notchWidth: CGFloat { viewModel.metrics?.notchSize.width ?? 200 }
     private var notchHeight: CGFloat { viewModel.metrics?.notchSize.height ?? 32 }
@@ -22,6 +23,14 @@ struct NotchRootView: View {
                 HUDView(state: hud)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
+            if let shot = viewModel.screenshotPreview, !viewModel.isExpanded {
+                ScreenshotPreviewView(
+                    shot: shot,
+                    onOpen: { viewModel.openScreenshotPreview() },
+                    onDismiss: { viewModel.dismissScreenshotPreview() }
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -30,16 +39,7 @@ struct NotchRootView: View {
 
     private var island: some View {
         ZStack(alignment: .top) {
-            // Loutre qui sort la tête sous l'encoche au repos, derrière la forme noire.
-            if !viewModel.isExpanded && settings.otterEnabled {
-                OtterSceneView(mood: viewModel.otterMood, event: viewModel.otterEvent)
-                    .frame(width: 30, height: 30)
-                    .offset(y: notchHeight - 8)
-                    .transition(.opacity)
-            }
-
-            NotchShape(bottomRadius: viewModel.isExpanded ? 24 : 10)
-                .fill(Color.black)
+            NotchGlassBackground(bottomRadius: viewModel.isExpanded ? 24 : 10)
                 .shadow(color: .black.opacity(viewModel.isExpanded ? 0.4 : 0), radius: 12, y: 6)
 
             if viewModel.isExpanded {
@@ -53,6 +53,16 @@ struct NotchRootView: View {
         .contentShape(Rectangle())
         .onHover { hovering in
             viewModel.setExpanded(hovering)
+        }
+        // Un fichier glissé au-dessus de l'encoche l'ouvre sur l'Étagère, sinon
+        // impossible d'y déposer quoi que ce soit tant qu'elle reste repliée.
+        .onDrop(of: [.fileURL], isTargeted: $isFileDragTargeted) { providers in
+            viewModel.shelf.handleDrop(providers)
+        }
+        .onChange(of: isFileDragTargeted) { _, targeted in
+            guard targeted else { return }
+            viewModel.selectedTab = .shelf
+            viewModel.setExpanded(true)
         }
     }
 
@@ -107,6 +117,8 @@ struct NotchRootView: View {
                 mood: viewModel.otterMood,
                 battery: viewModel.battery,
                 pomodoro: viewModel.pomodoro,
+                calendar: viewModel.calendar,
+                nowPlaying: viewModel.nowPlaying,
                 showBattery: settings.showBattery
             )
         case .music:

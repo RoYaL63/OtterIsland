@@ -45,14 +45,28 @@ struct SettingsView: View {
             Divider()
 
             Toggle("Presse-papier (raccourci global)", isOn: $settings.clipboardEnabled)
-            Toggle("Ouvrir avec Cmd+V (au lieu de Cmd+Shift+V)", isOn: $settings.clipboardUseCmdV)
-            Text("Cmd+V écrase le collage système. Redémarre OtterIsland après changement.")
+            HStack {
+                Text("Raccourci d'ouverture")
+                Spacer()
+                ShortcutRecorderView(
+                    keyCode: $settings.clipboardHotKeyCode,
+                    modifiers: $settings.clipboardHotKeyModifiers
+                )
+            }
+            Text("Clique pour enregistrer une nouvelle combinaison. Redémarre OtterIsland après changement.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Button("Autoriser l'Accessibilité (collage auto)") {
                 Paster.ensureAccessibility()
             }
             .font(.caption)
+
+            Divider()
+
+            Toggle("Aperçu des captures d'écran dans l'encoche", isOn: $settings.screenshotPreviewEnabled)
+            Text("Redémarre OtterIsland après changement.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .padding()
     }

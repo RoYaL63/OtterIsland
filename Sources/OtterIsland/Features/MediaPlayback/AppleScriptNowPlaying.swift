@@ -11,6 +11,9 @@ import Combine
 final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
     @Published private(set) var current: NowPlayingInfo?
     @Published private(set) var artwork: NSImage?
+    /// true si macOS a refusé l'Automatisation vers Spotify/Music/System Events :
+    /// sans ça, le script échoue en silence et rien ne semble jamais jouer.
+    @Published private(set) var automationDenied = false
 
     private var timer: Timer?
     private var lastArtworkKey: String?
@@ -29,13 +32,14 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
 
     private func poll() {
         DispatchQueue.global(qos: .utility).async {
-            let info = Self.runScript()
+            let result = Self.runScript()
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 // Ne republie que sur vrai changement, sinon la minuterie de
                 // sommeil de la loutre se relancerait à chaque sondage.
-                if self.current != info { self.current = info }
-                self.updateArtwork(for: info)
+                if self.current != result.info { self.current = result.info }
+                self.automationDenied = result.automationDenied
+                self.updateArtwork(for: result.info)
             }
         }
     }
@@ -97,10 +101,12 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
     return out
     """
 
-    private static func runScript() -> NowPlayingInfo? {
-        guard let output = runOsascript(stateScript) else { return nil }
+    private static func runScript() -> (info: NowPlayingInfo?, automationDenied: Bool) {
+        let result = runOsascript(stateScript)
+        if result.automationDenied { return (nil, true) }
+        guard let output = result.output else { return (nil, false) }
         let parts = output.components(separatedBy: "|")
-        guard parts.count >= 3, parts[0] == "playing" else { return nil }
+        guard parts.count >= 3, parts[0] == "playing" else { return (nil, false) }
 
         func number(_ index: Int) -> Double {
             guard parts.count > index else { return 0 }
@@ -108,7 +114,7 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
         }
         let artwork = parts.count > 5 && !parts[5].isEmpty ? parts[5] : nil
 
-        return NowPlayingInfo(
+        return (NowPlayingInfo(
             title: parts[1],
             artist: parts[2],
             isPlaying: true,
@@ -116,7 +122,7 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
             position: number(3),
             sampledAt: Date(),
             artworkURL: artwork
-        )
+        ), false)
     }
 
     private static func control(_ command: String) {
@@ -133,21 +139,28 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
         _ = runOsascript(script)
     }
 
-    private static func runOsascript(_ script: String) -> String? {
+    private static func runOsascript(_ script: String) -> (output: String?, automationDenied: Bool) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = ["-e", script]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
+        let outPipe = Pipe()
+        let errPipe = Pipe()
+        process.standardOutput = outPipe
+        process.standardError = errPipe
         do {
             try process.run()
             process.waitUntilExit()
         } catch {
-            return nil
+            return (nil, false)
         }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return String(data: data, encoding: .utf8)?
+        let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
+        let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+        let output = String(data: outData, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        let errorText = String(data: errData, encoding: .utf8) ?? ""
+        // -1743 = errAEEventNotPermitted : Automatisation refusée pour cette app.
+        // Le message est localisé selon la langue système, le code numérique ne l'est pas.
+        let denied = errorText.contains("-1743")
+        return (output, denied)
     }
 }

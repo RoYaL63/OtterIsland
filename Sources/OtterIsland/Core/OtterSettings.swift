@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import Carbon.HIToolbox
 
 /// État persistant de l'app. Simple wrapper UserDefaults exposé en @Published
 /// pour que les vues SwiftUI se rafraîchissent. Un réglage = une propriété.
@@ -33,10 +34,20 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(clipboardEnabled, forKey: Keys.clipboardEnabled) }
     }
 
-    /// Utilise Cmd+V au lieu de Cmd+Shift+V pour ouvrir le presse-papier.
-    /// Attention : écrase le collage système. Nécessite un redémarrage de l'app.
-    @Published var clipboardUseCmdV: Bool {
-        didSet { defaults.set(clipboardUseCmdV, forKey: Keys.clipboardUseCmdV) }
+    /// Raccourci global d'ouverture du presse-papier (keyCode + modificateurs Carbon,
+    /// capturés par `ShortcutRecorderView`). Par défaut Cmd+Shift+V. Nécessite un
+    /// redémarrage de l'app après changement (le hotkey n'est installé qu'au lancement).
+    @Published var clipboardHotKeyCode: Int {
+        didSet { defaults.set(clipboardHotKeyCode, forKey: Keys.clipboardHotKeyCode) }
+    }
+
+    @Published var clipboardHotKeyModifiers: Int {
+        didSet { defaults.set(clipboardHotKeyModifiers, forKey: Keys.clipboardHotKeyModifiers) }
+    }
+
+    /// Aperçu transitoire dans l'encoche à chaque nouvelle capture d'écran.
+    @Published var screenshotPreviewEnabled: Bool {
+        didSet { defaults.set(screenshotPreviewEnabled, forKey: Keys.screenshotPreviewEnabled) }
     }
 
     /// Ajustement fin de la largeur de l'encoche, en points. Négatif = plus étroit.
@@ -69,7 +80,9 @@ final class OtterSettings: ObservableObject {
             Keys.musicFollow: true,
             Keys.gestureControl: true,
             Keys.clipboardEnabled: true,
-            Keys.clipboardUseCmdV: false,
+            Keys.clipboardHotKeyCode: Int(kVK_ANSI_V),
+            Keys.clipboardHotKeyModifiers: Int(cmdKey | shiftKey),
+            Keys.screenshotPreviewEnabled: true,
             Keys.widthOffset: 0.0,
             Keys.dropOffset: 0.0,
         ])
@@ -79,7 +92,9 @@ final class OtterSettings: ObservableObject {
         musicFollow = defaults.bool(forKey: Keys.musicFollow)
         gestureControl = defaults.bool(forKey: Keys.gestureControl)
         clipboardEnabled = defaults.bool(forKey: Keys.clipboardEnabled)
-        clipboardUseCmdV = defaults.bool(forKey: Keys.clipboardUseCmdV)
+        clipboardHotKeyCode = defaults.integer(forKey: Keys.clipboardHotKeyCode)
+        clipboardHotKeyModifiers = defaults.integer(forKey: Keys.clipboardHotKeyModifiers)
+        screenshotPreviewEnabled = defaults.bool(forKey: Keys.screenshotPreviewEnabled)
         notchWidthOffset = defaults.double(forKey: Keys.widthOffset)
         expandedDropOffset = defaults.double(forKey: Keys.dropOffset)
         perScreenWidthOffset = defaults.dictionary(forKey: Keys.perScreenWidthOffset) as? [String: Double] ?? [:]
@@ -111,7 +126,9 @@ final class OtterSettings: ObservableObject {
         static let musicFollow = "musicFollow"
         static let gestureControl = "gestureControl"
         static let clipboardEnabled = "clipboardEnabled"
-        static let clipboardUseCmdV = "clipboardUseCmdV"
+        static let clipboardHotKeyCode = "clipboardHotKeyCode"
+        static let clipboardHotKeyModifiers = "clipboardHotKeyModifiers"
+        static let screenshotPreviewEnabled = "screenshotPreviewEnabled"
         static let widthOffset = "notchWidthOffset"
         static let dropOffset = "expandedDropOffset"
         static let perScreenWidthOffset = "perScreenWidthOffset"

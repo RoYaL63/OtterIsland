@@ -27,6 +27,21 @@ final class ShelfModel: ObservableObject {
         persist()
     }
 
+    /// Charge les fichiers d'un glisser-déposer (item providers). Partagé entre
+    /// l'étagère elle-même et la détection de survol sur l'encoche repliée.
+    @discardableResult
+    func handleDrop(_ providers: [NSItemProvider]) -> Bool {
+        var found = false
+        for provider in providers where provider.canLoadObject(ofClass: URL.self) {
+            found = true
+            _ = provider.loadObject(ofClass: URL.self) { [weak self] url, _ in
+                guard let url else { return }
+                Task { @MainActor in self?.add([url]) }
+            }
+        }
+        return found
+    }
+
     func clear() {
         items.removeAll()
         persist()

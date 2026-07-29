@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import Combine
 
 /// Agrège les providers et l'état d'affichage. Pas de logique métier ici :
@@ -23,10 +24,15 @@ final class NotchViewModel: ObservableObject {
     let volume = VolumeMonitor()
     let pomodoro = PomodoroTimer()
     let clipboard = ClipboardManager()
+    let screenshot = ScreenshotWatcher()
 
     /// HUD système transitoire (volume…), effacé automatiquement.
     @Published var hud: HUDState?
     private var hudClearTimer: Timer?
+
+    /// Aperçu transitoire de la dernière capture d'écran, effacé automatiquement.
+    @Published var screenshotPreview: ScreenshotWatcher.Shot?
+    private var screenshotClearTimer: Timer?
 
     /// Seuil de batterie sous lequel la loutre s'inquiète.
     private let lowBatteryThreshold = 15
@@ -49,9 +55,13 @@ final class NotchViewModel: ObservableObject {
         if settings.clipboardEnabled {
             clipboard.start()
         }
+        if settings.screenshotPreviewEnabled {
+            screenshot.start()
+        }
         wireMood()
         wireCelebrations()
         wireHUD()
+        wireScreenshot()
 
         // Rafraîchit la vue quand le morceau change (même si l'humeur ne bouge pas).
         nowPlaying.objectWillChange
@@ -104,6 +114,38 @@ final class NotchViewModel: ObservableObject {
                 withAnimation(.easeOut(duration: 0.2)) { self?.hud = nil }
             }
         }
+    }
+
+    /// Affiche un aperçu à chaque nouvelle capture d'écran détectée, effacé après 5 s.
+    private func wireScreenshot() {
+        screenshot.$latest
+            .compactMap { $0 }
+            .sink { [weak self] shot in
+                self?.showScreenshot(shot)
+            }
+            .store(in: &cancellables)
+    }
+
+    private func showScreenshot(_ shot: ScreenshotWatcher.Shot) {
+        screenshotPreview = shot
+        screenshotClearTimer?.invalidate()
+        screenshotClearTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                withAnimation(.easeOut(duration: 0.2)) { self?.screenshotPreview = nil }
+            }
+        }
+    }
+
+    /// Ouvre la capture dans l'app par défaut (Aperçu) et referme la carte.
+    func openScreenshotPreview() {
+        guard let shot = screenshotPreview else { return }
+        NSWorkspace.shared.open(shot.url)
+        dismissScreenshotPreview()
+    }
+
+    func dismissScreenshotPreview() {
+        screenshotClearTimer?.invalidate()
+        withAnimation(.easeOut(duration: 0.2)) { screenshotPreview = nil }
     }
 
     private func recomputeMood() {

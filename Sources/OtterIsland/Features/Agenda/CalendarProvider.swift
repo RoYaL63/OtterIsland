@@ -8,6 +8,8 @@ struct AgendaEvent: Identifiable {
     let title: String
     let start: Date
     let cgColor: CGColor?
+    /// Lien de visio (Meet/Zoom/Teams…) associé, s'il y en a un.
+    let meetingURL: URL?
 
     var color: Color { cgColor.map { Color($0) } ?? .blue }
     var timeText: String { AgendaFormat.time.string(from: start) }
@@ -80,10 +82,22 @@ final class CalendarProvider: ObservableObject {
                     id: $0.eventIdentifier ?? UUID().uuidString,
                     title: $0.title ?? "(sans titre)",
                     start: $0.startDate,
-                    cgColor: $0.calendar.cgColor
+                    cgColor: $0.calendar.cgColor,
+                    meetingURL: Self.meetingURL(for: $0)
                 )
             }
         events = Array(mapped)
+    }
+
+    /// `event.url` porte le lien de visio pour la plupart des évènements Google
+    /// Calendar synchronisés. À défaut, on cherche le premier lien http(s) dans
+    /// les notes (cas Zoom/Teams collés en texte).
+    private static func meetingURL(for event: EKEvent) -> URL? {
+        if let url = event.url { return url }
+        guard let notes = event.notes else { return nil }
+        let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+        let range = NSRange(notes.startIndex..., in: notes)
+        return detector?.firstMatch(in: notes, range: range)?.url
     }
 
     private func reloadReminders() {

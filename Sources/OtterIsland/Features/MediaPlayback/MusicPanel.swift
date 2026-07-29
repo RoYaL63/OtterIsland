@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Panneau Musique : pochette, morceau, barre de progression et contrôles.
 struct MusicPanel: View {
@@ -6,7 +7,9 @@ struct MusicPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            if let track = provider.current {
+            if provider.automationDenied {
+                automationDeniedHint
+            } else if let track = provider.current {
                 HStack(spacing: 8) {
                     artwork
                     VStack(alignment: .leading, spacing: 2) {
@@ -37,6 +40,27 @@ struct MusicPanel: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    /// macOS refuse l'Automatisation vers Spotify/Music tant qu'elle n'est pas
+    /// accordée manuellement : sans ce message, ça ressemble à un bug silencieux.
+    private var automationDeniedHint: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Autorisation requise")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.8))
+            Text("Réglages Système › Confidentialité et sécurité › Automatisation : autorise OtterIsland pour Spotify, Music et System Events.")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.5))
+            Button("Ouvrir les réglages") {
+                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.plain)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.orange)
+        }
     }
 
     @ViewBuilder
