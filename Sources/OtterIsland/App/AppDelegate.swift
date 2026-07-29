@@ -1,6 +1,9 @@
 import AppKit
 
 /// Monte la fenêtre d'encoche, un item de barre d'état, et garde les providers en vie.
+/// Tout ici tourne sur le thread principal (AppKit, NSPanel) : @MainActor lève
+/// l'ambiguïté d'isolation d'acteur avec NotchWindowController.
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = OtterSettings()
     private var notchController: NotchWindowController?
