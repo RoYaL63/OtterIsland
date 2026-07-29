@@ -19,13 +19,29 @@ struct NotchGlassBackground: View {
     let bottomRadius: CGFloat
     let isExpanded: Bool
 
+    /// « Réduire la transparence » (doc Adopting Liquid Glass) : repli en noir
+    /// quasi opaque, sans matériau.
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     private var shape: NotchShape {
         NotchShape(topWidth: topWidth, topHeight: topHeight, bottomRadius: bottomRadius)
     }
 
     var body: some View {
-        Color.clear
-            .liquidGlassBackground(in: shape, tint: .black.opacity(0.92))
+        Group {
+            if reduceTransparency {
+                shape.fill(Color.black.opacity(0.96))
+            } else {
+                Color.clear
+                    .liquidGlassBackground(in: shape, tint: .black.opacity(0.85))
+                    // Voile de lisibilité PAR-DESSUS le verre : le glass adaptatif
+                    // s'éclaircit selon ce qui passe derrière l'encoche (doc Apple),
+                    // donc la teinte seule ne garantit rien — ce scrim fixe un
+                    // plancher d'obscurité constant sous le texte blanc, en
+                    // laissant les reflets liquides vivre sur les bords.
+                    .overlay(shape.fill(Color.black.opacity(0.4)))
+            }
+        }
             .overlay(
                 shape
                     .stroke(

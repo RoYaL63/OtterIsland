@@ -30,7 +30,7 @@ private struct SelectedTabBackground: ViewModifier {
 
     func body(content: Content) -> some View {
         if isSelected {
-            content.liquidGlassBackground(in: Circle(), tint: .white.opacity(0.9))
+            content.chipBackground(in: Circle(), tint: .white.opacity(0.92))
         } else {
             content
         }

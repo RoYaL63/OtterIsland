@@ -34,6 +34,7 @@ final class CalendarProvider: ObservableObject {
     @Published private(set) var hasAccess = false
 
     private let store = EKEventStore()
+    private var refreshTimer: Timer?
 
     func start() {
         requestAccess()
@@ -41,6 +42,17 @@ final class CalendarProvider: ObservableObject {
             self, selector: #selector(storeChanged),
             name: .EKEventStoreChanged, object: store
         )
+        // Rafraîchit périodiquement : les listes étaient chargées au lancement
+        // puis seulement sur modification du store — un RDV passé restait donc
+        // affiché toute la journée. La fenêtre glissante (start = maintenant)
+        // le fait sortir naturellement à chaque relevé.
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.hasAccess else { return }
+                self.reloadEvents()
+                self.reloadReminders()
+            }
+        }
     }
 
     func requestAccess() {
@@ -70,11 +82,27 @@ final class CalendarProvider: ObservableObject {
         reloadReminders()
     }
 
+    /// Jours du mois de `date` ayant au moins un évènement (pour les points du
+    /// mini calendrier). Requête synchrone EventKit : un mois, c'est instantané.
+    func eventDays(inMonthOf date: Date) -> Set<Int> {
+        guard hasAccess,
+              let interval = Calendar.current.dateInterval(of: .month, for: date) else { return [] }
+        let predicate = store.predicateForEvents(
+            withStart: interval.start, end: interval.end, calendars: nil
+        )
+        return Set(store.events(matching: predicate).map {
+            Calendar.current.component(.day, from: $0.startDate)
+        })
+    }
+
     private func reloadEvents() {
         let start = Date()
         guard let end = Calendar.current.date(byAdding: .day, value: 1, to: start) else { return }
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
         let mapped = store.events(matching: predicate)
+            // Un évènement en cours reste utile ; un évènement TERMINÉ ne
+            // s'affiche plus (le prédicat inclut ce qui chevauche la fenêtre).
+            .filter { $0.endDate > start }
             .sorted { $0.startDate < $1.startDate }
             .prefix(5)
             .map {

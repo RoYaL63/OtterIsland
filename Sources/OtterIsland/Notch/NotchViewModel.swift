@@ -233,11 +233,20 @@ final class NotchViewModel: ObservableObject {
     }
 
     /// Colle l'item choisi : on le remet dans le presse-papier, on ferme, puis on
-    /// simule Cmd+V dans l'app active.
+    /// simule Cmd+V dans l'app active — le panneau ne prend jamais le focus, le
+    /// champ de texte de l'utilisateur est donc resté actif.
     func pasteFromClipboard(_ item: ClipboardItem) {
         clipboard.restore(item)
         setExpanded(false)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+        guard Paster.hasAccessibility else {
+            // Sans permission, Paster.paste() échouait EN SILENCE et l'utilisateur
+            // devait faire ⌘V à la main sans comprendre pourquoi. On déclenche la
+            // demande système ; l'item est déjà dans le presse-papier en attendant.
+            Paster.ensureAccessibility()
+            return
+        }
+        // 0.25 s : le temps que l'animation de repli rende la main à l'app active.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             Paster.paste()
         }
     }

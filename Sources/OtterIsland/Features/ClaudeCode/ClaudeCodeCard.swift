@@ -53,7 +53,7 @@ private struct PillButtonStyle: ButtonStyle {
             .font(.system(.caption, design: .rounded).weight(.semibold))
             .padding(.vertical, 5)
             .padding(.horizontal, 10)
-            .liquidGlassBackground(in: Capsule(), tint: tint)
+            .chipBackground(in: Capsule(), tint: tint)
             .foregroundStyle(fg)
             .opacity(configuration.isPressed ? 0.7 : 1)
     }

@@ -59,7 +59,7 @@ struct CleaningCard: View {
             .font(.system(.caption, design: .rounded).weight(.semibold))
             .padding(.vertical, 5)
             .foregroundStyle(.white)
-            .liquidGlassBackground(in: Capsule(), tint: .white.opacity(0.25))
+            .chipBackground(in: Capsule(), tint: .white.opacity(0.28))
         }
     }
 }

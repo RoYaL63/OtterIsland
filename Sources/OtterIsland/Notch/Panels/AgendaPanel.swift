@@ -6,25 +6,42 @@ struct AgendaPanel: View {
     @ObservedObject var calendar: CalendarProvider
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        Group {
             if !calendar.hasAccess {
-                Text("Agenda non autorisé")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.85))
-                Button("Autoriser") { calendar.requestAccess() }
-                    .buttonStyle(.plain)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.orange)
-            } else if calendar.events.isEmpty && calendar.reminders.isEmpty {
-                Text("Rien de prévu 🎉")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.8))
-            } else {
-                ForEach(calendar.events.prefix(2)) { event in
-                    eventRow(event)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Agenda non autorisé")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.85))
+                    Button("Autoriser") { calendar.requestAccess() }
+                        .buttonStyle(.plain)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.orange)
                 }
-                ForEach(calendar.reminders.prefix(2)) { reminder in
-                    reminderRow(reminder)
+            } else {
+                // Mini calendrier navigable à gauche, prochains RDV/rappels à
+                // droite. Les évènements terminés sortent de la liste (fenêtre
+                // glissante rechargée par le provider).
+                HStack(alignment: .top, spacing: 10) {
+                    MiniCalendarView(calendar: calendar)
+                    Rectangle()
+                        .fill(.white.opacity(0.15))
+                        .frame(width: 1)
+                        .padding(.vertical, 2)
+                    VStack(alignment: .leading, spacing: 6) {
+                        if calendar.events.isEmpty && calendar.reminders.isEmpty {
+                            Text("Rien de prévu 🎉")
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.8))
+                        } else {
+                            ForEach(calendar.events.prefix(3)) { event in
+                                eventRow(event)
+                            }
+                            ForEach(calendar.reminders.prefix(2)) { reminder in
+                                reminderRow(reminder)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
             }
         }

@@ -133,7 +133,7 @@ struct OtterStatusPanel: View {
                     .frame(width: 30, height: 30)
             }
             .buttonStyle(.plain)
-            .liquidGlassBackground(in: Circle(), tint: .orange.opacity(0.4))
+            .chipBackground(in: Circle(), tint: .orange.opacity(0.45))
             .foregroundStyle(.orange)
             .help("Lancer Claude Code")
 
@@ -143,7 +143,7 @@ struct OtterStatusPanel: View {
                     .frame(width: 30, height: 30)
             }
             .buttonStyle(.plain)
-            .liquidGlassBackground(in: Circle(), tint: .cyan.opacity(0.4))
+            .chipBackground(in: Circle(), tint: .cyan.opacity(0.45))
             .foregroundStyle(.cyan)
             .help("Verrouiller le clavier pour nettoyer")
         }

@@ -8,6 +8,19 @@ struct ClipboardPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
+            // Sans Accessibilité, le clic ne peut pas coller tout seul : le dire
+            // ICI, à l'endroit exact où l'utilisateur constate le problème.
+            if !Paster.hasAccessibility {
+                Button {
+                    Paster.ensureAccessibility()
+                } label: {
+                    Label("Activer le collage au clic (Accessibilité)", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.orange)
+                }
+                .buttonStyle(.plain)
+                .help("Sans cette permission, l'item est copié mais il faut faire ⌘V soi-même.")
+            }
             if clipboard.items.isEmpty {
                 Text("Presse-papier vide")
                     .font(.subheadline)
