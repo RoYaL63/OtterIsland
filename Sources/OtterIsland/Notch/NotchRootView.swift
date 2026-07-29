@@ -39,8 +39,13 @@ struct NotchRootView: View {
 
     private var island: some View {
         ZStack(alignment: .top) {
-            NotchGlassBackground(bottomRadius: viewModel.isExpanded ? 24 : 10, isExpanded: viewModel.isExpanded)
-                .shadow(color: .black.opacity(viewModel.isExpanded ? 0.4 : 0), radius: 12, y: 6)
+            NotchGlassBackground(
+                topWidth: viewModel.metrics?.hasRealNotch == true ? notchWidth : nil,
+                topHeight: notchHeight,
+                bottomRadius: viewModel.isExpanded ? 24 : 10,
+                isExpanded: viewModel.isExpanded
+            )
+            .shadow(color: .black.opacity(viewModel.isExpanded ? 0.4 : 0), radius: 12, y: 6)
 
             if viewModel.isExpanded {
                 expandedContent

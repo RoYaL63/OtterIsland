@@ -7,6 +7,7 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = OtterSettings()
     private var notchController: NotchWindowController?
+    private var clipboardWindow: ClipboardWindowController?
     private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -16,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let controller = NotchWindowController(settings: settings)
         controller.showOnActiveScreen()
         notchController = controller
+        clipboardWindow = ClipboardWindowController(clipboard: controller.viewModel.clipboard)
 
         setupStatusItem()
 
@@ -33,10 +35,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.title = "🦦"
 
         let menu = NSMenu()
+        menu.addItem(withTitle: "Presse-papier…", action: #selector(openClipboardWindow), keyEquivalent: "")
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Réglages OtterIsland…", action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quitter OtterIsland", action: #selector(NSApp.terminate(_:)), keyEquivalent: "q")
-        for menuItem in menu.items where menuItem.action == #selector(openSettings) {
+        for menuItem in menu.items where menuItem.action == #selector(openSettings) || menuItem.action == #selector(openClipboardWindow) {
             menuItem.target = self
         }
         item.menu = menu
@@ -49,6 +53,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil) {
             NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
         }
+    }
+
+    /// Accès fiable au presse-papier depuis le menu, indépendant du raccourci
+    /// clavier global (qui peut échouer si la combinaison est déjà prise).
+    @objc private func openClipboardWindow() {
+        clipboardWindow?.show()
     }
 
     @objc private func screenParametersChanged() {

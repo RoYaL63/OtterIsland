@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Carte affichée dans l'encoche pendant le nettoyage : rappelle que le clavier
 /// est verrouillé, et propose le seul moyen de le déverrouiller (un clic — pas
@@ -18,9 +19,32 @@ struct CleaningCard: View {
             }
 
             if permissionDenied {
-                Text("Autorise OtterIsland dans Réglages Système › Confidentialité et sécurité › Accessibilité, puis réessaie.")
+                // Bloquer les frappes demande DEUX autorisations distinctes : Accessibilité
+                // ET Surveillance des saisies. Cocher seulement la première (l'erreur la
+                // plus fréquente) ne suffit pas — d'où le rappel explicite des deux, et
+                // du redémarrage nécessaire pour qu'une autorisation nouvellement
+                // accordée soit prise en compte.
+                Text("Il faut activer OtterIsland dans DEUX réglages distincts : Accessibilité ET Surveillance des saisies. Puis redémarre OtterIsland (la permission n'est prise en compte qu'au lancement).")
                     .font(.caption)
                     .foregroundStyle(.black.opacity(0.65))
+
+                Button("Ouvrir Accessibilité") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .buttonStyle(.plain)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.orange)
+
+                Button("Ouvrir Surveillance des saisies") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .buttonStyle(.plain)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.orange)
             } else {
                 Text("Nettoie tranquillement, aucune frappe ne passe.")
                     .font(.caption)

@@ -69,6 +69,11 @@ struct SettingsView: View {
             Text("Clique pour enregistrer une nouvelle combinaison. Redémarre OtterIsland après changement.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            if settings.clipboardHotKeyRegistrationFailed {
+                Text("Cette combinaison n'a pas pu être enregistrée (déjà prise par une autre app ou le système) — la frappe passe telle quelle. Choisis-en une autre.")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
             Button("Autoriser l'Accessibilité (collage auto)") {
                 Paster.ensureAccessibility()
             }

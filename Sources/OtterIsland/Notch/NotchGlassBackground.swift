@@ -9,18 +9,25 @@ import SwiftUI
 /// clair ; le Centre de contrôle d'Apple utilise justement un verre clair
 /// avec du texte sombre, quel que soit le fond derrière.
 struct NotchGlassBackground: View {
+    /// Largeur réelle de l'encoche physique (nil si le Mac n'en a pas).
+    let topWidth: CGFloat?
+    /// Hauteur du nub du haut avant évasement (= hauteur de l'encoche/barre de menus).
+    let topHeight: CGFloat
     let bottomRadius: CGFloat
     let isExpanded: Bool
+
+    private var shape: NotchShape {
+        NotchShape(topWidth: topWidth, topHeight: topHeight, bottomRadius: bottomRadius)
+    }
 
     var body: some View {
         Color.clear
             .liquidGlassBackground(
-                in: NotchShape(bottomRadius: bottomRadius),
+                in: shape,
                 tint: isExpanded ? .white.opacity(0.55) : .black.opacity(0.55)
             )
             .overlay(
-                NotchShape(bottomRadius: bottomRadius)
-                    .stroke(Color.white.opacity(isExpanded ? 0.5 : 0), lineWidth: 0.75)
+                shape.stroke(Color.white.opacity(isExpanded ? 0.5 : 0), lineWidth: 0.75)
             )
     }
 }

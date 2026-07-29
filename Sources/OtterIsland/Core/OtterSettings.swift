@@ -45,6 +45,10 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(clipboardHotKeyModifiers, forKey: Keys.clipboardHotKeyModifiers) }
     }
 
+    /// État d'exécution (pas persisté) : true si la dernière tentative d'enregistrement
+    /// du raccourci global a échoué (combinaison déjà prise ailleurs, par exemple).
+    @Published var clipboardHotKeyRegistrationFailed = false
+
     /// Aperçu transitoire dans l'encoche à chaque nouvelle capture d'écran.
     @Published var screenshotPreviewEnabled: Bool {
         didSet { defaults.set(screenshotPreviewEnabled, forKey: Keys.screenshotPreviewEnabled) }

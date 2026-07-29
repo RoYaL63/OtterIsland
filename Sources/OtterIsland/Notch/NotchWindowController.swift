@@ -5,7 +5,7 @@ import SwiftUI
 @MainActor
 final class NotchWindowController {
     private let settings: OtterSettings
-    private let viewModel: NotchViewModel
+    let viewModel: NotchViewModel
     private var window: NotchWindow?
     private let gestures: GestureController
     private var clipboardHotKey: HotKey?
@@ -30,7 +30,7 @@ final class NotchWindowController {
     }
 
     private func installClipboardHotKey(viewModel: NotchViewModel) {
-        clipboardHotKey = HotKey(
+        let hotKey = HotKey(
             keyCode: UInt32(settings.clipboardHotKeyCode),
             modifiers: UInt32(settings.clipboardHotKeyModifiers)
         ) { [weak viewModel] in
@@ -38,6 +38,8 @@ final class NotchWindowController {
                 viewModel?.openClipboard()
             }
         }
+        clipboardHotKey = hotKey
+        settings.clipboardHotKeyRegistrationFailed = !hotKey.isRegistered
     }
 
     func showOnActiveScreen() {
