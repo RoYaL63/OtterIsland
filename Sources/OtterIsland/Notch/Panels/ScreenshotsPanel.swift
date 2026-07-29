@@ -73,5 +73,7 @@ struct ScreenshotsPanel: View {
         }
         .buttonStyle(.plain)
         .help(url.lastPathComponent)
+        // Glisser la miniature directement où on veut (chat, mail, Finder…).
+        .onDrag { NSItemProvider(object: url as NSURL) }
     }
 }

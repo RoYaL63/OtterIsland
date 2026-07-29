@@ -20,6 +20,9 @@ struct ScreenshotPreviewView: View {
                             RoundedRectangle(cornerRadius: 5)
                                 .stroke(.white.opacity(0.25), lineWidth: 0.5)
                         )
+                        // Glisser directement la capture n'importe où (chat, mail,
+                        // Finder…) sans passer par l'onglet Captures.
+                        .onDrag { NSItemProvider(object: shot.url as NSURL) }
                     Text("Capture d'écran")
                         .font(.caption)
                         .foregroundStyle(.white)

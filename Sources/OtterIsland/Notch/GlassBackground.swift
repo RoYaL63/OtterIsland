@@ -7,7 +7,10 @@ extension View {
     @ViewBuilder
     func liquidGlassBackground<S: Shape>(in shape: S, tint: Color = .black.opacity(0.55)) -> some View {
         if #available(macOS 26.0, *) {
-            self.glassEffect(.regular.tint(tint), in: shape)
+            // .interactive() donne les reflets/animations fluides du vrai Liquid
+            // Glass (effet "goutte d'eau" au survol/clic), tout en gardant une
+            // teinte sombre opaque pour le contraste.
+            self.glassEffect(.regular.tint(tint).interactive(), in: shape)
         } else {
             self
                 .background(shape.fill(.ultraThinMaterial))
