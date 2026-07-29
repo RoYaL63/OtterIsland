@@ -19,7 +19,7 @@ struct MusicPanel: View {
                             .lineLimit(1)
                         Text(track.artist)
                             .font(.caption)
-                            .foregroundStyle(.white.opacity(0.65))
+                            .foregroundStyle(.white.opacity(0.8))
                             .lineLimit(1)
                     }
                     Spacer(minLength: 0)
@@ -33,10 +33,10 @@ struct MusicPanel: View {
             } else {
                 Text("Rien en lecture")
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.white.opacity(0.8))
                 Text("Lance Spotify ou Apple Music, la loutre se met à nager.")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(.white.opacity(0.7))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -51,7 +51,7 @@ struct MusicPanel: View {
                 .foregroundStyle(.white.opacity(0.8))
             Text("Réglages Système › Confidentialité et sécurité › Automatisation : autorise OtterIsland pour Spotify, Music et System Events.")
                 .font(.caption2)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.white.opacity(0.75))
             Button("Ouvrir les réglages") {
                 if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
                     NSWorkspace.shared.open(url)
@@ -72,10 +72,10 @@ struct MusicPanel: View {
                     .aspectRatio(contentMode: .fill)
             } else {
                 ZStack {
-                    Color.white.opacity(0.12)
+                    Color.white.opacity(0.22)
                     Image(systemName: "music.note")
                         .font(.system(size: 14))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(.white.opacity(0.75))
                 }
             }
         }
@@ -89,7 +89,7 @@ struct MusicPanel: View {
             VStack(spacing: 2) {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(.white.opacity(0.2))
+                        Capsule().fill(.white.opacity(0.3))
                         Capsule()
                             .fill(.white)
                             .frame(width: max(2, geo.size.width * fraction))
@@ -102,7 +102,7 @@ struct MusicPanel: View {
                     Text(timeString(track.duration))
                 }
                 .font(.system(size: 8, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.white.opacity(0.75))
             }
         }
     }

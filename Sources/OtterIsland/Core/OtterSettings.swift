@@ -35,8 +35,10 @@ final class OtterSettings: ObservableObject {
     }
 
     /// Raccourci global d'ouverture du presse-papier (keyCode + modificateurs Carbon,
-    /// capturés par `ShortcutRecorderView`). Par défaut Cmd+Shift+V. Nécessite un
-    /// redémarrage de l'app après changement (le hotkey n'est installé qu'au lancement).
+    /// capturés par `ShortcutRecorderView`). Par défaut Option+V : une seule main,
+    /// et disponible pendant la frappe dans n'importe quel champ de texte — le but
+    /// est de coller sans quitter la barre de chat. Nécessite un redémarrage de
+    /// l'app après changement (le hotkey n'est installé qu'au lancement).
     @Published var clipboardHotKeyCode: Int {
         didSet { defaults.set(clipboardHotKeyCode, forKey: Keys.clipboardHotKeyCode) }
     }
@@ -85,7 +87,7 @@ final class OtterSettings: ObservableObject {
             Keys.gestureControl: true,
             Keys.clipboardEnabled: true,
             Keys.clipboardHotKeyCode: Int(kVK_ANSI_V),
-            Keys.clipboardHotKeyModifiers: Int(cmdKey | shiftKey),
+            Keys.clipboardHotKeyModifiers: Int(optionKey),
             Keys.screenshotPreviewEnabled: true,
             Keys.widthOffset: 0.0,
             Keys.dropOffset: 0.0,

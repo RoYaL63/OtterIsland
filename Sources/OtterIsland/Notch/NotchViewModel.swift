@@ -138,6 +138,12 @@ final class NotchViewModel: ObservableObject {
     }
 
     private func showScreenshot(_ shot: ScreenshotWatcher.Shot) {
+        // Chaque capture entre aussi dans l'historique du presse-papier : ⌥V
+        // depuis un champ de texte → clic sur la capture → collée, sans passer
+        // par « copier » manuellement.
+        if settings.clipboardEnabled {
+            clipboard.addScreenshot(at: shot.url)
+        }
         screenshotPreview = shot
         screenshotClearTimer?.invalidate()
         screenshotClearTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: false) { [weak self] _ in

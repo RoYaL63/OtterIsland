@@ -30,7 +30,7 @@ struct BatteryBadge: View {
             if monitor.isPluggedIn && !monitor.isCharging {
                 Text("branché")
                     .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(.white.opacity(0.75))
             }
         }
     }

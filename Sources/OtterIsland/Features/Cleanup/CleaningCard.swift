@@ -26,7 +26,7 @@ struct CleaningCard: View {
                 // accordée soit prise en compte.
                 Text("Il faut activer OtterIsland dans DEUX réglages distincts : Accessibilité ET Surveillance des saisies. Puis redémarre OtterIsland (la permission n'est prise en compte qu'au lancement).")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(.white.opacity(0.8))
 
                 Button("Ouvrir Accessibilité") {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
@@ -48,7 +48,7 @@ struct CleaningCard: View {
             } else {
                 Text("Nettoie tranquillement, aucune frappe ne passe.")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(.white.opacity(0.8))
             }
 
             Button(action: onUnlock) {
@@ -59,7 +59,7 @@ struct CleaningCard: View {
             .font(.system(.caption, design: .rounded).weight(.semibold))
             .padding(.vertical, 5)
             .foregroundStyle(.white)
-            .liquidGlassBackground(in: Capsule(), tint: .white.opacity(0.18))
+            .liquidGlassBackground(in: Capsule(), tint: .white.opacity(0.25))
         }
     }
 }

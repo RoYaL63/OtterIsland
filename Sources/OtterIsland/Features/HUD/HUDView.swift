@@ -28,7 +28,7 @@ struct HUDView: View {
                 .frame(width: 18)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.2))
+                    Capsule().fill(.white.opacity(0.3))
                     Capsule()
                         .fill(.white)
                         .frame(width: max(4, geo.size.width * state.value))

@@ -61,6 +61,17 @@ final class ClipboardManager: ObservableObject {
         Persistence.save(items, to: fileName)
     }
 
+    /// Ajoute une capture d'écran à l'historique. Appelé par le view model à
+    /// chaque nouvelle capture détectée : plus besoin de « copier » la capture,
+    /// ⌥V → clic dessus → collée dans le champ actif.
+    func addScreenshot(at url: URL) {
+        items.removeAll {
+            if case .file(let path) = $0.content { return !FileManager.default.fileExists(atPath: path) }
+            return false
+        }
+        add(.file(url.path))
+    }
+
     /// Remet un item dans le presse-papier système sans le recapturer.
     func restore(_ item: ClipboardItem) {
         isRestoring = true
@@ -70,6 +81,20 @@ final class ClipboardManager: ObservableObject {
             pasteboard.setString(string, forType: .string)
         case .image(let data):
             pasteboard.setData(data, forType: .png)
+        case .file(let path):
+            // Un seul NSPasteboardItem, deux représentations : l'URL de fichier
+            // (Finder, Slack, Mail la prennent comme pièce jointe) ET les octets
+            // PNG (les champs qui ne collent que des images, barre de chat web).
+            let url = URL(fileURLWithPath: path)
+            let pbItem = NSPasteboardItem()
+            pbItem.setString(url.absoluteString, forType: .fileURL)
+            if let image = NSImage(contentsOf: url),
+               let tiff = image.tiffRepresentation,
+               let rep = NSBitmapImageRep(data: tiff),
+               let png = rep.representation(using: .png, properties: [:]) {
+                pbItem.setData(png, forType: .png)
+            }
+            pasteboard.writeObjects([pbItem])
         }
         lastChangeCount = pasteboard.changeCount
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in

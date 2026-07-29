@@ -24,10 +24,10 @@ struct MirrorPanel: View {
         VStack(spacing: 6) {
             Image(systemName: "camera.fill")
                 .font(.system(size: 16))
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(.white.opacity(0.7))
             Text("Caméra non autorisée")
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.white.opacity(0.85))
             Button("Ouvrir les réglages") {
                 if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
                     NSWorkspace.shared.open(url)

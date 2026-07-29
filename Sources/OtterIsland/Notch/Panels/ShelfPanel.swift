@@ -32,7 +32,7 @@ struct ShelfPanel: View {
                         Text("Vider").font(.caption2)
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(.white.opacity(0.75))
                 }
             }
         }
@@ -46,10 +46,10 @@ struct ShelfPanel: View {
         VStack(spacing: 4) {
             Image(systemName: "arrow.down.doc")
                 .font(.system(size: 18))
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.white.opacity(0.75))
             Text("Dépose des fichiers ici")
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.white.opacity(0.75))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -67,7 +67,7 @@ struct ShelfPanel: View {
             Button { shelf.remove(url) } label: {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 10))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(.white.opacity(0.7))
             }
             .buttonStyle(.plain)
         }

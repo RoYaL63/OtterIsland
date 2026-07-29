@@ -5,6 +5,10 @@ struct ClipboardItem: Identifiable, Equatable, Codable {
     enum Content: Equatable, Codable {
         case text(String)
         case image(Data) // PNG
+        /// Chemin d'un fichier image sur disque (capture d'écran). On stocke la
+        /// référence et pas les octets : l'historique JSON resterait sinon à
+        /// plusieurs dizaines de Mo avec 30 captures Retina en base64.
+        case file(String)
     }
 
     var id = UUID()
@@ -28,6 +32,11 @@ struct ClipboardItem: Identifiable, Equatable, Codable {
 
     var imageData: Data? {
         if case .image(let data) = content { return data }
+        return nil
+    }
+
+    var fileURL: URL? {
+        if case .file(let path) = content { return URL(fileURLWithPath: path) }
         return nil
     }
 }

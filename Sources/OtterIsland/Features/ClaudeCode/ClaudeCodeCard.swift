@@ -19,7 +19,7 @@ struct ClaudeCodeCard: View {
             if let detail = request.detail {
                 Text(detail)
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(.white.opacity(0.8))
                     .lineLimit(2)
             }
 
@@ -30,7 +30,7 @@ struct ClaudeCodeCard: View {
                     Text("Refuser")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(PillButtonStyle(tint: .white.opacity(0.15), fg: .white))
+                .buttonStyle(PillButtonStyle(tint: .white.opacity(0.22), fg: .white))
 
                 Button {
                     onDecision(true)

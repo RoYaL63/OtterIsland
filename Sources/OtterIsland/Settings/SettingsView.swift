@@ -66,7 +66,7 @@ struct SettingsView: View {
                     modifiers: $settings.clipboardHotKeyModifiers
                 )
             }
-            Text("Clique pour enregistrer une nouvelle combinaison. Redémarre OtterIsland après changement.")
+            Text("⌥V par défaut : ouvre l'historique depuis n'importe quel champ de texte, clique un item (texte ou capture d'écran) pour le coller. Clique pour enregistrer une nouvelle combinaison. Redémarre OtterIsland après changement.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if settings.clipboardHotKeyRegistrationFailed {

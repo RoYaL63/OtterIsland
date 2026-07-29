@@ -14,7 +14,9 @@ struct NotchTabBar: View {
                         .font(.system(size: 13, weight: .semibold))
                         .frame(width: 30, height: 30)
                         .modifier(SelectedTabBackground(isSelected: selection == tab))
-                        .foregroundStyle(selection == tab ? .white : .white.opacity(0.4))
+                        // Actif : pastille blanche + icône sombre (comme un toggle
+                        // allumé du Centre de contrôle) — blanc-sur-gris illisible.
+                        .foregroundStyle(selection == tab ? Color.black.opacity(0.8) : Color.white.opacity(0.6))
                 }
                 .buttonStyle(.plain)
                 .help(tab.title)
@@ -28,7 +30,7 @@ private struct SelectedTabBackground: ViewModifier {
 
     func body(content: Content) -> some View {
         if isSelected {
-            content.liquidGlassBackground(in: Circle(), tint: .white.opacity(0.25))
+            content.liquidGlassBackground(in: Circle(), tint: .white.opacity(0.9))
         } else {
             content
         }

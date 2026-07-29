@@ -35,7 +35,7 @@ struct ScreenshotPreviewView: View {
             Button(action: onDismiss) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(.white.opacity(0.7))
             }
             .buttonStyle(.plain)
         }

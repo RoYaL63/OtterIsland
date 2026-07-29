@@ -32,7 +32,7 @@ struct OtterStatusPanel: View {
                 .foregroundStyle(.white)
             Text(moodLine)
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.white.opacity(0.85))
                 .lineLimit(2)
 
             if let event = calendar.events.first {
@@ -50,7 +50,7 @@ struct OtterStatusPanel: View {
                     if let minutes = battery.minutesRemaining {
                         Text(timeText(minutes))
                             .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.5))
+                            .foregroundStyle(.white.opacity(0.75))
                     }
                 }
                 Spacer(minLength: 0)
@@ -74,7 +74,7 @@ struct OtterStatusPanel: View {
             Spacer(minLength: 4)
             Text(event.timeText)
                 .font(.caption2)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.white.opacity(0.75))
         }
         return Group {
             if let url = event.meetingURL {
@@ -92,7 +92,7 @@ struct OtterStatusPanel: View {
         HStack(spacing: 6) {
             Image(systemName: "music.note")
                 .font(.system(size: 9))
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(.white.opacity(0.8))
             Text("\(track.title) — \(track.artist)")
                 .font(.caption2)
                 .foregroundStyle(.white.opacity(0.8))
@@ -133,7 +133,7 @@ struct OtterStatusPanel: View {
                     .frame(width: 30, height: 30)
             }
             .buttonStyle(.plain)
-            .liquidGlassBackground(in: Circle(), tint: .orange.opacity(0.25))
+            .liquidGlassBackground(in: Circle(), tint: .orange.opacity(0.4))
             .foregroundStyle(.orange)
             .help("Lancer Claude Code")
 
@@ -143,7 +143,7 @@ struct OtterStatusPanel: View {
                     .frame(width: 30, height: 30)
             }
             .buttonStyle(.plain)
-            .liquidGlassBackground(in: Circle(), tint: .cyan.opacity(0.25))
+            .liquidGlassBackground(in: Circle(), tint: .cyan.opacity(0.4))
             .foregroundStyle(.cyan)
             .help("Verrouiller le clavier pour nettoyer")
         }
