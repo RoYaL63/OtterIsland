@@ -77,26 +77,41 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
     // MARK: AppleScript
 
     /// Champs renvoyés : playing|titre|artiste|position(s)|durée(s)|urlPochette
-    /// Ne réveille pas les apps : on vérifie d'abord qu'elles tournent via System Events.
+    ///
+    /// `application "X" is running` est un prédicat AppleScript pur (LaunchServices) :
+    /// il ne réveille pas l'app et surtout n'envoie aucun Apple Event, donc ne demande
+    /// aucune permission. On évitait ça via "System Events", qui demande sa PROPRE
+    /// autorisation Automatisation distincte de celle de Spotify/Music — un maillon en
+    /// plus qui pouvait échouer tout seul et faire planter tout le relevé en silence.
+    /// `artwork url` est aussi try-protégée : certaines pistes ne l'exposent pas.
     private static let stateScript = """
     set out to "stopped"
-    tell application "System Events"
-        set running to name of every process
-    end tell
-    if running contains "Spotify" then
-        tell application "Spotify"
-            if player state is playing then
-                set d to (duration of current track) / 1000
-                set out to "playing|" & (name of current track) & "|" & (artist of current track) & "|" & (player position) & "|" & d & "|" & (artwork url of current track)
-            end if
-        end tell
+    if application "Spotify" is running then
+        try
+            tell application "Spotify"
+                if player state is playing then
+                    set d to (duration of current track) / 1000
+                    set artUrl to ""
+                    try
+                        set artUrl to artwork url of current track
+                    end try
+                    set out to "playing|" & (name of current track) & "|" & (artist of current track) & "|" & (player position) & "|" & d & "|" & artUrl
+                end if
+            end tell
+        on error errMsg number errNum
+            set out to "error|" & errNum & "|" & errMsg
+        end try
     end if
-    if out starts with "stopped" and running contains "Music" then
-        tell application "Music"
-            if player state is playing then
-                set out to "playing|" & (name of current track) & "|" & (artist of current track) & "|" & (player position) & "|" & (duration of current track) & "|"
-            end if
-        end tell
+    if out is "stopped" and application "Music" is running then
+        try
+            tell application "Music"
+                if player state is playing then
+                    set out to "playing|" & (name of current track) & "|" & (artist of current track) & "|" & (player position) & "|" & (duration of current track) & "|"
+                end if
+            end tell
+        on error errMsg number errNum
+            set out to "error|" & errNum & "|" & errMsg
+        end try
     end if
     return out
     """
@@ -106,6 +121,9 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
         if result.automationDenied { return (nil, true) }
         guard let output = result.output else { return (nil, false) }
         let parts = output.components(separatedBy: "|")
+        // Une erreur AppleScript côté Spotify/Music (le "try" l'a capturée) : le plus
+        // souvent une Automatisation non accordée pour l'app elle-même.
+        if parts[0] == "error" { return (nil, true) }
         guard parts.count >= 3, parts[0] == "playing" else { return (nil, false) }
 
         func number(_ index: Int) -> Double {
@@ -127,12 +145,9 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
 
     private static func control(_ command: String) {
         let script = """
-        tell application "System Events"
-            set running to name of every process
-        end tell
-        if running contains "Spotify" then
+        if application "Spotify" is running then
             tell application "Spotify" to \(command)
-        else if running contains "Music" then
+        else if application "Music" is running then
             tell application "Music" to \(command)
         end if
         """

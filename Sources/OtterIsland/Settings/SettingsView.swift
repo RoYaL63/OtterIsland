@@ -4,6 +4,8 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var settings: OtterSettings
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
+    @State private var launchAtLoginError: String?
+    @State private var launchAtLoginNeedsApproval = LaunchAtLogin.needsApproval
     @State private var selectedScreenID: String = {
         guard let screen = NSScreen.main else { return "built-in" }
         return ScreenIdentifier.stableID(for: screen)
@@ -25,8 +27,19 @@ struct SettingsView: View {
         Form {
             Toggle("Lancer au démarrage", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { _, enabled in
-                    LaunchAtLogin.set(enabled)
+                    launchAtLoginError = LaunchAtLogin.set(enabled)
+                    launchAtLogin = LaunchAtLogin.isEnabled // resynchronise avec le vrai statut
+                    launchAtLoginNeedsApproval = LaunchAtLogin.needsApproval
                 }
+            if let error = launchAtLoginError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            } else if launchAtLoginNeedsApproval {
+                Text("Approuve OtterIsland dans Réglages Système › Général › Éléments de connexion.")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
             Toggle("Loutre de compagnie", isOn: $settings.otterEnabled)
             Toggle("Afficher la batterie", isOn: $settings.showBattery)
             Toggle("Inbox Claude Code", isOn: $settings.claudeCodeInboxEnabled)

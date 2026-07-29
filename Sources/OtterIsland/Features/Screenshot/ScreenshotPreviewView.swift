@@ -38,6 +38,6 @@ struct ScreenshotPreviewView: View {
         }
         .padding(.horizontal, 12)
         .frame(width: 220, height: 42)
-        .liquidGlassBackground(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .liquidGlassBackground(in: RoundedRectangle(cornerRadius: 16, style: .continuous), tint: .black.opacity(0.78))
     }
 }

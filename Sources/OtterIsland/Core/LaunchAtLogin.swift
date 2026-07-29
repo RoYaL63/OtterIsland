@@ -6,7 +6,15 @@ enum LaunchAtLogin {
         SMAppService.mainApp.status == .enabled
     }
 
-    static func set(_ enabled: Bool) {
+    /// macOS a accepté l'inscription mais demande une validation manuelle de
+    /// l'utilisateur (Réglages Système › Général › Éléments de connexion).
+    static var needsApproval: Bool {
+        SMAppService.mainApp.status == .requiresApproval
+    }
+
+    /// Renvoie un message d'erreur si l'inscription échoue, sinon nil.
+    @discardableResult
+    static func set(_ enabled: Bool) -> String? {
         do {
             if enabled {
                 if SMAppService.mainApp.status != .enabled {
@@ -15,8 +23,10 @@ enum LaunchAtLogin {
             } else {
                 try SMAppService.mainApp.unregister()
             }
+            return nil
         } catch {
             NSLog("OtterIsland: lancement au démarrage impossible — \(error.localizedDescription)")
+            return error.localizedDescription
         }
     }
 }

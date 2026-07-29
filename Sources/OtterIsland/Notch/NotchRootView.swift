@@ -39,7 +39,7 @@ struct NotchRootView: View {
 
     private var island: some View {
         ZStack(alignment: .top) {
-            NotchGlassBackground(bottomRadius: viewModel.isExpanded ? 24 : 10)
+            NotchGlassBackground(bottomRadius: viewModel.isExpanded ? 24 : 10, isExpanded: viewModel.isExpanded)
                 .shadow(color: .black.opacity(viewModel.isExpanded ? 0.4 : 0), radius: 12, y: 6)
 
             if viewModel.isExpanded {
@@ -50,6 +50,18 @@ struct NotchRootView: View {
             }
         }
         .frame(width: currentWidth, height: currentHeight)
+        .overlay(alignment: .trailing) {
+            // Petit égaliseur qui prolonge l'encoche repliée quand de la musique
+            // joue. Survol pour mettre en pause sans ouvrir l'encoche.
+            if !viewModel.isExpanded, let track = viewModel.nowPlaying.current {
+                NotchAudioVisualizer(isPlaying: track.isPlaying) {
+                    viewModel.nowPlaying.togglePlayPause()
+                }
+                .offset(x: 38)
+                .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .leading)))
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: viewModel.nowPlaying.current != nil)
         .contentShape(Rectangle())
         .onHover { hovering in
             viewModel.setExpanded(hovering)
