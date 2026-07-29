@@ -124,13 +124,14 @@ struct NotchRootView: View {
         switch viewModel.selectedTab {
         case .otter:
             OtterStatusPanel(
-                mood: viewModel.otterMood,
                 battery: viewModel.battery,
                 pomodoro: viewModel.pomodoro,
                 calendar: viewModel.calendar,
                 nowPlaying: viewModel.nowPlaying,
+                memory: viewModel.memory,
                 showBattery: settings.showBattery,
-                onToggleCleanup: { viewModel.toggleCleanup() }
+                onToggleCleanup: { viewModel.toggleCleanup() },
+                onOpenMirror: { viewModel.selectedTab = .mirror }
             )
         case .music:
             MusicPanel(provider: viewModel.nowPlaying)

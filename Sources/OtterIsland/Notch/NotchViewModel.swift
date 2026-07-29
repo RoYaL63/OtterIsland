@@ -18,11 +18,11 @@ final class NotchViewModel: ObservableObject {
     /// Taille de la carte étendue. Partagée entre la vue (frame de l'île) et le
     /// contrôleur (zone de survol pour le suivi souris) : les deux DOIVENT voir
     /// la même géométrie, sinon la carte se replie sous le curseur.
-    /// 224 de base (pas 176) : le panneau par défaut affiche le prochain RDV,
-    /// la musique et les actions rapides — 176 coupait le contenu.
+    /// 236 de base : l'accueil en grille (indicateurs + mini calendrier +
+    /// lecteur + petites actions) a besoin de cette hauteur pour ne rien couper.
     var expandedSize: CGSize {
         let dropOffset = settings.dropOffset(for: currentScreenID ?? "")
-        return CGSize(width: 460, height: 224 + CGFloat(dropOffset))
+        return CGSize(width: 460, height: 236 + CGFloat(dropOffset))
     }
 
     let settings: OtterSettings
@@ -36,6 +36,7 @@ final class NotchViewModel: ObservableObject {
     let clipboard = ClipboardManager()
     let screenshot = ScreenshotWatcher()
     let keyboardLocker = KeyboardLocker()
+    let memory = MemoryMonitor()
 
     /// HUD système transitoire (volume…), effacé automatiquement.
     @Published var hud: HUDState?
@@ -63,6 +64,7 @@ final class NotchViewModel: ObservableObject {
         }
         calendar.start()
         volume.start()
+        memory.start()
         if settings.clipboardEnabled {
             clipboard.start()
         }
@@ -77,6 +79,22 @@ final class NotchViewModel: ObservableObject {
         // Rafraîchit la vue quand le morceau change (même si l'humeur ne bouge pas).
         nowPlaying.objectWillChange
             .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        // IMPORTANT : la vue lit keyboardLocker À TRAVERS le view model — sans
+        // cette republication, un changement de isLocked/permissionDenied ne
+        // rafraîchissait jamais l'UI (recomputeMood masquait le problème pour
+        // isLocked, mais permissionDenied ne change pas l'humeur : la carte
+        // « Verrouillage impossible » restait figée et son bouton Fermer
+        // semblait mort).
+        keyboardLocker.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        // La pression mémoire pilote l'humeur (loutre essoufflée en full RAM).
+        memory.$pressure
+            .removeDuplicates()
+            .sink { [weak self] _ in self?.recomputeMood() }
             .store(in: &cancellables)
     }
 
@@ -176,6 +194,10 @@ final class NotchViewModel: ObservableObject {
             mood = .curious
         } else if lowBattery {
             mood = .worried
+        } else if memory.pressure != .normal {
+            // RAM saturée : elle s'essouffle (prioritaire sur le jeu/la nage,
+            // c'est un signal d'alerte, pas une ambiance).
+            mood = .overloaded
         } else if isExpanded {
             mood = .playful
         } else if musicPlaying {
@@ -207,7 +229,9 @@ final class NotchViewModel: ObservableObject {
     /// ouverte au verrouillage pour que le bouton de déverrouillage reste visible.
     func toggleCleanup() {
         keyboardLocker.toggle()
-        if keyboardLocker.isLocked {
+        // Grande encoche dans les deux cas : verrouillé (le bouton Déverrouiller
+        // doit rester visible) comme refusé (l'explication des permissions aussi).
+        if keyboardLocker.isLocked || keyboardLocker.permissionDenied {
             setExpanded(true)
         }
         recomputeMood()
@@ -216,9 +240,16 @@ final class NotchViewModel: ObservableObject {
     func unlockCleanup() {
         keyboardLocker.unlock()
         recomputeMood()
+        setExpanded(false)
     }
 
     func setExpanded(_ expanded: Bool) {
+        // Clavier verrouillé pour le nettoyage : l'encoche RESTE grande, quoi
+        // qu'il arrive (survol, poller, molette). Le bouton Déverrouiller doit
+        // être visible en permanence — c'est la seule sortie.
+        if !expanded && (keyboardLocker.isLocked || keyboardLocker.permissionDenied) {
+            return
+        }
         // Amortissement < 0.7 : léger dépassement élastique, l'île « goutte
         // d'eau » rebondit un peu en se déployant, façon Dynamic Island.
         withAnimation(.spring(response: 0.40, dampingFraction: 0.68)) {

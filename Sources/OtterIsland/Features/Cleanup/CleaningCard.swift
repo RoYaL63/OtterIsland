@@ -45,6 +45,16 @@ struct CleaningCard: View {
                 .buttonStyle(.plain)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.orange)
+
+                // Une permission d'event tap n'est lue qu'au lancement du
+                // processus : sans redémarrage, « j'ai tout autorisé et ça ne
+                // marche toujours pas ». Ce bouton enlève cette friction.
+                Button("Redémarrer OtterIsland") {
+                    Self.relaunch()
+                }
+                .buttonStyle(.plain)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.cyan)
             } else {
                 Text("Nettoie tranquillement, aucune frappe ne passe.")
                     .font(.caption)
@@ -60,6 +70,17 @@ struct CleaningCard: View {
             .padding(.vertical, 5)
             .foregroundStyle(.white)
             .chipBackground(in: Capsule(), tint: .white.opacity(0.28))
+        }
+    }
+
+    /// Relance une nouvelle instance puis quitte celle-ci.
+    private static func relaunch() {
+        let config = NSWorkspace.OpenConfiguration()
+        config.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: config) { _, _ in
+            DispatchQueue.main.async {
+                NSApp.terminate(nil)
+            }
         }
     }
 }

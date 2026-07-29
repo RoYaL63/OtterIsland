@@ -1,14 +1,17 @@
 import Foundation
 
 /// Onglets de la carte étendue. La loutre reste à gauche, le panneau change à droite.
+/// Ordre = priorité d'usage : presse-papier et captures juste après l'accueil
+/// (ce sont les onglets les plus utilisés), miroir en dernier (accessible aussi
+/// par la petite icône de l'accueil).
 enum NotchTab: String, CaseIterable, Identifiable {
     case otter
+    case clipboard
+    case screenshots
     case music
     case agenda
     case shelf
-    case clipboard
     case mirror
-    case screenshots
 
     var id: String { rawValue }
 

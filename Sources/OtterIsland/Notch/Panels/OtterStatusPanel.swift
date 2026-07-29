@@ -1,64 +1,100 @@
 import SwiftUI
 import AppKit
 
-/// Panneau Loutre : petit mot d'humeur, batterie, et un coup d'œil sur le
-/// prochain rendez-vous / la musique en cours sans changer d'onglet.
+/// Panneau d'accueil : grille structurée, pas de bavardage.
+/// ┌──────────────────────┬────────────────┐
+/// │ indicateurs système  │ mini calendrier│
+/// │ (RAM, batterie, RDV) │   navigable    │
+/// ├──────────────────────┴────────────────┤
+/// │ lecteur musique (titre + contrôles)   │
+/// │                    [nettoyage][miroir]│
+/// └───────────────────────────────────────┘
+/// La loutre reste à gauche de la carte et sert d'indicateur vivant façon
+/// RunCat : nage = musique, halètement = RAM saturée, chiffon = nettoyage…
 struct OtterStatusPanel: View {
-    let mood: OtterMood
     @ObservedObject var battery: BatteryMonitor
     @ObservedObject var pomodoro: PomodoroTimer
     @ObservedObject var calendar: CalendarProvider
     @ObservedObject var nowPlaying: AppleScriptNowPlaying
+    @ObservedObject var memory: MemoryMonitor
     let showBattery: Bool
     let onToggleCleanup: () -> Void
-
-    private var moodLine: String {
-        switch mood {
-        case .idle: return "Tranquille."
-        case .happy: return "En pleine forme, ça charge !"
-        case .curious: return "Oh, une demande ?"
-        case .playful: return "Coucou, tu veux jouer ?"
-        case .swimming: return "Plouf, elle nage sur la musique."
-        case .worried: return "Batterie faible, elle se planque…"
-        case .sleepy: return "Chut, elle fait la sieste."
-        case .cleaning: return "Coup de chiffon, clavier verrouillé."
-        }
-    }
+    let onOpenMirror: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("OtterIsland")
-                .font(.headline)
-                .foregroundStyle(.white)
-            Text(moodLine)
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.85))
-                .lineLimit(2)
-
-            if let event = calendar.events.first {
-                nextEventRow(event)
-            }
-            if let track = nowPlaying.current {
-                musicRow(track)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 10) {
+                statsColumn
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                Rectangle()
+                    .fill(.white.opacity(0.15))
+                    .frame(width: 1)
+                    .padding(.vertical, 2)
+                MiniCalendarView(calendar: calendar)
             }
 
             Spacer(minLength: 0)
 
-            HStack(spacing: 10) {
-                if showBattery {
-                    BatteryBadge(monitor: battery)
-                    if let minutes = battery.minutesRemaining {
-                        Text(timeText(minutes))
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.75))
-                    }
-                }
-                Spacer(minLength: 0)
-                pomodoroControl
-                quickActions
+            HStack(alignment: .center, spacing: 8) {
+                musicRow
+                Spacer(minLength: 6)
+                smallAction(icon: "sparkles", tint: .cyan, help: "Verrouiller le clavier pour nettoyer", action: onToggleCleanup)
+                smallAction(icon: "camera.fill", tint: .white.opacity(0.85), help: "Mode miroir (caméra)", action: onOpenMirror)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    // MARK: Colonne indicateurs
+
+    private var statsColumn: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            memoryRow
+            if showBattery {
+                batteryRow
+            }
+            if let event = calendar.events.first {
+                nextEventRow(event)
+            }
+            pomodoroControl
+        }
+    }
+
+    /// RAM façon RunCat : pourcentage + couleur selon la pression système.
+    private var memoryRow: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "memorychip")
+                .font(.system(size: 9))
+                .foregroundStyle(memoryColor)
+                .frame(width: 12)
+            Text("RAM")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.75))
+            Spacer(minLength: 4)
+            Text("\(Int(memory.usedFraction * 100)) %")
+                .font(.system(.caption2, design: .monospaced).weight(.semibold))
+                .foregroundStyle(memoryColor)
+        }
+    }
+
+    private var memoryColor: Color {
+        switch memory.pressure {
+        case .normal: return memory.usedFraction > 0.85 ? .orange : .white.opacity(0.9)
+        case .warning: return .orange
+        case .critical: return .red
+        }
+    }
+
+    private var batteryRow: some View {
+        HStack(spacing: 6) {
+            BatteryBadge(monitor: battery)
+            Spacer(minLength: 4)
+            if let minutes = battery.minutesRemaining {
+                Text(timeText(minutes))
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.75))
+            }
+        }
     }
 
     /// Prochain évènement du jour, cliquable s'il a un lien de visio.
@@ -67,6 +103,7 @@ struct OtterStatusPanel: View {
             Image(systemName: event.meetingURL != nil ? "video.fill" : "calendar")
                 .font(.system(size: 9))
                 .foregroundStyle(event.color)
+                .frame(width: 12)
             Text(event.title)
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(.white)
@@ -87,35 +124,18 @@ struct OtterStatusPanel: View {
         }
     }
 
-    /// Morceau en cours + contrôles, directement dans le panneau par défaut.
-    private func musicRow(_ track: NowPlayingInfo) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: "music.note")
-                .font(.system(size: 9))
-                .foregroundStyle(.white.opacity(0.8))
-            Text("\(track.title) — \(track.artist)")
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.8))
-                .lineLimit(1)
-            Spacer(minLength: 4)
-            MediaControlsView(provider: nowPlaying)
-                .scaleEffect(0.75)
-                .frame(width: 60)
-        }
-    }
-
-    private func timeText(_ minutes: Int) -> String {
-        let h = minutes / 60, m = minutes % 60
-        return h > 0 ? "\(h) h \(String(format: "%02d", m))" : "\(m) min"
-    }
-
     private var pomodoroControl: some View {
         Button {
             pomodoro.toggle()
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 Image(systemName: pomodoro.isRunning ? "pause.fill" : "timer")
                     .font(.system(size: 9))
+                    .frame(width: 12)
+                Text("Pomodoro")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.75))
+                Spacer(minLength: 4)
                 Text(pomodoro.display)
                     .font(.system(.caption2, design: .monospaced))
             }
@@ -125,27 +145,52 @@ struct OtterStatusPanel: View {
         .help("Minuteur Pomodoro")
     }
 
-    private var quickActions: some View {
-        HStack(spacing: 10) {
-            Button { QuickActions.launchClaudeCode() } label: {
-                Image(systemName: "terminal.fill")
-                    .font(.system(size: 15))
-                    .frame(width: 30, height: 30)
-            }
-            .buttonStyle(.plain)
-            .chipBackground(in: Circle(), tint: .orange.opacity(0.45))
-            .foregroundStyle(.orange)
-            .help("Lancer Claude Code")
+    // MARK: Lecteur
 
-            Button(action: onToggleCleanup) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 15))
-                    .frame(width: 30, height: 30)
+    @ViewBuilder
+    private var musicRow: some View {
+        if let track = nowPlaying.current {
+            HStack(spacing: 6) {
+                Image(systemName: "music.note")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.white.opacity(0.8))
+                Text("\(track.title) — \(track.artist)")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.9))
+                    .lineLimit(1)
+                MediaControlsView(provider: nowPlaying)
+                    .scaleEffect(0.8)
+                    .frame(width: 66)
             }
-            .buttonStyle(.plain)
-            .chipBackground(in: Circle(), tint: .cyan.opacity(0.45))
-            .foregroundStyle(.cyan)
-            .help("Verrouiller le clavier pour nettoyer")
+        } else {
+            HStack(spacing: 6) {
+                Image(systemName: "music.note")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.white.opacity(0.5))
+                Text("Rien ne joue")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.6))
+            }
         }
+    }
+
+    // MARK: Petites actions
+
+    private func smallAction(icon: String, tint: Color, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+                .frame(width: 22, height: 22)
+                .foregroundStyle(tint)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .chipBackground(in: Circle(), tint: .white.opacity(0.14))
+        .help(help)
+    }
+
+    private func timeText(_ minutes: Int) -> String {
+        let h = minutes / 60, m = minutes % 60
+        return h > 0 ? "\(h) h \(String(format: "%02d", m))" : "\(m) min"
     }
 }

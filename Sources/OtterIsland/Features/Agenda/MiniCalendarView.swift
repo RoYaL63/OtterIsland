@@ -99,21 +99,24 @@ struct MiniCalendarView: View {
     private func dayCell(_ day: Int?) -> some View {
         if let day {
             let today = isToday(day)
-            VStack(spacing: 0) {
-                Text("\(day)")
-                    .font(.system(size: 9, weight: today ? .bold : .regular).monospacedDigit())
-                    .foregroundStyle(today ? Color.black.opacity(0.85) : .white.opacity(0.9))
-                    .frame(width: 15, height: 12)
-                    .background(today ? Circle().fill(.white).frame(width: 14, height: 14) : nil)
-                Circle()
-                    .fill(eventDays.contains(day) ? Color.orange : .clear)
-                    .frame(width: 3, height: 3)
-            }
-            .frame(maxWidth: .infinity)
+            Text("\(day)")
+                .font(.system(size: 9, weight: today ? .bold : .regular).monospacedDigit())
+                .foregroundStyle(today ? Color.black.opacity(0.85) : .white.opacity(0.9))
+                .frame(width: 15, height: 13)
+                .background(today ? Circle().fill(.white).frame(width: 13, height: 13) : nil)
+                // Point d'évènement en surimpression (pas empilé : la grille
+                // doit rester compacte pour tenir dans la carte).
+                .overlay(alignment: .bottom) {
+                    Circle()
+                        .fill(eventDays.contains(day) && !today ? Color.orange : .clear)
+                        .frame(width: 3, height: 3)
+                        .offset(y: 1)
+                }
+                .frame(maxWidth: .infinity)
         } else {
             Color.clear
                 .frame(maxWidth: .infinity)
-                .frame(height: 15)
+                .frame(height: 13)
         }
     }
 

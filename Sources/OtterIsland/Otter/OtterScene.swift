@@ -110,6 +110,8 @@ final class OtterScene: SKScene {
             startZzz()
         case .cleaning:
             startCleaning()
+        case .overloaded:
+            startOverloaded()
         case .idle:
             break
         }
@@ -194,6 +196,35 @@ final class OtterScene: SKScene {
         sway.timingMode = .easeInEaseOut
         otter.run(.repeatForever(sway), withKey: "swim")
         startBubbles()
+        startNotes()
+    }
+
+    /// Notes de musique qui s'élèvent pendant la nage.
+    private func startNotes() {
+        let spawn = SKAction.run { [weak self] in self?.spawnNote() }
+        run(.repeatForever(.sequence([spawn, .wait(forDuration: 1.1)])), withKey: "notes")
+    }
+
+    private func spawnNote() {
+        let note = SKLabelNode(text: Bool.random() ? "♪" : "♫")
+        note.name = "fx"
+        note.fontName = "Menlo"
+        note.fontSize = 11
+        note.fontColor = SKColor(white: 1, alpha: 0.85)
+        note.alpha = 0
+        note.position = CGPoint(
+            x: size.width * CGFloat.random(in: 0.25...0.75),
+            y: size.height * 0.62
+        )
+        addChild(note)
+        note.run(.sequence([
+            .fadeIn(withDuration: 0.2),
+            .group([
+                .moveBy(x: CGFloat.random(in: -6...6), y: 18, duration: 1.4),
+                .sequence([.wait(forDuration: 0.7), .fadeOut(withDuration: 0.7)]),
+            ]),
+            .removeFromParent(),
+        ]))
     }
 
     /// Va-et-vient façon "coup de chiffon", avec de petites étincelles de propreté.
@@ -212,7 +243,8 @@ final class OtterScene: SKScene {
     }
 
     private func spawnCleanMark() {
-        let label = SKLabelNode(text: "✨")
+        // Alterne étincelles de propreté et bulles de savon.
+        let label = SKLabelNode(text: Bool.random() ? "✨" : "🫧")
         label.name = "fx"
         label.fontSize = 9
         label.alpha = 0
@@ -229,13 +261,52 @@ final class OtterScene: SKScene {
         ]))
     }
 
+    // MARK: RAM saturée : elle halète, s'évente et transpire
+
+    private func startOverloaded() {
+        guard let otter else { return }
+        // Petit tremblement latéral rapide, comme un moteur qui peine.
+        let jitter = SKAction.sequence([
+            .moveBy(x: 2.5, y: 0, duration: 0.06),
+            .moveBy(x: -5, y: 0, duration: 0.12),
+            .moveBy(x: 2.5, y: 0, duration: 0.06),
+            .wait(forDuration: 0.5),
+        ])
+        otter.run(.repeatForever(jitter), withKey: "jitter")
+
+        let spawn = SKAction.run { [weak self] in self?.spawnSweat() }
+        run(.repeatForever(.sequence([spawn, .wait(forDuration: 0.9)])), withKey: "sweat")
+    }
+
+    private func spawnSweat() {
+        let drop = SKLabelNode(text: "💦")
+        drop.name = "fx"
+        drop.fontSize = 10
+        drop.alpha = 0
+        // Alternance des deux tempes.
+        let side: CGFloat = Bool.random() ? 0.3 : 0.7
+        drop.position = CGPoint(x: size.width * side, y: size.height * 0.68)
+        addChild(drop)
+        drop.run(.sequence([
+            .fadeIn(withDuration: 0.1),
+            .group([
+                .moveBy(x: side < 0.5 ? -8 : 8, y: -6, duration: 0.7),
+                .fadeOut(withDuration: 0.7),
+            ]),
+            .removeFromParent(),
+        ]))
+    }
+
     // MARK: Effets (nodes nommés "fx")
 
     private func clearEffects() {
-        for key in ["zzz", "sparkle", "bubbles", "drops", "cleanmarks"] { removeAction(forKey: key) }
+        for key in ["zzz", "sparkle", "bubbles", "drops", "cleanmarks", "notes", "sweat"] {
+            removeAction(forKey: key)
+        }
         otter?.removeAction(forKey: "swim")
         otter?.removeAction(forKey: "shiver")
         otter?.removeAction(forKey: "clean")
+        otter?.removeAction(forKey: "jitter")
         otter?.zRotation = 0
         enumerateChildNodes(withName: "fx") { node, _ in node.removeFromParent() }
     }

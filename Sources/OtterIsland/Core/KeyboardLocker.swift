@@ -48,6 +48,13 @@ final class KeyboardLocker: ObservableObject {
             userInfo: refcon
         ) else {
             permissionDenied = true
+            // Inscrit OtterIsland dans les listes des panneaux Surveillance des
+            // saisies et Accessibilité (sinon l'utilisateur doit l'ajouter à la
+            // main via « + ») et affiche l'invite système correspondante. La
+            // permission n'est prise en compte qu'au prochain lancement — d'où
+            // le bouton Redémarrer de la carte.
+            CGRequestListenEventAccess()
+            Paster.ensureAccessibility()
             return
         }
 
