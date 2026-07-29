@@ -158,17 +158,8 @@ struct SettingsView: View {
     }
 
     private var about: some View {
-        VStack(spacing: 10) {
-            Text("🦦 OtterIsland")
-                .font(.title2.weight(.semibold))
-            Text("Version 0.1.0 — MIT")
-                .foregroundStyle(.secondary)
-            Text("Une encoche vivante avec une loutre et une inbox Claude Code.")
-                .font(.caption)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Guide complet (raccourcis, fonctionnement, permissions) — le même que
+        // la fenêtre « À propos » du menu de la loutre.
+        AboutView()
     }
 }

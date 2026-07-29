@@ -8,7 +8,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = OtterSettings()
     private var notchController: NotchWindowController?
     private var clipboardWindow: ClipboardWindowController?
+    private var aboutWindow: AboutWindowController?
     private var statusItem: NSStatusItem?
+    private var statusMenu: NSMenu?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Agent : ni Dock ni menu principal.
@@ -30,21 +32,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
+    /// Loutre de la barre de menus. Clic GAUCHE : le presse-papier s'ouvre
+    /// directement dans l'encoche (l'usage n°1). Clic DROIT : le menu complet
+    /// (presse-papier en fenêtre, à propos, réglages, quitter). On n'assigne
+    /// PAS `item.menu`, sinon il s'ouvrirait sur les deux clics et le clic
+    /// gauche perdrait son raccourci.
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.title = "🦦"
+        item.button?.target = self
+        item.button?.action = #selector(statusItemClicked)
+        item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
 
         let menu = NSMenu()
         menu.addItem(withTitle: "Presse-papier…", action: #selector(openClipboardWindow), keyEquivalent: "")
+        menu.addItem(withTitle: "À propos d'OtterIsland…", action: #selector(openAbout), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Réglages OtterIsland…", action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quitter OtterIsland", action: #selector(NSApp.terminate(_:)), keyEquivalent: "q")
-        for menuItem in menu.items where menuItem.action == #selector(openSettings) || menuItem.action == #selector(openClipboardWindow) {
+        for menuItem in menu.items where menuItem.action != #selector(NSApp.terminate(_:)) {
             menuItem.target = self
         }
-        item.menu = menu
+        statusMenu = menu
         statusItem = item
+    }
+
+    @objc private func statusItemClicked() {
+        guard let event = NSApp.currentEvent else { return }
+        if event.type == .rightMouseUp {
+            if let button = statusItem?.button, let menu = statusMenu {
+                menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.maxY + 4), in: button)
+            }
+        } else {
+            // Clic gauche : presse-papier dans l'encoche, prêt à coller.
+            notchController?.viewModel.openClipboard()
+        }
+    }
+
+    @objc private func openAbout() {
+        if aboutWindow == nil { aboutWindow = AboutWindowController() }
+        aboutWindow?.show()
     }
 
     @objc private func openSettings() {
