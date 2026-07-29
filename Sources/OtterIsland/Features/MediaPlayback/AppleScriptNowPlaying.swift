@@ -76,7 +76,7 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
 
     // MARK: AppleScript
 
-    /// Champs renvoyés : playing|titre|artiste|position(s)|durée(s)|urlPochette
+    /// Champs renvoyés : (playing|paused)|titre|artiste|position(s)|durée(s)|urlPochette
     ///
     /// `application "X" is running` est un prédicat AppleScript pur (LaunchServices) :
     /// il ne réveille pas l'app et surtout n'envoie aucun Apple Event, donc ne demande
@@ -84,18 +84,29 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
     /// autorisation Automatisation distincte de celle de Spotify/Music — un maillon en
     /// plus qui pouvait échouer tout seul et faire planter tout le relevé en silence.
     /// `artwork url` est aussi try-protégée : certaines pistes ne l'exposent pas.
+    ///
+    /// Important : comparer `player state` doit se faire directement (`if player state
+    /// is playing`), jamais après l'avoir stocké dans une variable — `set st to player
+    /// state` puis `if st is playing` casse le parseur AppleScript (les constantes
+    /// playing/paused ne sont résolues qu'en comparaison directe de la propriété).
     private static let stateScript = """
     set out to "stopped"
     if application "Spotify" is running then
         try
             tell application "Spotify"
+                set stateWord to "stopped"
                 if player state is playing then
+                    set stateWord to "playing"
+                else if player state is paused then
+                    set stateWord to "paused"
+                end if
+                if stateWord is not "stopped" then
                     set d to (duration of current track) / 1000
                     set artUrl to ""
                     try
                         set artUrl to artwork url of current track
                     end try
-                    set out to "playing|" & (name of current track) & "|" & (artist of current track) & "|" & (player position) & "|" & d & "|" & artUrl
+                    set out to stateWord & "|" & (name of current track) & "|" & (artist of current track) & "|" & (player position) & "|" & d & "|" & artUrl
                 end if
             end tell
         on error errMsg number errNum
@@ -105,8 +116,14 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
     if out is "stopped" and application "Music" is running then
         try
             tell application "Music"
+                set stateWord to "stopped"
                 if player state is playing then
-                    set out to "playing|" & (name of current track) & "|" & (artist of current track) & "|" & (player position) & "|" & (duration of current track) & "|"
+                    set stateWord to "playing"
+                else if player state is paused then
+                    set stateWord to "paused"
+                end if
+                if stateWord is not "stopped" then
+                    set out to stateWord & "|" & (name of current track) & "|" & (artist of current track) & "|" & (player position) & "|" & (duration of current track) & "|"
                 end if
             end tell
         on error errMsg number errNum
@@ -124,7 +141,7 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
         // Une erreur AppleScript côté Spotify/Music (le "try" l'a capturée) : le plus
         // souvent une Automatisation non accordée pour l'app elle-même.
         if parts[0] == "error" { return (nil, true) }
-        guard parts.count >= 3, parts[0] == "playing" else { return (nil, false) }
+        guard parts.count >= 3, parts[0] == "playing" || parts[0] == "paused" else { return (nil, false) }
 
         func number(_ index: Int) -> Double {
             guard parts.count > index else { return 0 }
@@ -135,7 +152,7 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
         return (NowPlayingInfo(
             title: parts[1],
             artist: parts[2],
-            isPlaying: true,
+            isPlaying: parts[0] == "playing",
             duration: number(4),
             position: number(3),
             sampledAt: Date(),

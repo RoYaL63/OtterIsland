@@ -7,7 +7,9 @@ struct MediaControlsView: View {
     var body: some View {
         HStack(spacing: 16) {
             control("backward.fill") { provider.previousTrack() }
-            control("playpause.fill") { provider.togglePlayPause() }
+            control(provider.current?.isPlaying == true ? "pause.fill" : "play.fill") {
+                provider.togglePlayPause()
+            }
             control("forward.fill") { provider.nextTrack() }
         }
         .foregroundStyle(.white)
