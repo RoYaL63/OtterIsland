@@ -15,6 +15,16 @@ final class NotchViewModel: ObservableObject {
     @Published var otterEvent: OtterEventToken?
     @Published var selectedTab: NotchTab = .otter
 
+    /// Taille de la carte étendue. Partagée entre la vue (frame de l'île) et le
+    /// contrôleur (zone de survol pour le suivi souris) : les deux DOIVENT voir
+    /// la même géométrie, sinon la carte se replie sous le curseur.
+    /// 224 de base (pas 176) : le panneau par défaut affiche le prochain RDV,
+    /// la musique et les actions rapides — 176 coupait le contenu.
+    var expandedSize: CGSize {
+        let dropOffset = settings.dropOffset(for: currentScreenID ?? "")
+        return CGSize(width: 460, height: 224 + CGFloat(dropOffset))
+    }
+
     let settings: OtterSettings
     let battery = BatteryMonitor()
     let inbox = ClaudeCodeInbox()
@@ -203,7 +213,9 @@ final class NotchViewModel: ObservableObject {
     }
 
     func setExpanded(_ expanded: Bool) {
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+        // Amortissement < 0.7 : léger dépassement élastique, l'île « goutte
+        // d'eau » rebondit un peu en se déployant, façon Dynamic Island.
+        withAnimation(.spring(response: 0.40, dampingFraction: 0.68)) {
             isExpanded = expanded
         }
     }

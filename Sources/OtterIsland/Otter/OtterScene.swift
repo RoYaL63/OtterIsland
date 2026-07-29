@@ -67,7 +67,9 @@ final class OtterScene: SKScene {
             size: CGSize(width: otterSide * 0.18, height: otterSide * 0.1)
         )
         tailNode.anchorPoint = CGPoint(x: 1, y: 0.5) // pivote depuis le corps
-        tailNode.position = CGPoint(x: -otterSide * 0.34, y: -otterSide * 0.28)
+        // Attachée au flanc bas-gauche du corps (sprite 20x20 : bord du corps
+        // vers la colonne 1, rangée 15).
+        tailNode.position = CGPoint(x: -otterSide * 0.38, y: -otterSide * 0.26)
         tailNode.zPosition = -1
         body.addChild(tailNode)
         tail = tailNode

@@ -6,6 +6,11 @@ import SwiftUI
 /// (un premier essai en teinte CLAIRE façon Centre de contrôle était trop
 /// transparent en pratique ; un repli en noir plein sans glass perdait les
 /// animations. Ceci garde les deux : contraste fort + reflets fluides).
+///
+/// Par-dessus le matériau, un liseré lumineux dégradé (blanc → transparent,
+/// du haut vers le bas) souligne la tranche du verre quand la carte est
+/// dépliée — c'est lui qui donne l'épaisseur « goutte d'eau » au bord.
+/// Replié, il s'éteint : rien ne doit briller sur l'encoche physique.
 struct NotchGlassBackground: View {
     /// Largeur réelle de l'encoche physique (nil si le Mac n'en a pas).
     let topWidth: CGFloat?
@@ -21,5 +26,21 @@ struct NotchGlassBackground: View {
     var body: some View {
         Color.clear
             .liquidGlassBackground(in: shape, tint: .black.opacity(0.92))
+            .overlay(
+                shape
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                .white.opacity(isExpanded ? 0.25 : 0),
+                                .white.opacity(isExpanded ? 0.07 : 0),
+                                .clear,
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
+                    .allowsHitTesting(false)
+            )
     }
 }

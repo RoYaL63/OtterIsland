@@ -10,14 +10,8 @@ struct NotchRootView: View {
     private var notchWidth: CGFloat { viewModel.metrics?.notchSize.width ?? 200 }
     private var notchHeight: CGFloat { viewModel.metrics?.notchSize.height ?? 32 }
 
-    private var currentWidth: CGFloat { viewModel.isExpanded ? 460 : notchWidth }
-    private var currentHeight: CGFloat {
-        let dropOffset = settings.dropOffset(for: viewModel.currentScreenID ?? "")
-        // 224 de base (pas 176) : le panneau par défaut affiche maintenant en plus
-        // le prochain RDV, la musique et les actions rapides — 176 ne laissait
-        // plus assez de place et coupait le contenu.
-        return viewModel.isExpanded ? 224 + CGFloat(dropOffset) : notchHeight
-    }
+    private var currentWidth: CGFloat { viewModel.isExpanded ? viewModel.expandedSize.width : notchWidth }
+    private var currentHeight: CGFloat { viewModel.isExpanded ? viewModel.expandedSize.height : notchHeight }
 
     var body: some View {
         VStack(spacing: 6) {
@@ -51,8 +45,10 @@ struct NotchRootView: View {
             .shadow(color: .black.opacity(viewModel.isExpanded ? 0.4 : 0), radius: 12, y: 6)
 
             if viewModel.isExpanded {
+                // Le contenu émerge du verre : fondu + très légère dilatation
+                // depuis le haut, dans le tempo du ressort de l'île.
                 expandedContent
-                    .transition(.opacity)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
             } else {
                 collapsedContent
             }

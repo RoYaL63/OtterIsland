@@ -78,15 +78,20 @@ final class CameraPreviewNSView: NSView {
         ) ?? AVCaptureDevice.default(for: .video)
         guard let device, let input = try? AVCaptureDeviceInput(device: device) else { return }
         if session.canAddInput(input) { session.addInput(input) }
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.session.startRunning()
+        // start/stopRunning sont bloquants → file de fond, recommandé par Apple.
+        // On capture la session localement plutôt que self (isolé MainActor) ;
+        // AVCaptureSession est thread-safe pour ces deux appels.
+        nonisolated(unsafe) let session = self.session
+        DispatchQueue.global(qos: .userInitiated).async {
+            session.startRunning()
         }
     }
 
     func stop() {
         guard session.isRunning else { return }
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.session.stopRunning()
+        nonisolated(unsafe) let session = self.session
+        DispatchQueue.global(qos: .userInitiated).async {
+            session.stopRunning()
         }
     }
 }

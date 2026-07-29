@@ -29,6 +29,10 @@ struct NowPlayingInfo: Equatable {
 /// Interface média. Une implémentation ScriptingBridge (Music/Spotify) et une
 /// implémentation MediaRemote viendront au Milestone 2 ; le framework privé
 /// MediaRemote est restreint depuis macOS 15.4, d'où l'abstraction.
+/// @MainActor : consommée uniquement par l'UI, et les implémentations publient
+/// via @Published — isoler le protocole évite les conformances trans-acteur
+/// (erreur en mode langage Swift 6).
+@MainActor
 protocol NowPlayingProvider: AnyObject {
     var current: NowPlayingInfo? { get }
     func start()
@@ -38,6 +42,7 @@ protocol NowPlayingProvider: AnyObject {
 }
 
 /// Implémentation vide en attendant. Permet de câbler l'UI dès maintenant.
+@MainActor
 final class StubNowPlayingProvider: NowPlayingProvider {
     var current: NowPlayingInfo? { nil }
     func start() {}

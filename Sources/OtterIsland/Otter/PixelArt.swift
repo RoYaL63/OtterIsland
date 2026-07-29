@@ -4,14 +4,17 @@ import SpriteKit
 /// Zéro asset binaire dans le dépôt : la loutre est dessinée en code, et reste
 /// remplaçable plus tard par une vraie feuille de sprites.
 enum PixelArt {
-    /// Palette par index. 0 = transparent.
+    /// Palette par index. 0 = transparent. Valeurs calées sur le rendu PNG de
+    /// validation (scripts/render_otter.py) — garder les deux synchronisés.
     static let otterPalette: [SKColor] = [
-        .clear,                                             // 0 transparent
-        SKColor(red: 0.42, green: 0.29, blue: 0.20, alpha: 1), // 1 marron corps
-        SKColor(red: 0.78, green: 0.62, blue: 0.45, alpha: 1), // 2 ventre clair
-        SKColor(red: 0.12, green: 0.10, blue: 0.09, alpha: 1), // 3 yeux / nez
-        SKColor(red: 0.96, green: 0.62, blue: 0.62, alpha: 1), // 4 joues / museau
-        SKColor(red: 0.98, green: 0.98, blue: 0.98, alpha: 1), // 5 reflet
+        .clear,                                                // 0 transparent
+        SKColor(red: 0.47, green: 0.33, blue: 0.22, alpha: 1), // 1 marron corps
+        SKColor(red: 0.87, green: 0.74, blue: 0.57, alpha: 1), // 2 crème ventre/museau
+        SKColor(red: 0.13, green: 0.10, blue: 0.09, alpha: 1), // 3 yeux / nez
+        SKColor(red: 0.95, green: 0.61, blue: 0.60, alpha: 1), // 4 rose joues / oreilles
+        SKColor(red: 0.98, green: 0.97, blue: 0.95, alpha: 1), // 5 reflet
+        SKColor(red: 0.29, green: 0.19, blue: 0.13, alpha: 1), // 6 contour sombre
+        SKColor(red: 0.43, green: 0.69, blue: 0.82, alpha: 1), // 7 bleu d'eau (nage)
     ]
 
     /// Construit une SKTexture nette (nearest) depuis une grille [ligne][colonne].

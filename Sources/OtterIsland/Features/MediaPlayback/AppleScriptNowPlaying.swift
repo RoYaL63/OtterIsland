@@ -31,16 +31,16 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
     }
 
     private func poll() {
-        DispatchQueue.global(qos: .utility).async {
-            let result = Self.runScript()
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                // Ne republie que sur vrai changement, sinon la minuterie de
-                // sommeil de la loutre se relancerait à chaque sondage.
-                if self.current != result.info { self.current = result.info }
-                self.automationDenied = result.automationDenied
-                self.updateArtwork(for: result.info)
-            }
+        // Le script tourne détaché (osascript est bloquant), le résultat revient
+        // sur le MainActor via l'await — pas de capture de self trans-acteur.
+        Task { [weak self] in
+            let result = await Task.detached(priority: .utility) { Self.runScript() }.value
+            guard let self else { return }
+            // Ne republie que sur vrai changement, sinon la minuterie de
+            // sommeil de la loutre se relancerait à chaque sondage.
+            if self.current != result.info { self.current = result.info }
+            self.automationDenied = result.automationDenied
+            self.updateArtwork(for: result.info)
         }
     }
 
@@ -58,14 +58,12 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
             artwork = nil
             return
         }
-        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
-            let image = data.flatMap(NSImage.init(data:))
-            DispatchQueue.main.async {
-                // Ignore si le morceau a encore changé entre-temps.
-                guard self?.lastArtworkKey == info.trackKey else { return }
-                self?.artwork = image
-            }
-        }.resume()
+        Task { [weak self] in
+            let data = try? await URLSession.shared.data(from: url).0
+            // Ignore si le morceau a encore changé entre-temps.
+            guard let self, self.lastArtworkKey == info.trackKey else { return }
+            self.artwork = data.flatMap(NSImage.init(data:))
+        }
     }
 
     // MARK: Contrôles (Milestone 2)
@@ -89,7 +87,7 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
     /// is playing`), jamais après l'avoir stocké dans une variable — `set st to player
     /// state` puis `if st is playing` casse le parseur AppleScript (les constantes
     /// playing/paused ne sont résolues qu'en comparaison directe de la propriété).
-    private static let stateScript = """
+    private nonisolated static let stateScript = """
     set out to "stopped"
     if application "Spotify" is running then
         try
@@ -133,7 +131,7 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
     return out
     """
 
-    private static func runScript() -> (info: NowPlayingInfo?, automationDenied: Bool) {
+    private nonisolated static func runScript() -> (info: NowPlayingInfo?, automationDenied: Bool) {
         let result = runOsascript(stateScript)
         if result.automationDenied { return (nil, true) }
         guard let output = result.output else { return (nil, false) }
@@ -160,7 +158,9 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
         ), false)
     }
 
-    private static func control(_ command: String) {
+    /// nonisolated + file de fond : osascript est synchrone (waitUntilExit),
+    /// le lancer sur le main thread gelait l'UI le temps de l'Apple Event.
+    private nonisolated static func control(_ command: String) {
         let script = """
         if application "Spotify" is running then
             tell application "Spotify" to \(command)
@@ -168,10 +168,12 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
             tell application "Music" to \(command)
         end if
         """
-        _ = runOsascript(script)
+        DispatchQueue.global(qos: .userInitiated).async {
+            _ = runOsascript(script)
+        }
     }
 
-    private static func runOsascript(_ script: String) -> (output: String?, automationDenied: Bool) {
+    private nonisolated static func runOsascript(_ script: String) -> (output: String?, automationDenied: Bool) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = ["-e", script]

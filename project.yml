@@ -14,7 +14,9 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
     ENABLE_HARDENED_RUNTIME: true
-    SWIFT_STRICT_CONCURRENCY: minimal
+    # complete : le code est vérifié data-race-free (0 warning au 2026-07-29),
+    # prêt pour le mode langage Swift 6.
+    SWIFT_STRICT_CONCURRENCY: complete
 
 targets:
   OtterIsland:
