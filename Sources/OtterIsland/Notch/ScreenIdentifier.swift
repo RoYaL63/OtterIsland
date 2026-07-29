@@ -6,6 +6,14 @@ import CoreGraphics
 /// de connexion : on préfère vendor/modèle/série, avec un repli sur "intégré"
 /// ou la résolution pour les écrans qui n'exposent pas de série exploitable.
 enum ScreenIdentifier {
+    /// L'écran intégré du MacBook (Retina/notch), s'il y en a un sur ce Mac.
+    static func isBuiltIn(_ screen: NSScreen) -> Bool {
+        guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
+            return false
+        }
+        return CGDisplayIsBuiltin(CGDirectDisplayID(number.uint32Value)) != 0
+    }
+
     static func stableID(for screen: NSScreen) -> String {
         guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
             return "unknown-\(Int(screen.frame.width))x\(Int(screen.frame.height))"

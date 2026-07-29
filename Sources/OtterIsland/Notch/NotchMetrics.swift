@@ -46,8 +46,13 @@ struct NotchMetrics {
         )
     }
 
-    /// Écran sous le curseur, sinon écran principal.
+    /// Écran sur lequel poser l'encoche : toujours l'écran intégré du MacBook s'il existe,
+    /// pour ne jamais suivre un écran externe branché. Sur un Mac de bureau sans écran
+    /// intégré, on retombe sur l'écran sous le curseur.
     static func activeScreen() -> NSScreen? {
+        if let builtIn = NSScreen.screens.first(where: ScreenIdentifier.isBuiltIn) {
+            return builtIn
+        }
         let mouse = NSEvent.mouseLocation
         return NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
     }
