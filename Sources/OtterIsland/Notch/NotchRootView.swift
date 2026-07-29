@@ -22,8 +22,10 @@ struct NotchRootView: View {
     var body: some View {
         VStack(spacing: 6) {
             island
+                .allowsHitTesting(true)
             if let hud = viewModel.hud, !viewModel.isExpanded {
                 HUDView(state: hud)
+                    .allowsHitTesting(true)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
             if let shot = viewModel.screenshotPreview, !viewModel.isExpanded {
@@ -32,10 +34,20 @@ struct NotchRootView: View {
                     onOpen: { viewModel.openScreenshotPreview() },
                     onDismiss: { viewModel.dismissScreenshotPreview() }
                 )
+                .allowsHitTesting(true)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
             Spacer(minLength: 0)
         }
+        // Le panneau AppKit fait 720×340 pt pour laisser de la place à ce qui
+        // déborde de l'encoche (HUD, aperçu capture) : sans ça, cette immense
+        // zone en grande partie vide capte quand même les clics destinés à
+        // d'autres apps (barre de titre, onglets…), même là où rien n'est
+        // visible. On coupe le hit-testing par défaut sur tout le conteneur et
+        // on le rallume explicitement seulement sur les éléments réellement
+        // interactifs ci-dessus (leur propre `.allowsHitTesting(true)` prime
+        // sur celui-ci, hérité par le reste de l'arbre).
+        .allowsHitTesting(false)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(.easeOut(duration: 0.2), value: viewModel.hud)
     }
