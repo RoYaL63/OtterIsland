@@ -106,6 +106,8 @@ final class OtterScene: SKScene {
             startWorried()
         case .sleepy:
             startZzz()
+        case .cleaning:
+            startCleaning()
         case .idle:
             break
         }
@@ -192,12 +194,46 @@ final class OtterScene: SKScene {
         startBubbles()
     }
 
+    /// Va-et-vient façon "coup de chiffon", avec de petites étincelles de propreté.
+    private func startCleaning() {
+        guard let otter else { return }
+        let wipe = SKAction.sequence([
+            .moveBy(x: 9, y: 0, duration: 0.16),
+            .moveBy(x: -18, y: 0, duration: 0.32),
+            .moveBy(x: 9, y: 0, duration: 0.16),
+        ])
+        wipe.timingMode = .easeInEaseOut
+        otter.run(.repeatForever(wipe), withKey: "clean")
+
+        let spawn = SKAction.run { [weak self] in self?.spawnCleanMark() }
+        run(.repeatForever(.sequence([spawn, .wait(forDuration: 0.3)])), withKey: "cleanmarks")
+    }
+
+    private func spawnCleanMark() {
+        let label = SKLabelNode(text: "✨")
+        label.name = "fx"
+        label.fontSize = 9
+        label.alpha = 0
+        label.position = CGPoint(
+            x: size.width * 0.5 + CGFloat.random(in: -14...14),
+            y: size.height * 0.32
+        )
+        addChild(label)
+        label.run(.sequence([
+            .fadeIn(withDuration: 0.1),
+            .wait(forDuration: 0.15),
+            .fadeOut(withDuration: 0.2),
+            .removeFromParent(),
+        ]))
+    }
+
     // MARK: Effets (nodes nommés "fx")
 
     private func clearEffects() {
-        for key in ["zzz", "sparkle", "bubbles", "drops"] { removeAction(forKey: key) }
+        for key in ["zzz", "sparkle", "bubbles", "drops", "cleanmarks"] { removeAction(forKey: key) }
         otter?.removeAction(forKey: "swim")
         otter?.removeAction(forKey: "shiver")
+        otter?.removeAction(forKey: "clean")
         otter?.zRotation = 0
         enumerateChildNodes(withName: "fx") { node, _ in node.removeFromParent() }
     }

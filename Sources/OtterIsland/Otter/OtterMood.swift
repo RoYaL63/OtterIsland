@@ -9,12 +9,13 @@ enum OtterMood: String {
     case swimming // musique en cours
     case worried  // batterie faible, elle se planque
     case sleepy   // inactivité prolongée
+    case cleaning // clavier verrouillé, elle passe un chiffon
 
     /// Expression du visage associée.
     var face: OtterFace {
         switch self {
         case .idle, .swimming: return .neutral
-        case .happy, .playful: return .happy
+        case .happy, .playful, .cleaning: return .happy
         case .curious: return .curious
         case .worried: return .worried
         case .sleepy: return .sleepy
@@ -31,6 +32,7 @@ enum OtterMood: String {
         case .swimming: return 1.2
         case .worried: return 0.5
         case .sleepy: return 2.8
+        case .cleaning: return 0.4
         }
     }
 }

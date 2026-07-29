@@ -88,7 +88,13 @@ struct NotchRootView: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                if let request = viewModel.inbox.pending {
+                if viewModel.keyboardLocker.isLocked || viewModel.keyboardLocker.permissionDenied {
+                    // Le nettoyage passe devant tout : le clavier est bloqué, la
+                    // seule sortie doit être visible immédiatement.
+                    CleaningCard(permissionDenied: viewModel.keyboardLocker.permissionDenied) {
+                        viewModel.unlockCleanup()
+                    }
+                } else if let request = viewModel.inbox.pending {
                     // Une demande Claude Code passe devant tout le reste.
                     ClaudeCodeCard(request: request) { approved in
                         viewModel.inbox.resolve(request, approved: approved)
@@ -119,7 +125,8 @@ struct NotchRootView: View {
                 pomodoro: viewModel.pomodoro,
                 calendar: viewModel.calendar,
                 nowPlaying: viewModel.nowPlaying,
-                showBattery: settings.showBattery
+                showBattery: settings.showBattery,
+                onToggleCleanup: { viewModel.toggleCleanup() }
             )
         case .music:
             MusicPanel(provider: viewModel.nowPlaying)

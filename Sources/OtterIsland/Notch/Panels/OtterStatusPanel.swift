@@ -10,6 +10,7 @@ struct OtterStatusPanel: View {
     @ObservedObject var calendar: CalendarProvider
     @ObservedObject var nowPlaying: AppleScriptNowPlaying
     let showBattery: Bool
+    let onToggleCleanup: () -> Void
 
     private var moodLine: String {
         switch mood {
@@ -20,6 +21,7 @@ struct OtterStatusPanel: View {
         case .swimming: return "Plouf, elle nage sur la musique."
         case .worried: return "Batterie faible, elle se planque…"
         case .sleepy: return "Chut, elle fait la sieste."
+        case .cleaning: return "Coup de chiffon, clavier verrouillé."
         }
     }
 
@@ -131,6 +133,13 @@ struct OtterStatusPanel: View {
             .buttonStyle(.plain)
             .foregroundStyle(.orange)
             .help("Lancer Claude Code")
+
+            Button(action: onToggleCleanup) {
+                Image(systemName: "sparkles").font(.system(size: 11))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.cyan)
+            .help("Verrouiller le clavier pour nettoyer")
         }
     }
 }

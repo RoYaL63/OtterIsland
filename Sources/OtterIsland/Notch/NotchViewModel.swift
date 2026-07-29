@@ -25,6 +25,7 @@ final class NotchViewModel: ObservableObject {
     let pomodoro = PomodoroTimer()
     let clipboard = ClipboardManager()
     let screenshot = ScreenshotWatcher()
+    let keyboardLocker = KeyboardLocker()
 
     /// HUD système transitoire (volume…), effacé automatiquement.
     @Published var hud: HUDState?
@@ -153,7 +154,9 @@ final class NotchViewModel: ObservableObject {
         let musicPlaying = settings.musicFollow && (nowPlaying.current?.isPlaying ?? false)
 
         let mood: OtterMood
-        if inbox.pending != nil {
+        if keyboardLocker.isLocked {
+            mood = .cleaning
+        } else if inbox.pending != nil {
             mood = .curious
         } else if lowBattery {
             mood = .worried
@@ -182,6 +185,21 @@ final class NotchViewModel: ObservableObject {
                 self?.recomputeMood()
             }
         }
+    }
+
+    /// Verrouille/déverrouille le clavier pour le nettoyage. On force l'encoche
+    /// ouverte au verrouillage pour que le bouton de déverrouillage reste visible.
+    func toggleCleanup() {
+        keyboardLocker.toggle()
+        if keyboardLocker.isLocked {
+            setExpanded(true)
+        }
+        recomputeMood()
+    }
+
+    func unlockCleanup() {
+        keyboardLocker.unlock()
+        recomputeMood()
     }
 
     func setExpanded(_ expanded: Bool) {
