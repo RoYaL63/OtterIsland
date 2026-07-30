@@ -13,16 +13,11 @@ struct MusicPanel: View {
                 HStack(spacing: 8) {
                     artwork
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(track.title)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                        Text(track.artist)
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.8))
-                            .lineLimit(1)
+                        MarqueeText(text: track.title, font: .otterTitle)
+                            .foregroundStyle(Otter.textPrimary)
+                        MarqueeText(text: track.artist, font: .otterMeta)
+                            .foregroundStyle(Otter.textSecondary)
                     }
-                    Spacer(minLength: 0)
                 }
                 scrubber(track)
                 HStack {
@@ -31,12 +26,11 @@ struct MusicPanel: View {
                     Spacer(minLength: 0)
                 }
             } else {
-                Text("Rien en lecture")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.8))
-                Text("Lance Spotify ou Apple Music, la loutre se met à nager.")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+                OtterEmptyState(
+                    icon: "music.note",
+                    title: "Rien en lecture",
+                    subtitle: "Lance Spotify ou Apple Music, la loutre se met à nager."
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -46,20 +40,18 @@ struct MusicPanel: View {
     /// accordée manuellement : sans ce message, ça ressemble à un bug silencieux.
     private var automationDeniedHint: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Autorisation requise")
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.8))
+            Label("Autorisation requise", systemImage: "lock.trianglebadge.exclamationmark")
+                .font(.otterBody)
+                .foregroundStyle(Otter.warning)
             Text("Réglages Système › Confidentialité et sécurité › Automatisation : autorise OtterIsland pour Spotify, Music et System Events.")
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.75))
-            Button("Ouvrir les réglages") {
+                .font(.otterMeta)
+                .foregroundStyle(Otter.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            OtterActionLink(title: "Ouvrir les réglages", icon: "gear", tint: Otter.warning) {
                 if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
                     NSWorkspace.shared.open(url)
                 }
             }
-            .buttonStyle(.plain)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.orange)
         }
     }
 
@@ -72,15 +64,19 @@ struct MusicPanel: View {
                     .aspectRatio(contentMode: .fill)
             } else {
                 ZStack {
-                    Color.white.opacity(0.22)
+                    Otter.chipFill
                     Image(systemName: "music.note")
                         .font(.system(size: 14))
-                        .foregroundStyle(.white.opacity(0.75))
+                        .foregroundStyle(Otter.textSecondary)
                 }
             }
         }
-        .frame(width: 40, height: 40)
-        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .frame(width: 42, height: 42)
+        .clipShape(RoundedRectangle(cornerRadius: Otter.Radius.medium, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Otter.Radius.medium, style: .continuous)
+                .stroke(Otter.chipStroke, lineWidth: 0.5)
+        )
     }
 
     private func scrubber(_ track: NowPlayingInfo) -> some View {
@@ -89,9 +85,9 @@ struct MusicPanel: View {
             VStack(spacing: 2) {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(.white.opacity(0.3))
+                        Capsule().fill(Color.white.opacity(0.16))
                         Capsule()
-                            .fill(.white)
+                            .fill(Otter.accent)
                             .frame(width: max(2, geo.size.width * fraction))
                     }
                 }
@@ -101,8 +97,8 @@ struct MusicPanel: View {
                     Spacer()
                     Text(timeString(track.duration))
                 }
-                .font(.system(size: 8, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.75))
+                .font(.system(size: 8.5, design: .monospaced))
+                .foregroundStyle(Otter.textSecondary)
             }
         }
     }

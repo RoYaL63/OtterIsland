@@ -1,64 +1,91 @@
 import SwiftUI
 import AppKit
 
-/// Panneau Agenda : prochains évènements et rappels (rempli par CalendarProvider).
+/// Panneau Agenda : mini calendrier navigable à gauche, prochains RDV et
+/// rappels à droite. Les évènements terminés sortent de la liste (fenêtre
+/// glissante rechargée par le provider).
 struct AgendaPanel: View {
     @ObservedObject var calendar: CalendarProvider
 
     var body: some View {
         Group {
             if !calendar.hasAccess {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Agenda non autorisé")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.85))
-                    Button("Autoriser") { calendar.requestAccess() }
-                        .buttonStyle(.plain)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.orange)
-                }
+                permissionHint
             } else {
-                // Mini calendrier navigable à gauche, prochains RDV/rappels à
-                // droite. Les évènements terminés sortent de la liste (fenêtre
-                // glissante rechargée par le provider).
-                HStack(alignment: .top, spacing: 10) {
+                HStack(alignment: .top, spacing: 12) {
                     MiniCalendarView(calendar: calendar)
-                    Rectangle()
-                        .fill(.white.opacity(0.15))
-                        .frame(width: 1)
+                    OtterDivider()
                         .padding(.vertical, 2)
-                    VStack(alignment: .leading, spacing: 6) {
-                        if let browsed = calendar.browsedDate {
-                            // Jour choisi dans le mini calendrier : sa journée
-                            // entière remplace la liste « à venir ».
-                            browsedHeader(browsed)
-                            if calendar.browsedEvents.isEmpty {
-                                Text("Rien ce jour-là")
-                                    .font(.caption)
-                                    .foregroundStyle(.white.opacity(0.7))
-                            } else {
-                                ForEach(calendar.browsedEvents.prefix(4)) { event in
-                                    eventRow(event)
-                                }
-                            }
-                        } else if calendar.events.isEmpty && calendar.reminders.isEmpty {
-                            Text("Rien de prévu 🎉")
-                                .font(.subheadline)
-                                .foregroundStyle(.white.opacity(0.8))
-                        } else {
-                            ForEach(calendar.events.prefix(3)) { event in
-                                eventRow(event)
-                            }
-                            ForEach(calendar.reminders.prefix(2)) { reminder in
-                                reminderRow(reminder)
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    list
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    @ViewBuilder
+    private var list: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            if let browsed = calendar.browsedDate {
+                // Jour choisi dans le mini calendrier : sa journée entière
+                // remplace la liste « à venir ».
+                browsedHeader(browsed)
+                if calendar.browsedEvents.isEmpty {
+                    Text("Rien ce jour-là")
+                        .font(.otterLabel)
+                        .foregroundStyle(Otter.textTertiary)
+                } else {
+                    ForEach(calendar.browsedEvents.prefix(4)) { event in
+                        eventRow(event)
+                    }
+                }
+            } else if calendar.events.isEmpty && calendar.reminders.isEmpty {
+                OtterEmptyState(
+                    icon: "checkmark.circle",
+                    title: "Rien de prévu",
+                    subtitle: "Profites-en."
+                )
+            } else {
+                if !calendar.events.isEmpty {
+                    sectionHeader("À venir")
+                    ForEach(calendar.events.prefix(3)) { event in
+                        eventRow(event)
+                    }
+                }
+                if !calendar.reminders.isEmpty {
+                    sectionHeader("Rappels")
+                        .padding(.top, 2)
+                    ForEach(calendar.reminders.prefix(2)) { reminder in
+                        reminderRow(reminder)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Sépare visuellement RDV et rappels — ils étaient empilés sans rien pour
+    /// dire où l'un s'arrêtait et où l'autre commençait.
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title.uppercased())
+            .font(.otterMicro)
+            .tracking(0.6)
+            .foregroundStyle(Otter.textTertiary)
+    }
+
+    private var permissionHint: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Agenda non autorisé", systemImage: "calendar.badge.exclamationmark")
+                .font(.otterBody)
+                .foregroundStyle(Otter.warning)
+            Text("OtterIsland a besoin de l'accès Calendrier et Rappels pour afficher ta journée.")
+                .font(.otterMeta)
+                .foregroundStyle(Otter.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            OtterActionLink(title: "Autoriser", icon: "lock.open", tint: Otter.warning) {
+                calendar.requestAccess()
+            }
+        }
     }
 
     /// En-tête du jour consulté : « Mar. 6 oct. » + croix pour revenir aux
@@ -66,15 +93,18 @@ struct AgendaPanel: View {
     private func browsedHeader(_ date: Date) -> some View {
         HStack(spacing: 6) {
             Text(Self.dayFormatter.string(from: date).capitalized)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.orange)
+                .font(.otterMicro)
+                .tracking(0.6)
+                .foregroundStyle(Otter.accent)
             Spacer(minLength: 4)
             Button {
                 calendar.browse(nil)
             } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.6))
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(Otter.textTertiary)
+                    .frame(width: 14, height: 14)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help("Revenir aux prochains rendez-vous")
@@ -89,46 +119,62 @@ struct AgendaPanel: View {
     }()
 
     private func reminderRow(_ reminder: AgendaReminder) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 7) {
             Button {
                 calendar.complete(reminder.id)
             } label: {
                 Image(systemName: "circle")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.orange)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Otter.accent)
+                    .frame(width: Otter.iconColumn)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help("Marquer comme fait")
             Text(reminder.title)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.white)
+                .font(.otterBody)
+                .foregroundStyle(Otter.textPrimary)
                 .lineLimit(1)
-            Spacer(minLength: 4)
+            Spacer(minLength: 6)
             Text(reminder.dueText)
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.75))
+                .font(.otterMeta)
+                .foregroundStyle(Otter.textSecondary)
         }
     }
 
     /// Cliquable si un lien de visio est associé : l'ouvre directement.
     private func eventRow(_ event: AgendaEvent) -> some View {
-        let content = HStack(spacing: 6) {
-            Image(systemName: event.meetingURL != nil ? "video.fill" : "calendar")
-                .font(.system(size: 9))
-                .foregroundStyle(event.color)
+        let hasCall = event.meetingURL != nil
+        let content = HStack(spacing: 7) {
+            // Pastille de la couleur du calendrier : reconnaître « boulot » de
+            // « perso » d'un coup d'œil, ce qu'une icône grise uniforme ne
+            // permettait pas.
+            Group {
+                if hasCall {
+                    Image(systemName: "video.fill")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Otter.accent)
+                } else {
+                    Circle()
+                        .fill(event.color)
+                        .frame(width: 6, height: 6)
+                }
+            }
+            .frame(width: Otter.iconColumn)
+
             Text(event.title)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.white)
+                .font(.otterBody)
+                .foregroundStyle(Otter.textPrimary)
                 .lineLimit(1)
-            Spacer(minLength: 4)
+            Spacer(minLength: 6)
             Text(event.timeText)
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.75))
+                .font(.otterMeta)
+                .foregroundStyle(Otter.textSecondary)
         }
 
         return Group {
             if let url = event.meetingURL {
-                Button { NSWorkspace.shared.open(url) } label: { content }
+                Button { NSWorkspace.shared.open(url) } label: { content.contentShape(Rectangle()) }
                     .buttonStyle(.plain)
                     .help("Rejoindre la visio")
             } else {

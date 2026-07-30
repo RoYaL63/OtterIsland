@@ -51,8 +51,8 @@ struct MiniCalendarView: View {
                 reload()
             } label: {
                 Text(Self.monthFormatter.string(from: displayedMonth).capitalized)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(.otterValue)
+                    .foregroundStyle(Otter.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -67,7 +67,7 @@ struct MiniCalendarView: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 8, weight: .bold))
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(Otter.textSecondary)
                 .frame(width: 16, height: 16)
                 .contentShape(Rectangle())
         }
@@ -78,8 +78,8 @@ struct MiniCalendarView: View {
         HStack(spacing: 0) {
             ForEach(Array(Self.weekdaySymbols.enumerated()), id: \.offset) { _, symbol in
                 Text(symbol)
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .font(.otterMicro)
+                    .foregroundStyle(Otter.textTertiary)
                     .frame(maxWidth: .infinity)
             }
         }
@@ -109,14 +109,14 @@ struct MiniCalendarView: View {
                 Text("\(day)")
                     .font(.system(size: 9, weight: today || selected ? .bold : .regular).monospacedDigit())
                     .foregroundStyle(
-                        selected ? Color.black.opacity(0.9)
+                        selected ? Color.black.opacity(0.85)
                         : today ? Color.black.opacity(0.85)
-                        : .white.opacity(0.9)
+                        : Otter.textPrimary.opacity(0.88)
                     )
                     .frame(width: 15, height: 13)
-                    // Sélection = pastille orange (prioritaire), aujourd'hui = blanche.
+                    // Sélection = pastille aqua (prioritaire), aujourd'hui = blanche.
                     .background(
-                        selected ? Circle().fill(Color.orange).frame(width: 13, height: 13)
+                        selected ? Circle().fill(Otter.accent).frame(width: 13, height: 13)
                         : today ? Circle().fill(.white).frame(width: 13, height: 13)
                         : nil
                     )
@@ -124,7 +124,7 @@ struct MiniCalendarView: View {
                     // doit rester compacte pour tenir dans la carte).
                     .overlay(alignment: .bottom) {
                         Circle()
-                            .fill(eventDays.contains(day) && !today && !selected ? Color.orange : .clear)
+                            .fill(eventDays.contains(day) && !today && !selected ? Otter.accent : .clear)
                             .frame(width: 3, height: 3)
                             .offset(y: 1)
                     }

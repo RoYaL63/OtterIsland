@@ -53,6 +53,17 @@ Chaque feature demandée, son état, et comment on l'aborde. Un module = un doss
 | Actions rapides vibe coder | Raccourcis: lancer Claude Code, coller le presse-papier vers un prompt, timer pomodoro, snippet launcher |
 | Réactions Claude Code | La loutre apporte physiquement la carte de demande, animation dédiée |
 
+## Milestone 6 — Finition
+
+| Feature | État | Notes |
+|---|---|---|
+| Système visuel | ✅ | `Sources/OtterIsland/UI/OtterTheme.swift` : 3 niveaux de texte, échelle typo, accent aqua prélevé sur l'icône. L'orange redevient une couleur d'ALERTE, plus un accent. |
+| Icône d'app | ✅ | Générée depuis `icone.png` par `scripts/make_appicon.swift` (squircle, grille Apple). |
+| Aperçu de design sans Xcode | ✅ | `scripts/render_card.swift` rend la carte en PNG, providers non démarrés. |
+| Captures | ✅ | Copie auto dans le presse-papier (⌘⇧4 → ⌘V), dernière capture en grand + bande des précédentes, cache de vignettes `CGImageSource`. |
+| Mise à jour intégrée | ✅ | `Features/Update/Updater.swift` + onglet Réglages. Sans quarantaine. |
+| Signature stable | ⏳ | Workflow prêt (secrets `MACOS_CERT_*`), reste à créer le certificat — `docs/SIGNING.md`. Condition pour que les permissions survivent aux mises à jour. |
+
 ## Modules stubés dès maintenant
 
 Pour garder Milestone 1 compilable, les modules 2 à 4 exposent une interface (protocole) et un provider vide marqué `TODO`. On les remplit sans toucher au reste.

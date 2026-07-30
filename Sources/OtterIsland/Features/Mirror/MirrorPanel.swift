@@ -14,28 +14,29 @@ struct MirrorPanel: View {
                 deniedHint
             default:
                 CameraPreview()
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: Otter.Radius.large, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Otter.Radius.large, style: .continuous)
+                            .stroke(Otter.chipStroke, lineWidth: 0.5)
+                    )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var deniedHint: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 7) {
             Image(systemName: "camera.fill")
-                .font(.system(size: 16))
-                .foregroundStyle(.white.opacity(0.7))
+                .font(.system(size: 19, weight: .light))
+                .foregroundStyle(Otter.textTertiary)
             Text("Caméra non autorisée")
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.85))
-            Button("Ouvrir les réglages") {
+                .font(.otterBody)
+                .foregroundStyle(Otter.warning)
+            OtterActionLink(title: "Ouvrir les réglages", icon: "gear", tint: Otter.warning) {
                 if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
                     NSWorkspace.shared.open(url)
                 }
             }
-            .buttonStyle(.plain)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.orange)
         }
     }
 }

@@ -7,20 +7,22 @@ struct ClaudeCodeCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
+            HStack(spacing: 7) {
                 Image(systemName: "sparkles")
-                    .foregroundStyle(.orange)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Otter.warning)
                 Text(request.title)
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Otter.textPrimary)
                     .lineLimit(1)
             }
 
             if let detail = request.detail {
                 Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.8))
+                    .font(.otterMeta)
+                    .foregroundStyle(Otter.textSecondary)
                     .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack(spacing: 8) {
@@ -30,7 +32,7 @@ struct ClaudeCodeCard: View {
                     Text("Refuser")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(PillButtonStyle(tint: .white.opacity(0.22), fg: .white))
+                .buttonStyle(PillButtonStyle(tint: Color.white.opacity(0.14), fg: Otter.textPrimary))
 
                 Button {
                     onDecision(true)
@@ -38,7 +40,7 @@ struct ClaudeCodeCard: View {
                     Text("Approuver")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(PillButtonStyle(tint: .orange, fg: .black))
+                .buttonStyle(PillButtonStyle(tint: Otter.accent, fg: .black.opacity(0.82)))
             }
         }
     }
@@ -50,7 +52,7 @@ private struct PillButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(.caption, design: .rounded).weight(.semibold))
+            .font(.system(size: 11, weight: .semibold, design: .rounded))
             .padding(.vertical, 5)
             .padding(.horizontal, 10)
             .chipBackground(in: Capsule(), tint: tint)

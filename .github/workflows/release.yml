@@ -14,6 +14,11 @@ jobs:
   build-and-release:
     runs-on: macos-latest
 
+    env:
+      # Le contexte `secrets` n'est pas utilisable directement dans un `if:` de
+      # step — on le projette une fois ici, en booléen.
+      HAS_SIGNING_CERT: ${{ secrets.MACOS_CERT_P12 != '' }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,7 +29,40 @@ jobs:
       - name: Générer le projet Xcode
         run: xcodegen generate
 
-      - name: Build Release (signature ad-hoc, pas de compte développeur payant)
+      # Certificat auto-signé STABLE (optionnel mais fortement recommandé).
+      # Sans lui, chaque build est signée en ad-hoc : macOS lui attribue une
+      # identité différente à chaque version, et l'utilisateur doit re-cocher
+      # Accessibilité + Surveillance des saisies après CHAQUE mise à jour.
+      # Avec lui, l'identité ne bouge plus et les permissions survivent.
+      # Création du certificat et des secrets : docs/SIGNING.md
+      - name: Importer le certificat de signature
+        id: cert
+        if: env.HAS_SIGNING_CERT == 'true'
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          MACOS_CERT_IDENTITY: ${{ secrets.MACOS_CERT_IDENTITY }}
+        run: |
+          KEYCHAIN=$RUNNER_TEMP/otterisland.keychain-db
+          KEYCHAIN_PASSWORD=$(uuidgen)
+          echo "$MACOS_CERT_P12" | base64 --decode > $RUNNER_TEMP/cert.p12
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import $RUNNER_TEMP/cert.p12 -k "$KEYCHAIN" \
+            -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychain -d user -s "$KEYCHAIN" login.keychain
+
+          rm $RUNNER_TEMP/cert.p12
+          echo "identity=$MACOS_CERT_IDENTITY" >> "$GITHUB_OUTPUT"
+
+      - name: Build Release
+        env:
+          # Vide si le secret n'existe pas → signature ad-hoc, comme avant.
+          SIGN_IDENTITY: ${{ steps.cert.outputs.identity }}
         run: |
           xcodebuild \
             -project OtterIsland.xcodeproj \
@@ -32,12 +70,24 @@ jobs:
             -configuration Release \
             -derivedDataPath build \
             CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_IDENTITY="${SIGN_IDENTITY:--}" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=YES \
             DEVELOPMENT_TEAM="" \
             ENABLE_HARDENED_RUNTIME=NO \
             build
+
+      - name: Vérifier la signature obtenue
+        run: |
+          APP_PATH="build/Build/Products/Release/OtterIsland.app"
+          codesign -dvv "$APP_PATH" 2>&1 || true
+          # Une signature ad-hoc n'a pas d'« Authority » : le dire clairement
+          # dans le log évite de découvrir le problème côté utilisateur.
+          if codesign -dvv "$APP_PATH" 2>&1 | grep -q "^Authority="; then
+            echo "✓ identité stable — les permissions survivront aux mises à jour"
+          else
+            echo "⚠ signature ad-hoc — l'utilisateur devra re-cocher ses permissions (voir docs/SIGNING.md)"
+          fi
 
       - name: Empaqueter le .app en zip
         run: |
@@ -51,4 +101,4 @@ jobs:
           gh release create "${{ github.ref_name }}" OtterIsland.zip \
             --title "OtterIsland ${{ github.ref_name }}" \
             --generate-notes \
-            --notes "Build non signé (pas de compte Apple Developer payant). Au premier lancement, macOS va bloquer l'app : voir les instructions dans le README pour l'autoriser."
+            --notes "Mise à jour recommandée depuis l'app : Réglages › Mise à jour › Installer et redémarrer (pas de quarantaine Gatekeeper, aucun zip à manipuler). Premier téléchargement manuel : voir le README."

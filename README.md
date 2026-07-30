@@ -26,9 +26,24 @@ Milestone 1 (ce dépôt) est un squelette qui **compile et tourne** sur un Mac �
 - [x] Miroir caméra
 - [x] HUD volume (CoreAudio), contrôle à la molette, lancement au démarrage, Pomodoro
 - [x] Fenêtre de réglages
+- [x] Système visuel unifié (jetons de couleur/typo, accent aqua repris de l'icône)
+- [x] Mise à jour depuis l'app (Réglages › Mise à jour), sans zip ni quarantaine
+- [x] Captures : copie automatique dans le presse-papier, dernière capture en grand
 - [ ] Suppression du HUD natif, tailles par écran, contrôles média avancés (voir `docs/ROADMAP.md`)
 
 La suite des features est détaillée dans [docs/ROADMAP.md](docs/ROADMAP.md).
+
+## Mettre à jour
+
+Depuis la version 0.2.0, **Réglages › Mise à jour › Installer et redémarrer** :
+OtterIsland récupère la dernière release, remplace l'app à son emplacement et
+relance. Pas de zip à dézipper, et surtout pas de quarantaine Gatekeeper — donc
+plus de `spctl --add` à chaque version.
+
+Les permissions (Accessibilité, Surveillance des saisies) ne survivent en
+revanche à une mise à jour que si les builds sont signées avec une identité
+stable. L'onglet Mise à jour affiche l'état réel ; la marche à suivre est dans
+[docs/SIGNING.md](docs/SIGNING.md).
 
 ## Télécharger
 
@@ -40,7 +55,9 @@ L'app n'est **pas signée** (pas de compte Apple Developer payant) : au premier 
 sudo spctl --add /Applications/OtterIsland.app
 ```
 
-(demande ton mot de passe admin). Sur macOS 15/26+, Gatekeeper rejette purement et simplement les apps ad-hoc au téléchargement — `xattr -cr` seul (qui suffisait sur les anciennes versions) ne change rien à ce verdict, vérifié avec `spctl -a -vv`. La commande `spctl --add` reste nécessaire à chaque nouvelle version téléchargée, la signature étant recréée à chaque build.
+(demande ton mot de passe admin). Sur macOS 15/26+, Gatekeeper rejette purement et simplement les apps ad-hoc au téléchargement — `xattr -cr` seul (qui suffisait sur les anciennes versions) ne change rien à ce verdict, vérifié avec `spctl -a -vv`.
+
+**À faire une seule fois.** Les versions suivantes s'installent depuis l'app (voir « Mettre à jour » ci-dessus) : le téléchargement ne passe pas par le navigateur, donc pas de quarantaine, donc pas de nouveau `spctl --add`.
 
 ## Build
 
@@ -58,6 +75,19 @@ xcodegen generate
 # 3. Ouvrir et lancer
 open OtterIsland.xcodeproj
 ```
+
+### Icône
+
+`Resources/Assets.xcassets/AppIcon.appiconset` est **généré**, pas édité à la
+main. Pour repartir d'une nouvelle illustration, remplace `icone.png` (carré,
+fond uni) puis :
+
+```bash
+swift scripts/make_appicon.swift
+```
+
+Le script rogne le fond, découpe la tuile en squircle (coins transparents),
+la recentre sur la grille Apple et écrit les 7 tailles + le `Contents.json`.
 
 Dans Xcode: sélectionne la target `OtterIsland`, choisis ton équipe de signature (Signing & Capabilities), puis ⌘R.
 

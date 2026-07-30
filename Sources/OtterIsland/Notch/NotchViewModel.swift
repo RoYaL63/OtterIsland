@@ -162,6 +162,12 @@ final class NotchViewModel: ObservableObject {
         if settings.clipboardEnabled {
             clipboard.addScreenshot(at: shot.url)
         }
+        // …et surtout, elle part DIRECTEMENT dans le presse-papier système :
+        // `screencapture` n'écrit que sur le disque, donc ⌘V juste après une
+        // capture collait encore le contenu précédent.
+        if settings.screenshotAutoCopy {
+            clipboard.copyFile(at: shot.url)
+        }
         screenshotPreview = shot
         screenshotClearTimer?.invalidate()
         screenshotClearTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: false) { [weak self] _ in
@@ -176,6 +182,12 @@ final class NotchViewModel: ObservableObject {
         guard let shot = screenshotPreview else { return }
         NSWorkspace.shared.open(shot.url)
         dismissScreenshotPreview()
+    }
+
+    /// Remet une capture de l'historique dans le presse-papier (bouton Copier
+    /// de l'onglet Captures).
+    func copyScreenshot(_ url: URL) {
+        clipboard.copyFile(at: url)
     }
 
     func dismissScreenshotPreview() {

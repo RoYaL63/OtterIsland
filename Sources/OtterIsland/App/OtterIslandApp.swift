@@ -9,7 +9,7 @@ struct OtterIslandApp: App {
 
     var body: some Scene {
         Settings {
-            SettingsView()
+            SettingsView(updater: appDelegate.updater)
                 .environmentObject(appDelegate.settings)
         }
     }

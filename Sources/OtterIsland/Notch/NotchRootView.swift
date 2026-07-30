@@ -23,6 +23,7 @@ struct NotchRootView: View {
             if let shot = viewModel.screenshotPreview, !viewModel.isExpanded {
                 ScreenshotPreviewView(
                     shot: shot,
+                    didCopy: settings.screenshotAutoCopy,
                     onOpen: { viewModel.openScreenshotPreview() },
                     onDismiss: { viewModel.dismissScreenshotPreview() }
                 )
@@ -147,7 +148,9 @@ struct NotchRootView: View {
         case .mirror:
             MirrorPanel()
         case .screenshots:
-            ScreenshotsPanel(screenshot: viewModel.screenshot)
+            ScreenshotsPanel(screenshot: viewModel.screenshot) { url in
+                viewModel.copyScreenshot(url)
+            }
         }
     }
 }

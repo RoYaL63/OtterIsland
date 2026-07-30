@@ -24,13 +24,13 @@ struct HUDView: View {
         HStack(spacing: 10) {
             Image(systemName: state.kind.icon)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white)
+                .foregroundStyle(Otter.textPrimary)
                 .frame(width: 18)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.3))
+                    Capsule().fill(Color.white.opacity(0.16))
                     Capsule()
-                        .fill(.white)
+                        .fill(Otter.accent)
                         .frame(width: max(4, geo.size.width * state.value))
                 }
             }

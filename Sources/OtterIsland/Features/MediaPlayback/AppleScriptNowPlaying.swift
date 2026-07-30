@@ -30,7 +30,26 @@ final class AppleScriptNowPlaying: NowPlayingProvider, ObservableObject {
         timer = nil
     }
 
+    /// Identifiants des lecteurs pilotés. `runningApplications` est une simple
+    /// lecture de LaunchServices : aucun Apple Event, aucune permission.
+    private static let playerBundleIDs: Set<String> = ["com.spotify.client", "com.apple.Music"]
+
+    private static var isAnyPlayerRunning: Bool {
+        NSWorkspace.shared.runningApplications.contains {
+            guard let id = $0.bundleIdentifier else { return false }
+            return playerBundleIDs.contains(id)
+        }
+    }
+
     private func poll() {
+        // Aucun lecteur lancé : inutile de payer un fork+exec d'osascript toutes
+        // les 3 s (soit ~1200 process par heure) juste pour s'entendre dire que
+        // rien ne joue. Le script commence de toute façon par ce test.
+        guard Self.isAnyPlayerRunning else {
+            if current != nil { current = nil }
+            updateArtwork(for: nil)
+            return
+        }
         // Le script tourne détaché (osascript est bloquant), le résultat revient
         // sur le MainActor via l'await — pas de capture de self trans-acteur.
         Task { [weak self] in

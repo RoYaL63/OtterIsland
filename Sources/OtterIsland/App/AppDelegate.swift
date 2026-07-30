@@ -6,6 +6,7 @@ import AppKit
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = OtterSettings()
+    let updater = Updater()
     private var notchController: NotchWindowController?
     private var clipboardWindow: ClipboardWindowController?
     private var aboutWindow: AboutWindowController?
@@ -22,6 +23,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         clipboardWindow = ClipboardWindowController(clipboard: controller.viewModel.clipboard)
 
         setupStatusItem()
+
+        // Un seul appel GitHub au lancement ; le résultat s'affiche dans
+        // l'onglet Mise à jour des réglages.
+        if settings.autoCheckUpdates {
+            updater.check()
+        }
 
         // Repositionner quand l'agencement d'écran change (résolution, écran externe).
         NotificationCenter.default.addObserver(
@@ -47,6 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(withTitle: "Presse-papier…", action: #selector(openClipboardWindow), keyEquivalent: "")
         menu.addItem(withTitle: "À propos d'OtterIsland…", action: #selector(openAbout), keyEquivalent: "")
+        menu.addItem(withTitle: "Rechercher les mises à jour…", action: #selector(openUpdates), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Réglages OtterIsland…", action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(.separator())
@@ -73,6 +81,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func openAbout() {
         if aboutWindow == nil { aboutWindow = AboutWindowController() }
         aboutWindow?.show()
+    }
+
+    /// Ouvre les réglages sur une vérification fraîche : c'est l'onglet
+    /// « Mise à jour » qui affiche le résultat.
+    @objc private func openUpdates() {
+        updater.check()
+        openSettings()
     }
 
     @objc private func openSettings() {

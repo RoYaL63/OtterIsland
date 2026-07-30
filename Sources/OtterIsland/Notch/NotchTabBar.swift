@@ -1,38 +1,67 @@
 import SwiftUI
 
-/// Barre d'onglets compacte en haut à droite de la carte étendue.
+/// Barre d'onglets de la carte étendue : une pastille aqua qui GLISSE d'un
+/// onglet à l'autre, dans un rail discret.
+///
+/// Avant : sept icônes de 30 pt flottant côte à côte sans contenant, dont seule
+/// la sélectionnée avait un fond — la barre ne se lisait pas comme un objet, et
+/// le changement d'onglet était un saut sec. Le rail donne un début et une fin
+/// au groupe, `matchedGeometryEffect` fait voyager l'indicateur, et l'ensemble
+/// est plus compact (200 pt au lieu de 246) : autant de rendu au contenu.
 struct NotchTabBar: View {
     @Binding var selection: NotchTab
 
+    @Namespace private var indicator
+    @State private var hovered: NotchTab?
+
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 2) {
             ForEach(NotchTab.allCases) { tab in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.15)) { selection = tab }
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                        selection = tab
+                    }
                 } label: {
                     Image(systemName: tab.icon)
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 30, height: 30)
-                        .modifier(SelectedTabBackground(isSelected: selection == tab))
-                        // Actif : pastille blanche + icône sombre (comme un toggle
-                        // allumé du Centre de contrôle) — blanc-sur-gris illisible.
-                        .foregroundStyle(selection == tab ? Color.black.opacity(0.8) : Color.white.opacity(0.6))
+                        .font(.system(size: 11.5, weight: .semibold))
+                        .frame(width: 26, height: 24)
+                        .foregroundStyle(tint(for: tab))
+                        .background {
+                            if selection == tab {
+                                Capsule()
+                                    .fill(Otter.accent)
+                                    .matchedGeometryEffect(id: "selection", in: indicator)
+                            } else if hovered == tab {
+                                Capsule().fill(Color.white.opacity(0.12))
+                            }
+                        }
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .onHover { hovering in
+                    withAnimation(.easeOut(duration: 0.12)) {
+                        if hovering {
+                            hovered = tab
+                        } else if hovered == tab {
+                            hovered = nil
+                        }
+                    }
+                }
                 .help(tab.title)
             }
         }
+        .padding(3)
+        .background(
+            Capsule()
+                .fill(Color.white.opacity(0.07))
+                .overlay(Capsule().stroke(Otter.chipStroke, lineWidth: 0.5))
+        )
     }
-}
 
-private struct SelectedTabBackground: ViewModifier {
-    let isSelected: Bool
-
-    func body(content: Content) -> some View {
-        if isSelected {
-            content.chipBackground(in: Circle(), tint: .white.opacity(0.92))
-        } else {
-            content
-        }
+    /// Icône sombre sur la pastille aqua (du blanc sur aqua serait illisible),
+    /// blanc franc au survol, gris en veille.
+    private func tint(for tab: NotchTab) -> Color {
+        if selection == tab { return .black.opacity(0.78) }
+        return hovered == tab ? Otter.textPrimary : Otter.textSecondary
     }
 }

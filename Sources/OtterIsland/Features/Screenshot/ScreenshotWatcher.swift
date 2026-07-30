@@ -24,6 +24,7 @@ final class ScreenshotWatcher: ObservableObject {
     private var directoryHandle: CInt = -1
     private var seenPaths: Set<String> = []
     private let fileName = "screenshots.json"
+    private let maxHistory = 40
 
     private static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "heic", "tiff"]
 
@@ -32,6 +33,14 @@ final class ScreenshotWatcher: ObservableObject {
         let paths = Persistence.load([String].self, from: fileName) ?? []
         history = paths.map { URL(fileURLWithPath: $0) }
             .filter { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    /// Instance pré-remplie, sans surveillance ni lecture du disque : sert aux
+    /// aperçus de design (`scripts/render_card.swift`) pour composer le panneau
+    /// avec des images de test plutôt qu'avec les vraies captures.
+    init(previewHistory: [URL]) {
+        directory = Self.screenshotDirectory()
+        history = previewHistory
     }
 
     func start() {
@@ -94,7 +103,14 @@ final class ScreenshotWatcher: ObservableObject {
         guard FileManager.default.fileExists(atPath: url.path),
               let image = NSImage(contentsOf: url) else { return }
         latest = Shot(url: url, image: image)
+        history.removeAll { $0 == url }
         history.insert(url, at: 0)
+        // Sans plafond, l'historique (et le JSON sur disque) grossissait
+        // indéfiniment : après quelques mois, l'onglet Captures affichait des
+        // milliers de vignettes, dont la plupart de fichiers déjà supprimés.
+        if history.count > maxHistory {
+            history.removeLast(history.count - maxHistory)
+        }
         persist()
     }
 

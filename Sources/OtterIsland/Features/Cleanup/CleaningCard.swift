@@ -12,10 +12,11 @@ struct CleaningCard: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: "keyboard.badge.ellipsis")
-                    .foregroundStyle(.orange)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(permissionDenied ? Otter.danger : Otter.warning)
                 Text(permissionDenied ? "Verrouillage impossible" : "Clavier verrouillé")
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Otter.textPrimary)
             }
 
             if permissionDenied {
@@ -25,15 +26,13 @@ struct CleaningCard: View {
                     // mais jamais appliquées. Tout le reste est inutile tant que
                     // ce n'est pas réglé.
                     Text("L'app tourne depuis \(AppInstall.humanLocation) : macOS lui donne une identité différente à chaque lancement, les permissions ne peuvent PAS s'appliquer. Installe-la d'abord dans /Applications.")
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                        .font(.otterMeta)
+                        .foregroundStyle(Otter.danger)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                    Button("Installer dans /Applications et relancer") {
+                    OtterActionLink(title: "Installer dans /Applications et relancer", icon: "arrow.down.app", tint: Otter.accent) {
                         AppInstall.installInApplications()
                     }
-                    .buttonStyle(.plain)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.cyan)
                 }
 
                 // Bloquer les frappes demande DEUX autorisations distinctes : Accessibilité
@@ -50,40 +49,34 @@ struct CleaningCard: View {
                     granted: CGPreflightListenEventAccess()
                 )
                 Text("Après avoir coché (ou re-coché) : redémarre OtterIsland — la permission n'est lue qu'au lancement. Signature ad-hoc oblige, macOS peut re-décocher à chaque mise à jour.")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.8))
+                    .font(.otterMeta)
+                    .foregroundStyle(Otter.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                Button("Ouvrir Accessibilité") {
-                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                        NSWorkspace.shared.open(url)
+                HStack(spacing: 12) {
+                    OtterActionLink(title: "Accessibilité", icon: "figure.wave", tint: Otter.warning) {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                            NSWorkspace.shared.open(url)
+                        }
                     }
-                }
-                .buttonStyle(.plain)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.orange)
-
-                Button("Ouvrir Surveillance des saisies") {
-                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
-                        NSWorkspace.shared.open(url)
+                    OtterActionLink(title: "Surveillance des saisies", icon: "keyboard", tint: Otter.warning) {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
+                            NSWorkspace.shared.open(url)
+                        }
                     }
+                    Spacer(minLength: 0)
                 }
-                .buttonStyle(.plain)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.orange)
 
                 // Une permission d'event tap n'est lue qu'au lancement du
                 // processus : sans redémarrage, « j'ai tout autorisé et ça ne
                 // marche toujours pas ». Ce bouton enlève cette friction.
-                Button("Redémarrer OtterIsland") {
+                OtterActionLink(title: "Redémarrer OtterIsland", icon: "arrow.clockwise", tint: Otter.accent) {
                     Self.relaunch()
                 }
-                .buttonStyle(.plain)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.cyan)
             } else {
                 Text("Nettoie tranquillement, aucune frappe ne passe.")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.8))
+                    .font(.otterMeta)
+                    .foregroundStyle(Otter.textSecondary)
             }
 
             Button(action: onUnlock) {
@@ -91,10 +84,11 @@ struct CleaningCard: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.plain)
-            .font(.system(.caption, design: .rounded).weight(.semibold))
-            .padding(.vertical, 5)
-            .foregroundStyle(.white)
-            .chipBackground(in: Capsule(), tint: .white.opacity(0.28))
+            .font(.system(size: 11.5, weight: .semibold, design: .rounded))
+            .padding(.vertical, 6)
+            // Seule sortie du mode nettoyage : elle doit se voir, pas se deviner.
+            .foregroundStyle(permissionDenied ? Otter.textPrimary : Color.black.opacity(0.82))
+            .chipBackground(in: Capsule(), tint: permissionDenied ? Color.white.opacity(0.16) : Otter.accent)
         }
     }
 
@@ -103,10 +97,10 @@ struct CleaningCard: View {
         HStack(spacing: 5) {
             Image(systemName: granted ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .font(.system(size: 10))
-                .foregroundStyle(granted ? .green : .red)
+                .foregroundStyle(granted ? Otter.positive : Otter.danger)
             Text(name)
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.9))
+                .font(.otterMeta)
+                .foregroundStyle(Otter.textPrimary)
         }
     }
 

@@ -6,6 +6,8 @@ struct ClipboardPanel: View {
     @ObservedObject var clipboard: ClipboardManager
     let onPick: (ClipboardItem) -> Void
 
+    @State private var hovered: UUID?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             // Sans Accessibilité, le clic ne peut pas coller tout seul : le dire
@@ -17,8 +19,8 @@ struct ClipboardPanel: View {
                     AppInstall.installInApplications()
                 } label: {
                     Label("App hors /Applications — installer et relancer", systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.red)
+                        .font(.otterBody)
+                        .foregroundStyle(Otter.danger)
                 }
                 .buttonStyle(.plain)
                 .help("Lancée depuis \(AppInstall.humanLocation), les permissions ne s'appliquent jamais. Clique pour l'installer dans /Applications.")
@@ -27,19 +29,18 @@ struct ClipboardPanel: View {
                     Paster.ensureAccessibility()
                 } label: {
                     Label("Activer le collage au clic (Accessibilité)", systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.orange)
+                        .font(.otterBody)
+                        .foregroundStyle(Otter.warning)
                 }
                 .buttonStyle(.plain)
                 .help("Sans cette permission, l'item est copié mais il faut faire ⌘V soi-même. Redémarre l'app après l'avoir cochée.")
             }
             if clipboard.items.isEmpty {
-                Text("Presse-papier vide")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.8))
-                Text("Copie quelque chose, ça apparaîtra ici.")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+                OtterEmptyState(
+                    icon: "doc.on.clipboard",
+                    title: "Presse-papier vide",
+                    subtitle: "Copie quelque chose, ça apparaîtra ici."
+                )
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 3) {
@@ -48,11 +49,13 @@ struct ClipboardPanel: View {
                         }
                     }
                 }
-                Button { clipboard.clear() } label: {
-                    Text("Vider").font(.caption2)
+                OtterDivider(axis: .horizontal)
+                HStack {
+                    OtterActionLink(title: "Vider", icon: "trash", tint: Otter.textTertiary) {
+                        clipboard.clear()
+                    }
+                    Spacer(minLength: 0)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.white.opacity(0.75))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -66,30 +69,39 @@ struct ClipboardPanel: View {
                 if let data = item.imageData, let image = NSImage(data: data) {
                     thumbnail(image)
                     Text("Image")
-                        .font(.caption)
-                        .foregroundStyle(.white)
+                        .font(.otterBody)
+                        .foregroundStyle(Otter.textPrimary)
                 } else if let url = item.fileURL {
-                    FileThumbnail(url: url)
+                    FileThumbnail(url: url, size: CGSize(width: 30, height: 20))
                     Text("Capture d'écran")
-                        .font(.caption)
-                        .foregroundStyle(.white)
+                        .font(.otterBody)
+                        .foregroundStyle(Otter.textPrimary)
                 } else if let text = item.text {
                     Image(systemName: "text.alignleft")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.white.opacity(0.85))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Otter.textSecondary)
                         .frame(width: 30)
                     Text(text.replacingOccurrences(of: "\n", with: " "))
-                        .font(.caption)
-                        .foregroundStyle(.white)
+                        .font(.otterBody)
+                        .foregroundStyle(Otter.textPrimary)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 0)
             }
-            .padding(.vertical, 3)
+            .padding(.vertical, 4)
             .padding(.horizontal, 6)
             .contentShape(Rectangle())
+            // Rangée survolée : sans ce fond, rien ne dit qu'une ligne est
+            // cliquable, et on ne sait pas laquelle on s'apprête à coller.
+            .background(
+                RoundedRectangle(cornerRadius: Otter.Radius.small, style: .continuous)
+                    .fill(hovered == item.id ? Color.white.opacity(0.10) : .clear)
+            )
         }
         .buttonStyle(.plain)
+        .onHover { hovering in
+            if hovering { hovered = item.id } else if hovered == item.id { hovered = nil }
+        }
     }
 
     private func thumbnail(_ image: NSImage) -> some View {
@@ -97,34 +109,10 @@ struct ClipboardPanel: View {
             .resizable()
             .aspectRatio(contentMode: .fill)
             .frame(width: 30, height: 20)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(.white.opacity(0.25), lineWidth: 0.5))
-    }
-}
-
-/// Vignette d'un item « fichier » (capture d'écran), chargée hors du corps de la
-/// vue pour ne pas décoder l'image à chaque passe de rendu de la liste.
-private struct FileThumbnail: View {
-    let url: URL
-    @State private var image: NSImage?
-
-    var body: some View {
-        Group {
-            if let image {
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                Image(systemName: "photo")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.white.opacity(0.85))
-            }
-        }
-        .frame(width: 30, height: 20)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .overlay(RoundedRectangle(cornerRadius: 4).stroke(.white.opacity(0.25), lineWidth: 0.5))
-        .task(id: url) {
-            image = NSImage(contentsOf: url)
-        }
+            .clipShape(RoundedRectangle(cornerRadius: Otter.Radius.small, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Otter.Radius.small, style: .continuous)
+                    .stroke(Otter.chipStroke, lineWidth: 0.5)
+            )
     }
 }

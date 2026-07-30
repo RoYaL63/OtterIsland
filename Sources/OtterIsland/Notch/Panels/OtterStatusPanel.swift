@@ -11,6 +11,11 @@ import AppKit
 /// └───────────────────────────────────────┘
 /// La loutre reste à gauche de la carte et sert d'indicateur vivant façon
 /// RunCat : nage = musique, halètement = RAM saturée, chiffon = nettoyage…
+///
+/// Les quatre indicateurs passent par `OtterStatRow` : icône alignée sur la
+/// même colonne, libellé secondaire, valeur à droite. Avant, chacun était écrit
+/// à la main avec ses propres tailles et espacements, et la colonne d'icônes
+/// n'était pas droite.
 struct OtterStatusPanel: View {
     @ObservedObject var battery: BatteryMonitor
     @ObservedObject var pomodoro: PomodoroTimer
@@ -25,24 +30,33 @@ struct OtterStatusPanel: View {
     let onOpenAgenda: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 12) {
                 statsColumn
                     .frame(maxWidth: .infinity, alignment: .topLeading)
-                Rectangle()
-                    .fill(.white.opacity(0.15))
-                    .frame(width: 1)
+                OtterDivider()
                     .padding(.vertical, 2)
                 MiniCalendarView(calendar: calendar, onPickDay: onOpenAgenda)
             }
 
             Spacer(minLength: 0)
 
+            OtterDivider(axis: .horizontal)
+
             HStack(alignment: .center, spacing: 8) {
                 musicRow
                 Spacer(minLength: 6)
-                smallAction(icon: "sparkles", tint: .cyan, help: "Verrouiller le clavier pour nettoyer", action: onToggleCleanup)
-                smallAction(icon: "camera.fill", tint: .white.opacity(0.85), help: "Mode miroir (caméra)", action: onOpenMirror)
+                OtterIconButton(
+                    icon: "sparkles",
+                    tint: Otter.accent,
+                    help: "Verrouiller le clavier pour nettoyer",
+                    action: onToggleCleanup
+                )
+                OtterIconButton(
+                    icon: "camera.fill",
+                    help: "Mode miroir (caméra)",
+                    action: onOpenMirror
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -51,7 +65,7 @@ struct OtterStatusPanel: View {
     // MARK: Colonne indicateurs
 
     private var statsColumn: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 8) {
             memoryRow
             if showBattery {
                 batteryRow
@@ -65,60 +79,92 @@ struct OtterStatusPanel: View {
 
     /// RAM façon RunCat : pourcentage + couleur selon la pression système.
     private var memoryRow: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "memorychip")
-                .font(.system(size: 9))
-                .foregroundStyle(memoryColor)
-                .frame(width: 12)
-            Text("RAM")
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.75))
-            Spacer(minLength: 4)
+        OtterStatRow(
+            icon: "memorychip",
+            iconTint: memoryColor,
+            label: "RAM",
+            progress: memory.usedFraction,
+            progressTint: memoryMeterColor
+        ) {
             Text("\(Int(memory.usedFraction * 100)) %")
-                .font(.system(.caption2, design: .monospaced).weight(.semibold))
+                .font(.otterValue)
                 .foregroundStyle(memoryColor)
         }
+    }
+
+    /// La jauge ne passe en couleur d'alerte que quand il y a une alerte ; le
+    /// reste du temps elle est aqua, pas blanche.
+    private var memoryMeterColor: Color {
+        memoryColor == Otter.textPrimary ? Otter.accent : memoryColor
+    }
+
+    private var batteryMeterColor: Color {
+        batteryTint == Otter.textPrimary ? Otter.accent : batteryTint
     }
 
     private var memoryColor: Color {
         switch memory.pressure {
-        case .normal: return memory.usedFraction > 0.85 ? .orange : .white.opacity(0.9)
-        case .warning: return .orange
-        case .critical: return .red
+        case .normal: return memory.usedFraction > 0.85 ? Otter.warning : Otter.textPrimary
+        case .warning: return Otter.warning
+        case .critical: return Otter.danger
         }
     }
 
     private var batteryRow: some View {
-        HStack(spacing: 6) {
-            BatteryBadge(monitor: battery)
-            Spacer(minLength: 4)
-            if let minutes = battery.minutesRemaining {
-                Text(timeText(minutes))
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.75))
+        OtterStatRow(
+            icon: batteryIcon,
+            iconTint: batteryTint,
+            label: "Batterie",
+            progress: Double(battery.percentage) / 100,
+            progressTint: batteryMeterColor
+        ) {
+            HStack(spacing: 6) {
+                // `minutesRemaining` vaut 0 tant qu'IOKit calcule encore (et sur
+                // secteur) : afficher « 0 min » à ce moment-là fait croire à une
+                // batterie à plat.
+                if let minutes = battery.minutesRemaining, minutes > 0 {
+                    Text(timeText(minutes))
+                        .font(.otterMeta)
+                        .foregroundStyle(Otter.textSecondary)
+                }
+                Text("\(battery.percentage) %")
+                    .font(.otterValue)
+                    .foregroundStyle(batteryTint)
             }
         }
     }
 
+    private var batteryIcon: String {
+        if battery.isCharging { return "battery.100.bolt" }
+        switch battery.percentage {
+        case ...10: return "battery.0"
+        case ...35: return "battery.25"
+        case ...60: return "battery.50"
+        case ...85: return "battery.75"
+        default: return "battery.100"
+        }
+    }
+
+    private var batteryTint: Color {
+        if battery.isCharging { return Otter.positive }
+        return battery.percentage <= 15 ? Otter.danger : Otter.textPrimary
+    }
+
     /// Prochain évènement du jour, cliquable s'il a un lien de visio.
     private func nextEventRow(_ event: AgendaEvent) -> some View {
-        let content = HStack(spacing: 6) {
-            Image(systemName: event.meetingURL != nil ? "video.fill" : "calendar")
-                .font(.system(size: 9))
-                .foregroundStyle(event.color)
-                .frame(width: 12)
-            Text(event.title)
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-            Spacer(minLength: 4)
+        let hasCall = event.meetingURL != nil
+        let content = OtterStatRow(
+            icon: hasCall ? "video.fill" : "calendar",
+            iconTint: hasCall ? Otter.accent : event.color,
+            label: event.title
+        ) {
             Text(event.timeText)
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.75))
+                .font(.otterMeta)
+                .foregroundStyle(Otter.textSecondary)
         }
         return Group {
             if let url = event.meetingURL {
-                Button { NSWorkspace.shared.open(url) } label: { content }
+                Button { NSWorkspace.shared.open(url) } label: { content.contentShape(Rectangle()) }
                     .buttonStyle(.plain)
                     .help("Rejoindre la visio")
             } else {
@@ -131,65 +177,49 @@ struct OtterStatusPanel: View {
         Button {
             pomodoro.toggle()
         } label: {
-            HStack(spacing: 6) {
-                Image(systemName: pomodoro.isRunning ? "pause.fill" : "timer")
-                    .font(.system(size: 9))
-                    .frame(width: 12)
-                Text("Pomodoro")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.75))
-                Spacer(minLength: 4)
+            OtterStatRow(
+                icon: pomodoro.isRunning ? "pause.circle.fill" : "timer",
+                iconTint: pomodoro.isRunning ? Otter.accent : Otter.textSecondary,
+                label: "Pomodoro"
+            ) {
                 Text(pomodoro.display)
-                    .font(.system(.caption2, design: .monospaced))
+                    .font(.otterValue)
+                    .foregroundStyle(pomodoro.isRunning ? Otter.accent : Otter.textPrimary)
             }
-            .foregroundStyle(.white)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help("Minuteur Pomodoro")
+        .help(pomodoro.isRunning ? "Mettre le minuteur en pause" : "Démarrer un Pomodoro")
     }
 
     // MARK: Lecteur
 
+    /// Titre + contrôles. Le titre défile s'il est trop long : avant, il passait
+    /// SOUS les boutons (le `scaleEffect` rétrécissait le rendu mais pas la
+    /// place réservée, les contrôles débordaient donc sur le texte).
     @ViewBuilder
     private var musicRow: some View {
         if let track = nowPlaying.current {
-            HStack(spacing: 6) {
-                Image(systemName: "music.note")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.white.opacity(0.8))
-                Text("\(track.title) — \(track.artist)")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.9))
-                    .lineLimit(1)
-                MediaControlsView(provider: nowPlaying)
-                    .scaleEffect(0.8)
-                    .frame(width: 66)
+            HStack(spacing: 7) {
+                Image(systemName: track.isPlaying ? "waveform" : "pause.fill")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(track.isPlaying ? Otter.accent : Otter.textSecondary)
+                    .frame(width: Otter.iconColumn)
+                MarqueeText(text: "\(track.title) — \(track.artist)", font: .otterBody)
+                    .foregroundStyle(Otter.textPrimary)
+                MediaControlsView(provider: nowPlaying, size: .compact)
             }
         } else {
-            HStack(spacing: 6) {
+            HStack(spacing: 7) {
                 Image(systemName: "music.note")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Otter.textTertiary)
+                    .frame(width: Otter.iconColumn)
                 Text("Rien ne joue")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .font(.otterLabel)
+                    .foregroundStyle(Otter.textTertiary)
             }
         }
-    }
-
-    // MARK: Petites actions
-
-    private func smallAction(icon: String, tint: Color, help: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 10, weight: .semibold))
-                .frame(width: 22, height: 22)
-                .foregroundStyle(tint)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .chipBackground(in: Circle(), tint: .white.opacity(0.14))
-        .help(help)
     }
 
     private func timeText(_ minutes: Int) -> String {

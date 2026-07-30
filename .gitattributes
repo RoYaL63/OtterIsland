@@ -5,3 +5,7 @@
 *.md text eol=lf
 *.yml text eol=lf
 *.json text eol=lf
+
+# Binaires : jamais de normalisation de fins de ligne (une icône corrompue au
+# commit ne se voit qu'à la build suivante).
+*.png binary

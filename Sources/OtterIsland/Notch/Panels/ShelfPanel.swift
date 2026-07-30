@@ -9,7 +9,11 @@ struct ShelfPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if shelf.items.isEmpty {
-                dropHint
+                OtterEmptyState(
+                    icon: "arrow.down.doc",
+                    title: "Dépose des fichiers ici",
+                    subtitle: "Ou glisse-les sur l'encoche repliée."
+                )
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 4) {
@@ -18,21 +22,15 @@ struct ShelfPanel: View {
                         }
                     }
                 }
-                HStack(spacing: 10) {
-                    Button {
+                OtterDivider(axis: .horizontal)
+                HStack(spacing: 12) {
+                    OtterActionLink(title: "AirDrop", icon: "shareplay", tint: Otter.accent) {
                         shelf.airDropAll(from: nil)
-                    } label: {
-                        Label("AirDrop", systemImage: "shareplay")
-                            .font(.caption2.weight(.semibold))
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.orange)
-
-                    Button { shelf.clear() } label: {
-                        Text("Vider").font(.caption2)
+                    OtterActionLink(title: "Vider", icon: "trash", tint: Otter.textTertiary) {
+                        shelf.clear()
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.white.opacity(0.75))
+                    Spacer(minLength: 0)
                 }
             }
         }
@@ -42,17 +40,6 @@ struct ShelfPanel: View {
         }
     }
 
-    private var dropHint: some View {
-        VStack(spacing: 4) {
-            Image(systemName: "arrow.down.doc")
-                .font(.system(size: 18))
-                .foregroundStyle(.white.opacity(0.75))
-            Text("Dépose des fichiers ici")
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.75))
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
 
     private func itemRow(_ url: URL) -> some View {
         HStack(spacing: 6) {
@@ -60,16 +47,19 @@ struct ShelfPanel: View {
                 .resizable()
                 .frame(width: 16, height: 16)
             Text(url.lastPathComponent)
-                .font(.caption2)
-                .foregroundStyle(.white)
+                .font(.otterBody)
+                .foregroundStyle(Otter.textPrimary)
                 .lineLimit(1)
-            Spacer(minLength: 4)
+            Spacer(minLength: 6)
             Button { shelf.remove(url) } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.white.opacity(0.7))
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(Otter.textTertiary)
+                    .frame(width: 14, height: 14)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .help("Retirer de l'étagère")
         }
         // Permet de re-glisser le fichier depuis l'étagère vers ailleurs.
         .onDrag { NSItemProvider(object: url as NSURL) }

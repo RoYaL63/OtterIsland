@@ -56,6 +56,17 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(screenshotPreviewEnabled, forKey: Keys.screenshotPreviewEnabled) }
     }
 
+    /// Copie automatiquement chaque nouvelle capture dans le presse-papier :
+    /// ⌘⇧4 puis ⌘V, sans étape intermédiaire.
+    @Published var screenshotAutoCopy: Bool {
+        didSet { defaults.set(screenshotAutoCopy, forKey: Keys.screenshotAutoCopy) }
+    }
+
+    /// Cherche une nouvelle version au lancement (une seule requête GitHub).
+    @Published var autoCheckUpdates: Bool {
+        didSet { defaults.set(autoCheckUpdates, forKey: Keys.autoCheckUpdates) }
+    }
+
     /// Ajustement fin de la largeur de l'encoche, en points. Négatif = plus étroit.
     /// Sert de valeur par défaut pour un écran sans réglage propre.
     @Published var notchWidthOffset: Double {
@@ -89,6 +100,8 @@ final class OtterSettings: ObservableObject {
             Keys.clipboardHotKeyCode: Int(kVK_ANSI_V),
             Keys.clipboardHotKeyModifiers: Int(optionKey),
             Keys.screenshotPreviewEnabled: true,
+            Keys.screenshotAutoCopy: true,
+            Keys.autoCheckUpdates: true,
             Keys.widthOffset: 0.0,
             Keys.dropOffset: 0.0,
         ])
@@ -101,6 +114,8 @@ final class OtterSettings: ObservableObject {
         clipboardHotKeyCode = defaults.integer(forKey: Keys.clipboardHotKeyCode)
         clipboardHotKeyModifiers = defaults.integer(forKey: Keys.clipboardHotKeyModifiers)
         screenshotPreviewEnabled = defaults.bool(forKey: Keys.screenshotPreviewEnabled)
+        screenshotAutoCopy = defaults.bool(forKey: Keys.screenshotAutoCopy)
+        autoCheckUpdates = defaults.bool(forKey: Keys.autoCheckUpdates)
         notchWidthOffset = defaults.double(forKey: Keys.widthOffset)
         expandedDropOffset = defaults.double(forKey: Keys.dropOffset)
         perScreenWidthOffset = defaults.dictionary(forKey: Keys.perScreenWidthOffset) as? [String: Double] ?? [:]
@@ -135,6 +150,8 @@ final class OtterSettings: ObservableObject {
         static let clipboardHotKeyCode = "clipboardHotKeyCode"
         static let clipboardHotKeyModifiers = "clipboardHotKeyModifiers"
         static let screenshotPreviewEnabled = "screenshotPreviewEnabled"
+        static let screenshotAutoCopy = "screenshotAutoCopy"
+        static let autoCheckUpdates = "autoCheckUpdates"
         static let widthOffset = "notchWidthOffset"
         static let dropOffset = "expandedDropOffset"
         static let perScreenWidthOffset = "perScreenWidthOffset"

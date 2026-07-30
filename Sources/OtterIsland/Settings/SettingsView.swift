@@ -3,6 +3,7 @@ import SwiftUI
 /// Fenêtre de réglages (⌘,). Simple pour l'instant, s'étoffe avec les modules.
 struct SettingsView: View {
     @EnvironmentObject var settings: OtterSettings
+    @ObservedObject var updater: Updater
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @State private var launchAtLoginError: String?
     @State private var launchAtLoginNeedsApproval = LaunchAtLogin.needsApproval
@@ -17,10 +18,12 @@ struct SettingsView: View {
                 .tabItem { Label("Général", systemImage: "gearshape") }
             notch
                 .tabItem { Label("Encoche", systemImage: "macbook") }
+            UpdateSettingsView(updater: updater)
+                .tabItem { Label("Mise à jour", systemImage: "arrow.down.circle") }
             about
                 .tabItem { Label("À propos", systemImage: "info.circle") }
         }
-        .frame(width: 420, height: 320)
+        .frame(width: 440, height: 340)
     }
 
     private var general: some View {
@@ -112,7 +115,8 @@ struct SettingsView: View {
             Divider()
 
             Toggle("Aperçu des captures d'écran dans l'encoche", isOn: $settings.screenshotPreviewEnabled)
-            Text("Redémarre OtterIsland après changement.")
+            Toggle("Copier la capture dans le presse-papier", isOn: $settings.screenshotAutoCopy)
+            Text("⌘⇧4 puis ⌘V directement : `screencapture` n'écrit que sur le disque, OtterIsland met la capture dans le presse-papier. Redémarre OtterIsland après changement de l'aperçu.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

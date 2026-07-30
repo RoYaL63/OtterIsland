@@ -29,13 +29,18 @@ struct AboutView: View {
 
                 section("Fonctionnalités", icon: "sparkles") {
                     row("doc.on.clipboard", "Presse-papier", "Historique des 30 derniers éléments copiés. Chaque capture d'écran y entre automatiquement — ⌥V, clic, collée.")
-                    row("camera.viewfinder", "Captures", "Aperçu transitoire sous l'encoche à chaque capture + onglet historique, glisser-déposer vers une autre app.")
+                    row("camera.viewfinder", "Captures", "Chaque capture part directement dans le presse-papier (⌘⇧4 puis ⌘V). Aperçu transitoire sous l'encoche, onglet dédié avec la dernière en grand et les précédentes en bande, glisser-déposer vers une autre app.")
                     row("calendar", "Agenda", "Mini calendrier navigable (clic sur un jour → ses réunions), prochains RDV, lien visio cliquable, rappels à cocher.")
                     row("music.note", "Musique", "Spotify / Apple Music : titre, contrôles, la loutre nage en rythme.")
                     row("memorychip", "Système", "RAM (pression colorée), batterie et temps restant, minuteur Pomodoro.")
                     row("sparkles", "Nettoyage clavier", "Petite icône 🧽 de l'accueil : verrouille TOUTES les frappes pour nettoyer, l'encoche reste grande, seul le clic Déverrouiller libère.")
                     row("camera.fill", "Miroir", "La caméra en petit, pour se recoiffer avant une visio.")
                     row("terminal.fill", "Inbox Claude Code", "Une demande de validation Claude Code apparaît dans l'encoche, approuve ou refuse d'un clic (~/.otterisland/inbox).")
+                }
+
+                section("Mise à jour", icon: "arrow.down.circle") {
+                    row("arrow.down.circle", "Depuis l'app", "Réglages › Mise à jour : OtterIsland télécharge la nouvelle version, remplace l'app à sa place et redémarre. Pas de zip, pas de quarantaine Gatekeeper, pas de spctl.")
+                    row("lock.shield", "Et les permissions ?", "Elles ne survivent que si les builds sont signées avec une identité stable — l'onglet Mise à jour le dit franchement. Voir docs/SIGNING.md.")
                 }
 
                 section("Permissions — le mode d'emploi", icon: "lock.shield") {
@@ -59,8 +64,9 @@ struct AboutView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Text("🦦")
-                .font(.system(size: 34))
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 44, height: 44)
             VStack(alignment: .leading, spacing: 2) {
                 Text("OtterIsland")
                     .font(.title2.weight(.semibold))

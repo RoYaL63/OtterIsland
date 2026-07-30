@@ -72,6 +72,14 @@ final class ClipboardManager: ObservableObject {
         add(.file(url.path))
     }
 
+    /// Met un fichier (capture d'écran) dans le presse-papier système, prêt pour
+    /// ⌘V. `screencapture` écrit sur le disque sans jamais toucher au
+    /// presse-papier : sans ça, juste après une capture, ⌘V collait encore ce
+    /// qu'on avait copié une heure plus tôt.
+    func copyFile(at url: URL) {
+        restore(ClipboardItem(content: .file(url.path)))
+    }
+
     /// Remet un item dans le presse-papier système sans le recapturer.
     func restore(_ item: ClipboardItem) {
         isRestoring = true
