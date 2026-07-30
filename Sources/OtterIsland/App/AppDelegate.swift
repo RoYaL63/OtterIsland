@@ -24,6 +24,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         setupStatusItem()
 
+        // Proposition d'installation dans /Applications, au premier lancement
+        // seulement. Après le montage de l'encoche : la boîte de dialogue est
+        // modale, elle bloquerait la mise en place de la fenêtre.
+        DispatchQueue.main.async {
+            AppInstall.promptToInstallIfNeeded()
+        }
+
         // Un seul appel GitHub au lancement ; le résultat s'affiche dans
         // l'onglet Mise à jour des réglages.
         if settings.autoCheckUpdates {

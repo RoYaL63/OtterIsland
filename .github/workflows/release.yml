@@ -89,16 +89,30 @@ jobs:
             echo "⚠ signature ad-hoc — l'utilisateur devra re-cocher ses permissions (voir docs/SIGNING.md)"
           fi
 
+      # Deux formats, deux usages :
+      #   .dmg — pour un humain qui installe à la main (fenêtre avec la flèche
+      #          vers Applications).
+      #   .zip — c'est ce que télécharge la mise à jour intégrée (Updater.swift
+      #          sélectionne l'asset qui finit par .zip). Ne pas le retirer.
       - name: Empaqueter le .app en zip
         run: |
           APP_PATH="build/Build/Products/Release/OtterIsland.app"
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" OtterIsland.zip
 
+      - name: Construire l'installeur .dmg
+        run: |
+          chmod +x scripts/make_dmg.sh
+          ./scripts/make_dmg.sh "build/Build/Products/Release/OtterIsland.app" OtterIsland.dmg
+
       - name: Créer la Release GitHub
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ github.ref_name }}" OtterIsland.zip \
+          gh release create "${{ github.ref_name }}" OtterIsland.dmg OtterIsland.zip \
             --title "OtterIsland ${{ github.ref_name }}" \
             --generate-notes \
-            --notes "Mise à jour recommandée depuis l'app : Réglages › Mise à jour › Installer et redémarrer (pas de quarantaine Gatekeeper, aucun zip à manipuler). Premier téléchargement manuel : voir le README."
+            --notes "**Nouvelle installation** : télécharge \`OtterIsland.dmg\`, ouvre-le, glisse la loutre sur Applications. L'app propose aussi de s'y déplacer toute seule au premier lancement.
+
+          **Déjà installée** : Réglages › Mise à jour › Installer et redémarrer. Pas de zip à manipuler, pas de quarantaine Gatekeeper.
+
+          (\`OtterIsland.zip\` sert à la mise à jour intégrée — pas besoin de le télécharger.)"

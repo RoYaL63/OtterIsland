@@ -10,12 +10,16 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    MARKETING_VERSION: "0.2.0"
+    MARKETING_VERSION: "0.2.1"
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
     ENABLE_HARDENED_RUNTIME: true
-    # complete : le code est vérifié data-race-free (0 warning au 2026-07-29),
-    # prêt pour le mode langage Swift 6.
+    # complete : la quasi-totalité du code est vérifiée data-race-free. Restent
+    # 5 warnings côté xcodebuild (des `deinit` non isolés qui touchent des types
+    # non-Sendable : KeyboardLocker, VolumeMonitor, GestureController), annotés
+    # « this is an error in the Swift 6 language mode » — le projet n'est donc
+    # PAS encore compilable en mode langage Swift 6. Un swiftc -typecheck seul
+    # ne les remonte pas, il faut lire le log de build.
     SWIFT_STRICT_CONCURRENCY: complete
 
 targets:

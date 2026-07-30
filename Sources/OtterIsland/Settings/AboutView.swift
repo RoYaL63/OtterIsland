@@ -38,7 +38,8 @@ struct AboutView: View {
                     row("terminal.fill", "Inbox Claude Code", "Une demande de validation Claude Code apparaît dans l'encoche, approuve ou refuse d'un clic (~/.otterisland/inbox).")
                 }
 
-                section("Mise à jour", icon: "arrow.down.circle") {
+                section("Installation et mise à jour", icon: "arrow.down.circle") {
+                    row("externaldrive.fill.badge.plus", "Installeur .dmg", "Ouvre le .dmg, glisse la loutre sur Applications. Si tu la lances d'ailleurs, elle propose de s'y installer toute seule au premier lancement.")
                     row("arrow.down.circle", "Depuis l'app", "Réglages › Mise à jour : OtterIsland télécharge la nouvelle version, remplace l'app à sa place et redémarre. Pas de zip, pas de quarantaine Gatekeeper, pas de spctl.")
                     row("lock.shield", "Et les permissions ?", "Elles ne survivent que si les builds sont signées avec une identité stable — l'onglet Mise à jour le dit franchement. Voir docs/SIGNING.md.")
                 }

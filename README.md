@@ -29,27 +29,31 @@ Milestone 1 (ce dépôt) est un squelette qui **compile et tourne** sur un Mac �
 - [x] Système visuel unifié (jetons de couleur/typo, accent aqua repris de l'icône)
 - [x] Mise à jour depuis l'app (Réglages › Mise à jour), sans zip ni quarantaine
 - [x] Captures : copie automatique dans le presse-papier, dernière capture en grand
+- [x] Installeur `.dmg` et proposition d'installation dans /Applications au premier lancement
 - [ ] Suppression du HUD natif, tailles par écran, contrôles média avancés (voir `docs/ROADMAP.md`)
 
 La suite des features est détaillée dans [docs/ROADMAP.md](docs/ROADMAP.md).
 
-## Mettre à jour
+## Installer
 
-Depuis la version 0.2.0, **Réglages › Mise à jour › Installer et redémarrer** :
-OtterIsland récupère la dernière release, remplace l'app à son emplacement et
-relance. Pas de zip à dézipper, et surtout pas de quarantaine Gatekeeper — donc
-plus de `spctl --add` à chaque version.
+Télécharge **`OtterIsland.dmg`** dans l'onglet [Releases](../../releases), ouvre-le,
+glisse la loutre sur le dossier Applications. La fenêtre te montre quoi faire.
 
-Les permissions (Accessibilité, Surveillance des saisies) ne survivent en
-revanche à une mise à jour que si les builds sont signées avec une identité
-stable. L'onglet Mise à jour affiche l'état réel ; la marche à suivre est dans
-[docs/SIGNING.md](docs/SIGNING.md).
+Si tu lances l'app depuis ailleurs (Téléchargements, l'image disque elle-même),
+**elle te propose de s'installer toute seule** au premier lancement et redémarre
+dans la foulée. Ce n'est pas cosmétique : hors de `/Applications`, macOS ne donne
+pas d'identité stable à l'app, donc l'Accessibilité, la Surveillance des saisies
+et le lancement au démarrage ne peuvent pas fonctionner.
 
-## Télécharger
+> Chaque tag `vX.Y.Z` déclenche une build automatique qui publie le `.dmg` et un
+> `.zip`. Le zip sert uniquement à la mise à jour intégrée — inutile de le
+> télécharger à la main.
 
-Chaque tag `vX.Y.Z` poussé sur GitHub déclenche une build automatique (GitHub Actions) qui publie un `OtterIsland.zip` dans l'onglet [Releases](../../releases).
+### Le passage obligé de Gatekeeper
 
-L'app n'est **pas signée** (pas de compte Apple Developer payant) : au premier lancement, macOS va bloquer l'ouverture ("Apple n'a pas pu vérifier..."). Pour l'autoriser, dézippe et glisse `OtterIsland.app` dans `/Applications`, puis dans le Terminal :
+L'app n'est **pas notarisée** (pas de compte Apple Developer payant) : au premier
+lancement, macOS bloque l'ouverture ("Apple n'a pas pu vérifier..."). Pour
+l'autoriser, une fois l'app dans `/Applications`, dans le Terminal :
 
 ```bash
 sudo spctl --add /Applications/OtterIsland.app
@@ -58,6 +62,18 @@ sudo spctl --add /Applications/OtterIsland.app
 (demande ton mot de passe admin). Sur macOS 15/26+, Gatekeeper rejette purement et simplement les apps ad-hoc au téléchargement — `xattr -cr` seul (qui suffisait sur les anciennes versions) ne change rien à ce verdict, vérifié avec `spctl -a -vv`.
 
 **À faire une seule fois.** Les versions suivantes s'installent depuis l'app (voir « Mettre à jour » ci-dessus) : le téléchargement ne passe pas par le navigateur, donc pas de quarantaine, donc pas de nouveau `spctl --add`.
+
+## Mettre à jour
+
+**Réglages › Mise à jour › Installer et redémarrer** :
+OtterIsland récupère la dernière release, remplace l'app à son emplacement et
+relance. Pas de zip à dézipper, et surtout pas de quarantaine Gatekeeper — donc
+plus de `spctl --add` à chaque version.
+
+Les permissions (Accessibilité, Surveillance des saisies) ne survivent en
+revanche à une mise à jour que si les builds sont signées avec une identité
+stable. L'onglet Mise à jour affiche l'état réel ; la marche à suivre est dans
+[docs/SIGNING.md](docs/SIGNING.md).
 
 ## Build
 

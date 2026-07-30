@@ -62,6 +62,9 @@ Chaque feature demandée, son état, et comment on l'aborde. Un module = un doss
 | Aperçu de design sans Xcode | ✅ | `scripts/render_card.swift` rend la carte en PNG, providers non démarrés. |
 | Captures | ✅ | Copie auto dans le presse-papier (⌘⇧4 → ⌘V), dernière capture en grand + bande des précédentes, cache de vignettes `CGImageSource`. |
 | Mise à jour intégrée | ✅ | `Features/Update/Updater.swift` + onglet Réglages. Sans quarantaine. |
+| Installeur .dmg | ✅ | `scripts/make_dmg.sh` : fenêtre avec flèche vers Applications, fond généré par `make_dmg_background.swift`, mise en page persistée dans le .DS_Store. Repli sans mise en page si le Finder n'est pas scriptable. |
+| Installation guidée | ✅ | `AppInstall.promptToInstallIfNeeded()` au premier lancement hors /Applications : déplace, nettoie la quarantaine de la copie, met l'original à la corbeille, relance. |
+| Mode langage Swift 6 | ⏳ | 5 warnings `deinit` non isolés (KeyboardLocker, VolumeMonitor, GestureController) — bloquants pour Swift 6. |
 | Signature stable | ⏳ | Workflow prêt (secrets `MACOS_CERT_*`), reste à créer le certificat — `docs/SIGNING.md`. Condition pour que les permissions survivent aux mises à jour. |
 
 ## Modules stubés dès maintenant
