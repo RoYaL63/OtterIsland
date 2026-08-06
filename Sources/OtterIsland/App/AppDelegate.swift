@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 
 /// Monte la fenêtre d'encoche, un item de barre d'état, et garde les providers en vie.
 /// Tout ici tourne sur le thread principal (AppKit, NSPanel) : @MainActor lève
@@ -7,11 +8,17 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = OtterSettings()
     let updater = Updater()
+    /// Onglet sur lequel s'ouvrent les réglages (voir `SettingsRouter`).
+    let settingsRouter = SettingsRouter()
     private var notchController: NotchWindowController?
     private var clipboardWindow: ClipboardWindowController?
     private var aboutWindow: AboutWindowController?
     private var statusItem: NSStatusItem?
     private var statusMenu: NSMenu?
+    /// L'entrée de menu des mises à jour, gardée pour changer son libellé quand
+    /// une version est disponible.
+    private var updateMenuItem: NSMenuItem?
+    private var cancellables = Set<AnyCancellable>()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Agent : ni Dock ni menu principal.
@@ -31,8 +38,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AppInstall.promptToInstallIfNeeded()
         }
 
-        // Un seul appel GitHub au lancement ; le résultat s'affiche dans
-        // l'onglet Mise à jour des réglages.
+        // Un seul appel GitHub au lancement. Le résultat ne doit PAS dormir dans
+        // l'onglet Mise à jour : personne n'y va pour vérifier. Une pastille sur
+        // la loutre et le libellé du menu portent la nouvelle jusqu'à la barre
+        // des menus, là où l'utilisateur regarde.
+        updater.$state
+            .receive(on: RunLoop.main)
+            .sink { [weak self] state in self?.showUpdateAvailability(state) }
+            .store(in: &cancellables)
+
         if settings.autoCheckUpdates {
             updater.check()
         }
@@ -61,7 +75,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(withTitle: "Presse-papier…", action: #selector(openClipboardWindow), keyEquivalent: "")
         menu.addItem(withTitle: "À propos d'OtterIsland…", action: #selector(openAbout), keyEquivalent: "")
-        menu.addItem(withTitle: "Rechercher les mises à jour…", action: #selector(openUpdates), keyEquivalent: "")
+        updateMenuItem = menu.addItem(
+            withTitle: "Rechercher les mises à jour…",
+            action: #selector(openUpdates),
+            keyEquivalent: ""
+        )
         menu.addItem(.separator())
         menu.addItem(withTitle: "Réglages OtterIsland…", action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(.separator())
@@ -90,11 +108,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         aboutWindow?.show()
     }
 
-    /// Ouvre les réglages sur une vérification fraîche : c'est l'onglet
-    /// « Mise à jour » qui affiche le résultat.
+    /// Ouvre les réglages SUR l'onglet Mise à jour, avec une vérification
+    /// fraîche. L'onglet est choisi AVANT l'ouverture : la fenêtre de réglages
+    /// n'existe pas encore la première fois, elle lit l'onglet à sa création.
+    /// Sans ça, « Rechercher les mises à jour… » atterrissait sur Général et
+    /// ne proposait donc jamais rien.
     @objc private func openUpdates() {
+        settingsRouter.tab = .update
         updater.check()
         openSettings()
+    }
+
+    /// Porte l'état de la mise à jour jusqu'à la barre des menus : pastille
+    /// orange sur la loutre et libellé qui nomme la version, plutôt qu'un
+    /// résultat qui n'existe que si on pense à ouvrir le bon onglet.
+    private func showUpdateAvailability(_ state: Updater.State) {
+        guard case .available(let release) = state else {
+            updateMenuItem?.title = "Rechercher les mises à jour…"
+            statusItem?.button?.attributedTitle = NSAttributedString(string: "🦦")
+            return
+        }
+        updateMenuItem?.title = "Mettre à jour vers \(release.version)…"
+        let badged = NSMutableAttributedString(string: "🦦")
+        badged.append(NSAttributedString(
+            string: " •",
+            attributes: [.foregroundColor: NSColor.systemOrange]
+        ))
+        statusItem?.button?.attributedTitle = badged
     }
 
     @objc private func openSettings() {

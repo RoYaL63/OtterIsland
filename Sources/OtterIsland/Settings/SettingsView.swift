@@ -1,8 +1,25 @@
 import SwiftUI
 
+/// Onglet affiché à l'ouverture des réglages.
+enum SettingsTab: Hashable {
+    case general, notch, update, about
+}
+
+/// Qui commande l'onglet ouvert. Vit en dehors de la vue, dans l'AppDelegate :
+/// « Rechercher les mises à jour… » doit POUVOIR ouvrir les réglages sur
+/// l'onglet Mise à jour, et un `@State` interne à la vue ne se pilote pas de
+/// l'extérieur. C'est ce qui manquait : le menu lançait bien la vérification,
+/// mais la fenêtre s'ouvrait sur Général et la version disponible restait
+/// invisible, deux clics plus loin.
+@MainActor
+final class SettingsRouter: ObservableObject {
+    @Published var tab: SettingsTab = .general
+}
+
 /// Fenêtre de réglages (⌘,). Simple pour l'instant, s'étoffe avec les modules.
 struct SettingsView: View {
     @EnvironmentObject var settings: OtterSettings
+    @EnvironmentObject var router: SettingsRouter
     @ObservedObject var updater: Updater
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @State private var launchAtLoginError: String?
@@ -13,15 +30,19 @@ struct SettingsView: View {
     }()
 
     var body: some View {
-        TabView {
+        TabView(selection: $router.tab) {
             general
                 .tabItem { Label("Général", systemImage: "gearshape") }
+                .tag(SettingsTab.general)
             notch
                 .tabItem { Label("Encoche", systemImage: "macbook") }
+                .tag(SettingsTab.notch)
             UpdateSettingsView(updater: updater)
                 .tabItem { Label("Mise à jour", systemImage: "arrow.down.circle") }
+                .tag(SettingsTab.update)
             about
                 .tabItem { Label("À propos", systemImage: "info.circle") }
+                .tag(SettingsTab.about)
         }
         .frame(width: 440, height: 340)
     }

@@ -11,6 +11,7 @@ struct OtterIslandApp: App {
         Settings {
             SettingsView(updater: appDelegate.updater)
                 .environmentObject(appDelegate.settings)
+                .environmentObject(appDelegate.settingsRouter)
         }
     }
 }
