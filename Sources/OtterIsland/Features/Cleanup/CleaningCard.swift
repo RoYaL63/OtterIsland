@@ -10,10 +10,11 @@ struct CleaningCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "keyboard.badge.ellipsis")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(permissionDenied ? Otter.danger : Otter.warning)
+            HStack(spacing: 8) {
+                OtterIconBadge(
+                    icon: "keyboard.badge.ellipsis",
+                    tint: permissionDenied ? Otter.danger : Otter.warning
+                )
                 Text(permissionDenied ? "Verrouillage impossible" : "Clavier verrouillé")
                     .font(.system(size: 12.5, weight: .semibold, design: .rounded))
                     .foregroundStyle(Otter.textPrimary)
@@ -79,16 +80,12 @@ struct CleaningCard: View {
                     .foregroundStyle(Otter.textSecondary)
             }
 
+            // Seule sortie du mode nettoyage : elle doit se voir, pas se deviner.
             Button(action: onUnlock) {
                 Text(permissionDenied ? "Fermer" : "Déverrouiller")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.plain)
-            .font(.system(size: 11.5, weight: .semibold, design: .rounded))
-            .padding(.vertical, 6)
-            // Seule sortie du mode nettoyage : elle doit se voir, pas se deviner.
-            .foregroundStyle(permissionDenied ? Otter.textPrimary : Color.black.opacity(0.82))
-            .chipBackground(in: Capsule(), tint: permissionDenied ? Color.white.opacity(0.16) : Otter.accent)
+            .buttonStyle(OtterPillButtonStyle(prominent: !permissionDenied))
         }
     }
 

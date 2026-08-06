@@ -5,33 +5,39 @@ import AppKit
 struct MusicPanel: View {
     @ObservedObject var provider: AppleScriptNowPlaying
 
+    /// Un seul module, comme la tuile « En lecture » du Centre de contrôle :
+    /// pochette, morceau, position, transport. Le contenu était posé à nu sur
+    /// le verre de l'île — il flottait sans rien qui le rassemble.
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            if provider.automationDenied {
-                automationDeniedHint
-            } else if let track = provider.current {
-                HStack(spacing: 8) {
-                    artwork
-                    VStack(alignment: .leading, spacing: 2) {
-                        MarqueeText(text: track.title, font: .otterTitle)
-                            .foregroundStyle(Otter.textPrimary)
-                        MarqueeText(text: track.artist, font: .otterMeta)
-                            .foregroundStyle(Otter.textSecondary)
+        OtterTile(horizontalPadding: 12, verticalPadding: 10) {
+            VStack(alignment: .leading, spacing: 9) {
+                if provider.automationDenied {
+                    automationDeniedHint
+                } else if let track = provider.current {
+                    HStack(spacing: 10) {
+                        artwork
+                        VStack(alignment: .leading, spacing: 2) {
+                            MarqueeText(text: track.title, font: .otterTitle)
+                                .foregroundStyle(Otter.textPrimary)
+                            MarqueeText(text: track.artist, font: .otterMeta)
+                                .foregroundStyle(Otter.textSecondary)
+                        }
                     }
+                    scrubber(track)
+                    HStack {
+                        Spacer(minLength: 0)
+                        MediaControlsView(provider: provider)
+                        Spacer(minLength: 0)
+                    }
+                } else {
+                    OtterEmptyState(
+                        icon: "music.note",
+                        title: "Rien en lecture",
+                        subtitle: "Lance Spotify ou Apple Music, la loutre se met à nager."
+                    )
                 }
-                scrubber(track)
-                HStack {
-                    Spacer(minLength: 0)
-                    MediaControlsView(provider: provider)
-                    Spacer(minLength: 0)
-                }
-            } else {
-                OtterEmptyState(
-                    icon: "music.note",
-                    title: "Rien en lecture",
-                    subtitle: "Lance Spotify ou Apple Music, la loutre se met à nager."
-                )
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -39,10 +45,13 @@ struct MusicPanel: View {
     /// macOS refuse l'Automatisation vers Spotify/Music tant qu'elle n'est pas
     /// accordée manuellement : sans ce message, ça ressemble à un bug silencieux.
     private var automationDeniedHint: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Label("Autorisation requise", systemImage: "lock.trianglebadge.exclamationmark")
-                .font(.otterBody)
-                .foregroundStyle(Otter.warning)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                OtterIconBadge(icon: "lock.trianglebadge.exclamationmark", tint: Otter.warning)
+                Text("Autorisation requise")
+                    .font(.otterBody)
+                    .foregroundStyle(Otter.warning)
+            }
             Text("Réglages Système › Confidentialité et sécurité › Automatisation : autorise OtterIsland pour Spotify, Music et System Events.")
                 .font(.otterMeta)
                 .foregroundStyle(Otter.textSecondary)
@@ -66,32 +75,30 @@ struct MusicPanel: View {
                 ZStack {
                     Otter.chipFill
                     Image(systemName: "music.note")
-                        .font(.system(size: 14))
+                        .font(.system(size: 16))
                         .foregroundStyle(Otter.textSecondary)
                 }
             }
         }
-        .frame(width: 42, height: 42)
+        .frame(width: 52, height: 52)
         .clipShape(RoundedRectangle(cornerRadius: Otter.Radius.medium, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: Otter.Radius.medium, style: .continuous)
-                .stroke(Otter.chipStroke, lineWidth: 0.5)
+            SpecularRim(
+                shape: RoundedRectangle(cornerRadius: Otter.Radius.medium, style: .continuous),
+                strength: 0.8,
+                lineWidth: 0.75
+            )
         )
+        // La pochette est l'objet le plus « matière » du panneau : une ombre
+        // courte la décolle du verre au lieu de la coller dessus.
+        .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
     }
 
     private func scrubber(_ track: NowPlayingInfo) -> some View {
         TimelineView(.periodic(from: .now, by: 0.5)) { context in
             let fraction = track.fraction(at: context.date)
-            VStack(spacing: 2) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.white.opacity(0.16))
-                        Capsule()
-                            .fill(Otter.accent)
-                            .frame(width: max(2, geo.size.width * fraction))
-                    }
-                }
-                .frame(height: 3)
+            VStack(spacing: 4) {
+                OtterMeter(value: fraction, height: 5)
                 HStack {
                     Text(timeString(track.position(at: context.date)))
                     Spacer()

@@ -20,24 +20,21 @@ struct HUDState: Equatable {
 struct HUDView: View {
     let state: HUDState
 
+    /// Même grammaire que les curseurs Son / Luminosité du Centre de contrôle :
+    /// une tuile de verre, une glyphe, une piste épaisse. La piste de 5 pt
+    /// d'avant se lisait comme un filet décoratif ; à 8 pt, c'est un curseur.
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 11) {
             Image(systemName: state.kind.icon)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Otter.textPrimary)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Otter.textSecondary)
                 .frame(width: 18)
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.white.opacity(0.16))
-                    Capsule()
-                        .fill(Otter.accent)
-                        .frame(width: max(4, geo.size.width * state.value))
-                }
-            }
-            .frame(height: 5)
+            OtterMeter(value: state.value, height: 8)
         }
-        .padding(.horizontal, 14)
-        .frame(width: 200, height: 34)
-        .liquidGlassBackground(in: Capsule())
+        .padding(.horizontal, 15)
+        .frame(width: 214, height: 42)
+        .liquidGlassCard(
+            in: RoundedRectangle(cornerRadius: Otter.Radius.large, style: .continuous)
+        )
     }
 }

@@ -16,19 +16,20 @@ struct MirrorPanel: View {
                 CameraPreview()
                     .clipShape(RoundedRectangle(cornerRadius: Otter.Radius.large, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: Otter.Radius.large, style: .continuous)
-                            .stroke(Otter.chipStroke, lineWidth: 0.5)
+                        SpecularRim(
+                            shape: RoundedRectangle(cornerRadius: Otter.Radius.large, style: .continuous),
+                            strength: 0.8
+                        )
                     )
+                    .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var deniedHint: some View {
-        VStack(spacing: 7) {
-            Image(systemName: "camera.fill")
-                .font(.system(size: 19, weight: .light))
-                .foregroundStyle(Otter.textTertiary)
+        VStack(spacing: 8) {
+            OtterIconBadge(icon: "camera.fill", tint: Otter.warning, size: 34)
             Text("Caméra non autorisée")
                 .font(.otterBody)
                 .foregroundStyle(Otter.warning)

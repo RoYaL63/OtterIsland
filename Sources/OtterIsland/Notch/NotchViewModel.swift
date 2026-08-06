@@ -18,11 +18,16 @@ final class NotchViewModel: ObservableObject {
     /// Taille de la carte étendue. Partagée entre la vue (frame de l'île) et le
     /// contrôleur (zone de survol pour le suivi souris) : les deux DOIVENT voir
     /// la même géométrie, sinon la carte se replie sous le curseur.
-    /// 236 de base : l'accueil en grille (indicateurs + mini calendrier +
+    /// 284 de base : l'accueil en grille (indicateurs + mini calendrier +
     /// lecteur + petites actions) a besoin de cette hauteur pour ne rien couper.
+    /// Les 48 pt gagnés sur les 236 d'avant sont l'air des tuiles groupées façon
+    /// Centre de contrôle : chaque module porte ses propres marges intérieures,
+    /// ce qu'un empilement séparé par des filets ne payait pas. Détail du budget
+    /// au pire cas — barre d'onglets 30, tuiles du haut 132 (le mini calendrier
+    /// à 6 semaines commande), tuile lecteur 38, écarts 17, chrome haut/bas 52.
     var expandedSize: CGSize {
         let dropOffset = settings.dropOffset(for: currentScreenID ?? "")
-        return CGSize(width: 460, height: 236 + CGFloat(dropOffset))
+        return CGSize(width: 460, height: 284 + CGFloat(dropOffset))
     }
 
     let settings: OtterSettings

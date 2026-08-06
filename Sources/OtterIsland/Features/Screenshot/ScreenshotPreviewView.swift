@@ -21,12 +21,13 @@ struct ScreenshotPreviewView: View {
                     Image(nsImage: shot.image)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 44, height: 28)
+                        .frame(width: 48, height: 31)
                         .clipShape(RoundedRectangle(cornerRadius: Otter.Radius.small, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: Otter.Radius.small, style: .continuous)
-                                .stroke(Otter.accent.opacity(0.8), lineWidth: 1)
+                                .stroke(Otter.accent.opacity(0.85), lineWidth: 1)
                         )
+                        .shadow(color: .black.opacity(0.28), radius: 5, y: 2)
                         // Glisser directement la capture n'importe où (chat, mail,
                         // Finder…) sans passer par l'onglet Captures.
                         .onDrag { NSItemProvider(object: shot.url as NSURL) }
@@ -62,12 +63,11 @@ struct ScreenshotPreviewView: View {
             .buttonStyle(.plain)
             .help("Écarter")
         }
-        .padding(.leading, 10)
-        .padding(.trailing, 6)
-        .frame(width: 230, height: 46)
-        .liquidGlassBackground(
-            in: RoundedRectangle(cornerRadius: Otter.Radius.large + 4, style: .continuous),
-            tint: .black.opacity(0.78)
+        .padding(.leading, 11)
+        .padding(.trailing, 7)
+        .frame(width: 244, height: 52)
+        .liquidGlassCard(
+            in: RoundedRectangle(cornerRadius: Otter.Radius.large, style: .continuous)
         )
     }
 }

@@ -1,13 +1,16 @@
 import SwiftUI
 
 /// Barre d'onglets de la carte étendue : une pastille aqua qui GLISSE d'un
-/// onglet à l'autre, dans un rail discret.
+/// onglet à l'autre, dans un rail de verre.
 ///
 /// Avant : sept icônes de 30 pt flottant côte à côte sans contenant, dont seule
 /// la sélectionnée avait un fond — la barre ne se lisait pas comme un objet, et
 /// le changement d'onglet était un saut sec. Le rail donne un début et une fin
-/// au groupe, `matchedGeometryEffect` fait voyager l'indicateur, et l'ensemble
-/// est plus compact (200 pt au lieu de 246) : autant de rendu au contenu.
+/// au groupe, `matchedGeometryEffect` fait voyager l'indicateur.
+///
+/// L'indicateur est dégradé et bordé de son liseré, comme le pouce d'un
+/// contrôle segmenté du système : un aplat de couleur reste plat, une pastille
+/// qui attrape la lumière a l'air posée SUR le verre.
 struct NotchTabBar: View {
     @Binding var selection: NotchTab
 
@@ -18,28 +21,33 @@ struct NotchTabBar: View {
         HStack(spacing: 2) {
             ForEach(NotchTab.allCases) { tab in
                 Button {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                    withAnimation(Otter.selectionMotion) {
                         selection = tab
                     }
                 } label: {
                     Image(systemName: tab.icon)
                         .font(.system(size: 11.5, weight: .semibold))
-                        .frame(width: 26, height: 24)
+                        .frame(width: 27, height: 24)
                         .foregroundStyle(tint(for: tab))
                         .background {
                             if selection == tab {
-                                Capsule()
-                                    .fill(Otter.accent)
-                                    .matchedGeometryEffect(id: "selection", in: indicator)
+                                ZStack {
+                                    Capsule().fill(Otter.accentGradient)
+                                    SpecularRim(shape: Capsule(), strength: 0.9, lineWidth: 0.75)
+                                }
+                                // Halo court : la pastille active éclaire le
+                                // verre autour d'elle au lieu d'y être posée à plat.
+                                .shadow(color: Otter.accent.opacity(0.3), radius: 5, y: 1)
+                                .matchedGeometryEffect(id: "selection", in: indicator)
                             } else if hovered == tab {
-                                Capsule().fill(Color.white.opacity(0.12))
+                                Capsule().fill(Otter.tileFillActive)
                             }
                         }
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .onHover { hovering in
-                    withAnimation(.easeOut(duration: 0.12)) {
+                    withAnimation(Otter.hoverMotion) {
                         if hovering {
                             hovered = tab
                         } else if hovered == tab {
@@ -51,17 +59,18 @@ struct NotchTabBar: View {
             }
         }
         .padding(3)
-        .background(
-            Capsule()
-                .fill(Color.white.opacity(0.07))
-                .overlay(Capsule().stroke(Otter.chipStroke, lineWidth: 0.5))
-        )
+        .background {
+            ZStack {
+                Capsule().fill(Color.white.opacity(0.06))
+                SpecularRim(shape: Capsule(), strength: 0.5, lineWidth: 0.75)
+            }
+        }
     }
 
     /// Icône sombre sur la pastille aqua (du blanc sur aqua serait illisible),
     /// blanc franc au survol, gris en veille.
     private func tint(for tab: NotchTab) -> Color {
-        if selection == tab { return .black.opacity(0.78) }
+        if selection == tab { return .black.opacity(0.8) }
         return hovered == tab ? Otter.textPrimary : Otter.textSecondary
     }
 }

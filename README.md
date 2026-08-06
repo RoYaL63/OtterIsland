@@ -27,6 +27,7 @@ Milestone 1 (ce dépôt) est un squelette qui **compile et tourne** sur un Mac �
 - [x] HUD volume (CoreAudio), contrôle à la molette, lancement au démarrage, Pomodoro
 - [x] Fenêtre de réglages
 - [x] Système visuel unifié (jetons de couleur/typo, accent aqua repris de l'icône)
+- [x] Design Liquid Glass : modules groupés façon Centre de contrôle, tranches spéculaires, verre translucide
 - [x] Mise à jour depuis l'app (Réglages › Mise à jour), sans zip ni quarantaine
 - [x] Captures : copie automatique dans le presse-papier, dernière capture en grand
 - [x] Installeur `.dmg` et proposition d'installation dans /Applications au premier lancement

@@ -1,16 +1,17 @@
 import SwiftUI
 
-/// Fond de l'encoche : Liquid Glass natif (macOS 26+) avec une teinte sombre
-/// très opaque — garde les reflets/animations fluides du vrai matériau verre
-/// tout en restant assez opaque pour un fort contraste avec le texte blanc
-/// (un premier essai en teinte CLAIRE façon Centre de contrôle était trop
-/// transparent en pratique ; un repli en noir plein sans glass perdait les
-/// animations. Ceci garde les deux : contraste fort + reflets fluides).
+/// Fond de l'encoche : Liquid Glass natif (macOS 26+), teinté sombre.
 ///
-/// Par-dessus le matériau, un liseré lumineux dégradé (blanc → transparent,
-/// du haut vers le bas) souligne la tranche du verre quand la carte est
-/// dépliée — c'est lui qui donne l'épaisseur « goutte d'eau » au bord.
-/// Replié, il s'éteint : rien ne doit briller sur l'encoche physique.
+/// La teinte est volontairement plus légère qu'avant (0,60 + un voile dégradé,
+/// contre 0,85 + un voile plat) : le matériau ne se lit comme du VERRE que si
+/// le fond d'écran continue de vivre à travers. Le contraste du texte blanc est
+/// tenu par le voile, dégradé du haut (sous l'encoche physique, là où tombent
+/// les titres) vers le bas, plutôt que par un aplat noir qui éteignait le
+/// matériau et transformait l'île en rectangle opaque.
+///
+/// Par-dessus, le liseré spéculaire partagé (`SpecularRim`) donne la tranche
+/// « goutte d'eau » quand la carte est dépliée. Replié, il s'atténue : rien ne
+/// doit briller sur l'encoche physique.
 struct NotchGlassBackground: View {
     /// Largeur réelle de l'encoche physique (nil si le Mac n'en a pas).
     let topWidth: CGFloat?
@@ -27,36 +28,31 @@ struct NotchGlassBackground: View {
         NotchShape(topWidth: topWidth, topHeight: topHeight, bottomRadius: bottomRadius)
     }
 
+    /// Plancher de lisibilité. Le verre adaptatif s'éclaircit selon ce qui passe
+    /// derrière l'encoche (doc Apple) : la teinte seule ne garantit rien, ce
+    /// voile fixe un minimum d'obscurité sous le texte — plus dense en haut,
+    /// presque effacé en bas où le verre peut respirer.
+    private var scrim: LinearGradient {
+        LinearGradient(
+            colors: [
+                .black.opacity(isExpanded ? 0.30 : 0.36),
+                .black.opacity(isExpanded ? 0.16 : 0.30),
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
     var body: some View {
         Group {
             if reduceTransparency {
                 shape.fill(Color.black.opacity(0.96))
             } else {
                 Color.clear
-                    .liquidGlassBackground(in: shape, tint: .black.opacity(0.85))
-                    // Voile de lisibilité PAR-DESSUS le verre : le glass adaptatif
-                    // s'éclaircit selon ce qui passe derrière l'encoche (doc Apple),
-                    // donc la teinte seule ne garantit rien — ce scrim fixe un
-                    // plancher d'obscurité constant sous le texte blanc, en
-                    // laissant les reflets liquides vivre sur les bords.
-                    .overlay(shape.fill(Color.black.opacity(0.4)))
+                    .liquidGlassBackground(in: shape, tint: Otter.glassTint)
+                    .overlay(shape.fill(scrim))
             }
         }
-            .overlay(
-                shape
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                .white.opacity(isExpanded ? 0.25 : 0),
-                                .white.opacity(isExpanded ? 0.07 : 0),
-                                .clear,
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        lineWidth: 1
-                    )
-                    .allowsHitTesting(false)
-            )
+        .overlay(SpecularRim(shape: shape, strength: isExpanded ? 1 : 0))
     }
 }

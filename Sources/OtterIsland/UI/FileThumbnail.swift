@@ -12,7 +12,7 @@ import ImageIO
 struct FileThumbnail: View {
     let url: URL
     var size: CGSize
-    var cornerRadius: CGFloat = 4
+    var cornerRadius: CGFloat = Otter.Radius.xsmall
 
     @State private var image: NSImage?
 
@@ -31,8 +31,11 @@ struct FileThumbnail: View {
         .frame(width: size.width, height: size.height)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(.white.opacity(0.25), lineWidth: 0.5)
+            SpecularRim(
+                shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous),
+                strength: 0.75,
+                lineWidth: 0.75
+            )
         )
         .task(id: url) {
             // ×2 pour rester net sur écran Retina.

@@ -19,13 +19,13 @@ import AppKit
 private func card<Panel: View>(tab: NotchTab, @ViewBuilder panel: () -> Panel) -> some View {
     let notchWidth: CGFloat = 200
     let notchHeight: CGFloat = 32
-    let size = CGSize(width: 460, height: 236)
+    let size = CGSize(width: 460, height: 284)
 
     return ZStack(alignment: .top) {
         NotchGlassBackground(
             topWidth: notchWidth,
             topHeight: notchHeight,
-            bottomRadius: 24,
+            bottomRadius: 28,
             isExpanded: true
         )
         HStack(spacing: 12) {
@@ -35,7 +35,7 @@ private func card<Panel: View>(tab: NotchTab, @ViewBuilder panel: () -> Panel) -
                 .frame(width: 72, height: 72)
                 .overlay(Text("🦦").font(.system(size: 34)))
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 9) {
                 HStack {
                     Spacer(minLength: 0)
                     NotchTabBar(selection: .constant(tab))
@@ -44,9 +44,9 @@ private func card<Panel: View>(tab: NotchTab, @ViewBuilder panel: () -> Panel) -
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 18)
+        .padding(.horizontal, 16)
         .padding(.top, notchHeight + 8)
-        .padding(.bottom, 14)
+        .padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
     .frame(width: size.width, height: size.height)

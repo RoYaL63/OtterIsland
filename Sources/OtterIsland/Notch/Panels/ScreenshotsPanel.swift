@@ -26,25 +26,29 @@ struct ScreenshotsPanel: View {
     var body: some View {
         Group {
             if let selected {
-                VStack(alignment: .leading, spacing: 7) {
-                    hero(selected)
+                VStack(alignment: .leading, spacing: 8) {
+                    OtterTile { hero(selected) }
                     if screenshot.history.count > 1 {
-                        OtterDivider(axis: .horizontal)
-                        HStack(alignment: .center, spacing: 8) {
-                            filmstrip
-                            OtterActionLink(title: "Vider", tint: Otter.textTertiary) {
-                                screenshot.clearHistory()
-                                picked = nil
+                        OtterTile(horizontalPadding: 8, verticalPadding: 5) {
+                            HStack(alignment: .center, spacing: 8) {
+                                filmstrip
+                                OtterActionLink(title: "Vider", tint: Otter.textTertiary) {
+                                    screenshot.clearHistory()
+                                    picked = nil
+                                }
                             }
                         }
                     }
                 }
             } else {
-                OtterEmptyState(
-                    icon: "camera.viewfinder",
-                    title: "Aucune capture",
-                    subtitle: "⌘⇧4 — elle apparaît ici, déjà copiée pour ⌘V."
-                )
+                OtterTile {
+                    OtterEmptyState(
+                        icon: "camera.viewfinder",
+                        title: "Aucune capture",
+                        subtitle: "⌘⇧4 — elle apparaît ici, déjà copiée pour ⌘V."
+                    )
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -53,12 +57,17 @@ struct ScreenshotsPanel: View {
     // MARK: Capture en grand
 
     private func hero(_ url: URL) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            FileThumbnail(url: url, size: CGSize(width: 124, height: 78), cornerRadius: Otter.Radius.medium)
+        // 104 et pas 124 : la colonne de droite doit loger trois pastilles
+        // d'action (« Copier », « Ouvrir », « Retirer » ≈ 197 pt à elles trois).
+        // À 124, il manquait 2 pt et les trois libellés se faisaient tronquer
+        // en « Cop… », « Ouv… », « Retir… ».
+        HStack(alignment: .top, spacing: 9) {
+            FileThumbnail(url: url, size: CGSize(width: 104, height: 78), cornerRadius: Otter.Radius.medium)
                 .overlay(
                     RoundedRectangle(cornerRadius: Otter.Radius.medium, style: .continuous)
                         .stroke(Otter.accent.opacity(0.9), lineWidth: 1.5)
                 )
+                .shadow(color: .black.opacity(0.3), radius: 7, y: 3)
                 .onDrag { NSItemProvider(object: url as NSURL) }
                 .help("Glisse-la où tu veux")
 
@@ -67,9 +76,14 @@ struct ScreenshotsPanel: View {
                     Text("Dernière")
                         .font(.otterMicro)
                         .foregroundStyle(.black.opacity(0.8))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(Otter.accent))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2.5)
+                        .background(
+                            ZStack {
+                                Capsule().fill(Otter.accentGradient)
+                                SpecularRim(shape: Capsule(), strength: 0.8, lineWidth: 0.75)
+                            }
+                        )
                 }
                 Text(url.deletingPathExtension().lastPathComponent)
                     .font(.otterBody)
@@ -79,7 +93,7 @@ struct ScreenshotsPanel: View {
 
                 Spacer(minLength: 0)
 
-                HStack(spacing: 10) {
+                HStack(spacing: 5) {
                     OtterActionLink(
                         title: justCopied == url ? "Copiée" : "Copier",
                         icon: justCopied == url ? "checkmark" : "doc.on.doc",

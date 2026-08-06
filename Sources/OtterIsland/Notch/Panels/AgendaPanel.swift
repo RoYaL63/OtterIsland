@@ -10,15 +10,24 @@ struct AgendaPanel: View {
     var body: some View {
         Group {
             if !calendar.hasAccess {
-                permissionHint
-            } else {
-                HStack(alignment: .top, spacing: 12) {
-                    MiniCalendarView(calendar: calendar)
-                    OtterDivider()
-                        .padding(.vertical, 2)
-                    list
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                OtterTile(horizontalPadding: 12, verticalPadding: 10) {
+                    permissionHint
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
+            } else {
+                // Deux modules côte à côte plutôt qu'un filet vertical : le
+                // calendrier et la journée sont deux objets, pas deux moitiés.
+                HStack(alignment: .top, spacing: 8) {
+                    OtterTile {
+                        MiniCalendarView(calendar: calendar)
+                            .frame(maxHeight: .infinity, alignment: .top)
+                    }
+                    OtterTile {
+                        list
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    }
+                }
+                .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -74,10 +83,13 @@ struct AgendaPanel: View {
     }
 
     private var permissionHint: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label("Agenda non autorisé", systemImage: "calendar.badge.exclamationmark")
-                .font(.otterBody)
-                .foregroundStyle(Otter.warning)
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 8) {
+                OtterIconBadge(icon: "calendar.badge.exclamationmark", tint: Otter.warning)
+                Text("Agenda non autorisé")
+                    .font(.otterBody)
+                    .foregroundStyle(Otter.warning)
+            }
             Text("OtterIsland a besoin de l'accès Calendrier et Rappels pour afficher ta journée.")
                 .font(.otterMeta)
                 .foregroundStyle(Otter.textSecondary)
@@ -119,7 +131,7 @@ struct AgendaPanel: View {
     }()
 
     private func reminderRow(_ reminder: AgendaReminder) -> some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 8) {
             Button {
                 calendar.complete(reminder.id)
             } label: {
@@ -157,7 +169,8 @@ struct AgendaPanel: View {
                 } else {
                     Circle()
                         .fill(event.color)
-                        .frame(width: 6, height: 6)
+                        .frame(width: 7, height: 7)
+                        .shadow(color: event.color.opacity(0.6), radius: 3)
                 }
             }
             .frame(width: Otter.iconColumn)

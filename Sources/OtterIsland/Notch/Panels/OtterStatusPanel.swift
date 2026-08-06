@@ -1,14 +1,18 @@
 import SwiftUI
 import AppKit
 
-/// Panneau d'accueil : grille structurée, pas de bavardage.
-/// ┌──────────────────────┬────────────────┐
-/// │ indicateurs système  │ mini calendrier│
-/// │ (RAM, batterie, RDV) │   navigable    │
-/// ├──────────────────────┴────────────────┤
-/// │ lecteur musique (titre + contrôles)   │
-/// │                    [nettoyage][miroir]│
+/// Panneau d'accueil : trois modules groupés, façon Centre de contrôle.
+/// ┌──────────────────────┐ ┌────────────────┐
+/// │ indicateurs système  │ │ mini calendrier│
+/// │ (RAM, batterie, RDV) │ │   navigable    │
+/// └──────────────────────┘ └────────────────┘
+/// ┌───────────────────────────────────────┐
+/// │ lecteur musique     [nettoyage][miroir]│
 /// └───────────────────────────────────────┘
+/// Ce qui séparait ces trois blocs était un filet vertical et un filet
+/// horizontal ; ce sont maintenant des tuiles de verre distinctes. Un trait dit
+/// « ça s'arrête ici » ; une tuile dit « ceci est un objet » — et c'est la
+/// grammaire du système, du Centre de contrôle aux réglages.
 /// La loutre reste à gauche de la carte et sert d'indicateur vivant façon
 /// RunCat : nage = musique, halètement = RAM saturée, chiffon = nettoyage…
 ///
@@ -31,32 +35,40 @@ struct OtterStatusPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 12) {
-                statsColumn
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                OtterDivider()
-                    .padding(.vertical, 2)
-                MiniCalendarView(calendar: calendar, onPickDay: onOpenAgenda)
+            // fixedSize vertical : la rangée prend la hauteur du plus grand des
+            // deux modules (le calendrier), et l'autre s'étire pour l'égaler —
+            // deux tuiles côte à côte de hauteurs différentes se lisent comme
+            // un défaut d'alignement.
+            HStack(alignment: .top, spacing: 8) {
+                OtterTile {
+                    statsColumn
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+                OtterTile {
+                    MiniCalendarView(calendar: calendar, onPickDay: onOpenAgenda)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                }
             }
+            .fixedSize(horizontal: false, vertical: true)
 
             Spacer(minLength: 0)
 
-            OtterDivider(axis: .horizontal)
-
-            HStack(alignment: .center, spacing: 8) {
-                musicRow
-                Spacer(minLength: 6)
-                OtterIconButton(
-                    icon: "sparkles",
-                    tint: Otter.accent,
-                    help: "Verrouiller le clavier pour nettoyer",
-                    action: onToggleCleanup
-                )
-                OtterIconButton(
-                    icon: "camera.fill",
-                    help: "Mode miroir (caméra)",
-                    action: onOpenMirror
-                )
+            OtterTile(verticalPadding: 6) {
+                HStack(alignment: .center, spacing: 8) {
+                    musicRow
+                    Spacer(minLength: 6)
+                    OtterIconButton(
+                        icon: "sparkles",
+                        tint: Otter.accent,
+                        help: "Verrouiller le clavier pour nettoyer",
+                        action: onToggleCleanup
+                    )
+                    OtterIconButton(
+                        icon: "camera.fill",
+                        help: "Mode miroir (caméra)",
+                        action: onOpenMirror
+                    )
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -65,7 +77,7 @@ struct OtterStatusPanel: View {
     // MARK: Colonne indicateurs
 
     private var statsColumn: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 7) {
             memoryRow
             if showBattery {
                 batteryRow
@@ -200,21 +212,18 @@ struct OtterStatusPanel: View {
     @ViewBuilder
     private var musicRow: some View {
         if let track = nowPlaying.current {
-            HStack(spacing: 7) {
-                Image(systemName: track.isPlaying ? "waveform" : "pause.fill")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(track.isPlaying ? Otter.accent : Otter.textSecondary)
-                    .frame(width: Otter.iconColumn)
+            HStack(spacing: 8) {
+                OtterIconBadge(
+                    icon: track.isPlaying ? "waveform" : "pause.fill",
+                    tint: track.isPlaying ? Otter.accent : Otter.textSecondary
+                )
                 MarqueeText(text: "\(track.title) — \(track.artist)", font: .otterBody)
                     .foregroundStyle(Otter.textPrimary)
                 MediaControlsView(provider: nowPlaying, size: .compact)
             }
         } else {
-            HStack(spacing: 7) {
-                Image(systemName: "music.note")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Otter.textTertiary)
-                    .frame(width: Otter.iconColumn)
+            HStack(spacing: 8) {
+                OtterIconBadge(icon: "music.note", tint: Otter.textSecondary)
                 Text("Rien ne joue")
                     .font(.otterLabel)
                     .foregroundStyle(Otter.textTertiary)

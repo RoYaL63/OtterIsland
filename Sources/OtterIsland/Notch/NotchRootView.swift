@@ -14,7 +14,7 @@ struct NotchRootView: View {
     private var currentHeight: CGFloat { viewModel.isExpanded ? viewModel.expandedSize.height : notchHeight }
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             island
             if let hud = viewModel.hud, !viewModel.isExpanded {
                 HUDView(state: hud)
@@ -40,10 +40,12 @@ struct NotchRootView: View {
             NotchGlassBackground(
                 topWidth: viewModel.metrics?.hasRealNotch == true ? notchWidth : nil,
                 topHeight: notchHeight,
-                bottomRadius: viewModel.isExpanded ? 24 : 10,
+                bottomRadius: viewModel.isExpanded ? 28 : 10,
                 isExpanded: viewModel.isExpanded
             )
-            .shadow(color: .black.opacity(viewModel.isExpanded ? 0.4 : 0), radius: 12, y: 6)
+            // L'ombre décolle la carte du bureau : sans elle, un verre clair se
+            // confond avec le fond d'écran au lieu de flotter au-dessus.
+            .shadow(color: .black.opacity(viewModel.isExpanded ? 0.45 : 0), radius: 18, y: 9)
 
             if viewModel.isExpanded {
                 // Le contenu émerge du verre : fondu + très légère dilatation
@@ -92,7 +94,7 @@ struct NotchRootView: View {
                     .frame(width: 72, height: 72)
             }
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 9) {
                 if viewModel.keyboardLocker.isLocked || viewModel.keyboardLocker.permissionDenied {
                     // Le nettoyage passe devant tout : le clavier est bloqué, la
                     // seule sortie doit être visible immédiatement.
@@ -114,9 +116,9 @@ struct NotchRootView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 18)
+        .padding(.horizontal, 16)
         .padding(.top, notchHeight + 8)
-        .padding(.bottom, 14)
+        .padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
