@@ -18,7 +18,15 @@ struct NotchRootView: View {
             island
             if let hud = viewModel.hud, !viewModel.isExpanded {
                 HUDView(state: hud)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    // Le verre se MATÉRIALISE au lieu d'apparaître : échelle et
+                    // glissement partent ensemble, ancrés au bord haut. Un
+                    // fondu seul lit comme une image qui s'allume, pas comme
+                    // une surface qui arrive.
+                    .transition(
+                        .move(edge: .top)
+                            .combined(with: .opacity)
+                            .combined(with: .scale(scale: 0.94, anchor: .top))
+                    )
             }
             if let shot = viewModel.screenshotPreview, !viewModel.isExpanded {
                 ScreenshotPreviewView(
@@ -91,7 +99,7 @@ struct NotchRootView: View {
         HStack(spacing: 12) {
             if settings.otterEnabled {
                 OtterSceneView(mood: viewModel.otterMood, event: viewModel.otterEvent)
-                    .frame(width: 72, height: 72)
+                    .frame(width: OtterSceneHolder.side, height: OtterSceneHolder.side)
             }
 
             VStack(alignment: .leading, spacing: 9) {
@@ -114,7 +122,12 @@ struct NotchRootView: View {
                     panel
                 }
             }
-            Spacer(minLength: 0)
+            // Pas de Spacer ici : la colonne de contenu et un Spacer sont tous
+            // deux flexibles, le HStack leur partageait donc la largeur et le
+            // Spacer en volait une dizaine de points. Résultat, « Batterie » se
+            // tronquait alors que la rangée tient largement (143 pt mesurés).
+            // Les panneaux sont déjà en maxWidth: .infinity : ils occupent la
+            // place, ce qui est exactement ce qu'on veut.
         }
         .padding(.horizontal, 16)
         .padding(.top, notchHeight + 8)

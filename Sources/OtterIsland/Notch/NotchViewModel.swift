@@ -37,7 +37,8 @@ final class NotchViewModel: ObservableObject {
     let calendar = CalendarProvider()
     let shelf = ShelfModel()
     let volume = VolumeMonitor()
-    let pomodoro = PomodoroTimer()
+    /// Construit dans `init` : il lit ses durées dans les réglages.
+    let pomodoro: PomodoroTimer
     let clipboard = ClipboardManager()
     let screenshot = ScreenshotWatcher()
     let keyboardLocker = KeyboardLocker()
@@ -61,6 +62,8 @@ final class NotchViewModel: ObservableObject {
 
     init(settings: OtterSettings) {
         self.settings = settings
+        self.pomodoro = PomodoroTimer(settings: settings)
+        wirePomodoro()
         if settings.claudeCodeInboxEnabled {
             inbox.start()
         }
@@ -101,6 +104,24 @@ final class NotchViewModel: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] _ in self?.recomputeMood() }
             .store(in: &cancellables)
+
+        // L'agenda se recharge toutes les minutes : c'est ce relevé qui fait
+        // basculer la loutre en « RDV imminent » sans minuterie supplémentaire,
+        // et qui la fait passer en humeur de nuit au fil des heures.
+        calendar.$events
+            .sink { [weak self] _ in self?.recomputeMood() }
+            .store(in: &cancellables)
+
+        // Un fichier atterrit sur l'étagère : elle l'attrape au vol. Comparaison
+        // sur le nombre d'items pour ne réagir qu'aux AJOUTS — un retrait ne
+        // mérite pas de fête.
+        shelf.$items
+            .scan((0, false)) { previous, items in (items.count, items.count > previous.0) }
+            .filter(\.1)
+            .sink { [weak self] _ in
+                self?.otterEvent = OtterEventToken(event: .caught)
+            }
+            .store(in: &cancellables)
     }
 
     /// Recalcule l'humeur à chaque signal de contexte et relance la minuterie de sommeil.
@@ -117,6 +138,36 @@ final class NotchViewModel: ObservableObject {
                 self.resetSleepTimer()
                 self.recomputeMood()
             }
+            .store(in: &cancellables)
+    }
+
+    /// Branche le Pomodoro sur le reste du monde : Concentration système,
+    /// musique, humeur de la loutre. Le minuteur ne connaît aucun de ces
+    /// modules — il se contente de dire « ça commence » et « ça se termine ».
+    private func wirePomodoro() {
+        pomodoro.onWorkStart = { [weak self] in
+            guard let self else { return }
+            FocusMode.trigger(self.settings.pomodoroFocusShortcutOn)
+            // Couper la musique fait partie de « se mettre au travail » pour
+            // certains, pas pour tous : d'où le réglage. On ne coupe que si ça
+            // joue vraiment, sinon la bascule play/pause RELANCERAIT la lecture.
+            if self.settings.pomodoroPauseMusic, self.nowPlaying.current?.isPlaying == true {
+                self.nowPlaying.togglePlayPause()
+            }
+            self.recomputeMood()
+        }
+        pomodoro.onWorkEnd = { [weak self] completed in
+            guard let self else { return }
+            FocusMode.trigger(self.settings.pomodoroFocusShortcutOff)
+            if completed {
+                self.otterEvent = OtterEventToken(event: .pomodoroDone)
+            }
+            self.recomputeMood()
+        }
+        // La rangée Pomodoro de l'accueil lit `phase` et `remaining` à travers
+        // le view model : sans republication, la jauge resterait figée.
+        pomodoro.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
             .store(in: &cancellables)
     }
 
@@ -173,6 +224,9 @@ final class NotchViewModel: ObservableObject {
         if settings.screenshotAutoCopy {
             clipboard.copyFile(at: shot.url)
         }
+        // Flash d'appareil photo côté loutre : la capture vient d'être prise,
+        // elle doit se voir dans la seconde, pas seulement dans une carte.
+        otterEvent = OtterEventToken(event: .snapshot)
         screenshotPreview = shot
         screenshotClearTimer?.invalidate()
         screenshotClearTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: false) { [weak self] _ in
@@ -200,6 +254,11 @@ final class NotchViewModel: ObservableObject {
         withAnimation(.easeOut(duration: 0.2)) { screenshotPreview = nil }
     }
 
+    /// Ordre de priorité, du plus urgent au plus ambiant. Les ALERTES passent
+    /// devant tout : une batterie à 8 % doit se voir même en pleine session de
+    /// concentration. Vient ensuite ce que l'utilisateur a explicitement lancé
+    /// (Pomodoro), puis ce qui approche (un RDV), puis l'ambiance (musique,
+    /// charge, nuit, inactivité).
     private func recomputeMood() {
         let lowBattery = battery.percentage <= lowBatteryThreshold && !battery.isCharging
         let musicPlaying = settings.musicFollow && (nowPlaying.current?.isPlaying ?? false)
@@ -215,6 +274,12 @@ final class NotchViewModel: ObservableObject {
             // RAM saturée : elle s'essouffle (prioritaire sur le jeu/la nage,
             // c'est un signal d'alerte, pas une ambiance).
             mood = .overloaded
+        } else if pomodoro.isRunning && pomodoro.phase == .work {
+            // Passe devant l'ouverture de l'encoche : pendant une session, le
+            // seul message qui compte est « tu es en train de bosser ».
+            mood = .focused
+        } else if meetingIsImminent {
+            mood = .meetingSoon
         } else if isExpanded {
             mood = .playful
         } else if musicPlaying {
@@ -223,12 +288,29 @@ final class NotchViewModel: ObservableObject {
             mood = .happy
         } else if isSleepy {
             mood = .sleepy
+        } else if isNight {
+            mood = .night
         } else {
             mood = .idle
         }
 
         guard mood != otterMood else { return }
         otterMood = mood
+    }
+
+    /// Un rendez-vous commence dans moins de 5 minutes (et n'a pas déjà
+    /// commencé). C'est la fenêtre où un rappel sert encore à quelque chose.
+    private var meetingIsImminent: Bool {
+        guard let next = calendar.events.first else { return false }
+        let delay = next.start.timeIntervalSinceNow
+        return delay > 0 && delay <= 5 * 60
+    }
+
+    /// Entre 22 h et 6 h. Sert d'ambiance par défaut à la place de `.idle` :
+    /// la loutre n'a pas la même tête à 3 h du matin qu'à 10 h.
+    private var isNight: Bool {
+        let hour = Calendar.current.component(.hour, from: Date())
+        return hour >= 22 || hour < 6
     }
 
     private func resetSleepTimer() {
@@ -267,9 +349,12 @@ final class NotchViewModel: ObservableObject {
         if !expanded && (keyboardLocker.isLocked || keyboardLocker.permissionDenied) {
             return
         }
-        // Amortissement < 0.7 : léger dépassement élastique, l'île « goutte
-        // d'eau » rebondit un peu en se déployant, façon Dynamic Island.
-        withAnimation(.spring(response: 0.40, dampingFraction: 0.68)) {
+        // Valeurs que ship Apple pour un tiroir / une feuille (« Designing
+        // Fluid Interfaces ») : amortissement 0,8 et réponse 0,3 s. L'île EST
+        // un tiroir. Le réglage d'avant (0,68 / 0,40) rebondissait plus et
+        // arrivait plus tard : le dépassement se voyait comme un effet, là où
+        // celui-ci se ressent comme une matière qui se pose.
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             isExpanded = expanded
         }
     }

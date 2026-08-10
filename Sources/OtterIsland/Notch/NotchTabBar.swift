@@ -45,7 +45,9 @@ struct NotchTabBar: View {
                         }
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                // Le retour part à l'appui, pas au relâchement : sans lui, il ne
+                // se passe rien entre le clic et le glissement de la pastille.
+                .buttonStyle(OtterPressStyle(scale: 0.9))
                 .onHover { hovering in
                     withAnimation(Otter.hoverMotion) {
                         if hovering {

@@ -48,9 +48,11 @@ struct MusicPanel: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 OtterIconBadge(icon: "lock.trianglebadge.exclamationmark", tint: Otter.warning)
+                // Couleur dans la pastille, texte en blanc franc : voir
+                // AgendaPanel, même règle de vibrance.
                 Text("Autorisation requise")
                     .font(.otterBody)
-                    .foregroundStyle(Otter.warning)
+                    .foregroundStyle(Otter.textPrimary)
             }
             Text("Réglages Système › Confidentialité et sécurité › Automatisation : autorise OtterIsland pour Spotify, Music et System Events.")
                 .font(.otterMeta)

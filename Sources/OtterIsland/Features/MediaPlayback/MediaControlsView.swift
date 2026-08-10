@@ -40,7 +40,6 @@ private struct TransportButton: View {
     let action: () -> Void
 
     @State private var isHovering = false
-    @State private var isPressed = false
 
     var body: some View {
         Button(action: action) {
@@ -54,15 +53,8 @@ private struct TransportButton: View {
                 )
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .scaleEffect(isPressed ? 0.9 : 1)
+        .buttonStyle(OtterPressStyle(scale: 0.88))
         .onHover { isHovering = $0 }
         .animation(Otter.hoverMotion, value: isHovering)
-        .animation(Otter.selectionMotion, value: isPressed)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in isPressed = true }
-                .onEnded { _ in isPressed = false }
-        )
     }
 }

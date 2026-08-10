@@ -17,7 +17,7 @@ struct AboutView: View {
                 section("Comment ça marche", icon: "macbook") {
                     row("cursorarrow.motionlines", "Survole l'encoche", "La carte s'ouvre ; elle se replie quand la souris ressort. Encoche repliée, les clics passent au travers, rien n'est bloqué.")
                     row("scroll", "Molette au-dessus de l'encoche", "Vers le bas pour ouvrir, vers le haut pour fermer (désactivable dans les réglages).")
-                    row("pawprint.fill", "La loutre est un indicateur vivant", "Elle nage quand la musique joue, halète quand la RAM sature, s'inquiète batterie faible, passe le chiffon pendant le nettoyage, dort quand rien ne se passe.")
+                    row("pawprint.fill", "La loutre est un indicateur vivant", "Elle nage quand la musique joue, halète quand la RAM sature, s'inquiète batterie faible, met son casque pendant un Pomodoro, regarde l'heure quand un RDV approche, passe le chiffon pendant le nettoyage, somnole sous la lune la nuit. Elle réagit aussi dans l'instant : flash quand tu prends une capture, elle attrape les fichiers déposés sur l'étagère.")
                     row("cursorarrow.click.2", "Clic gauche sur 🦦 (barre de menus)", "Ouvre directement le presse-papier dans l'encoche. Clic droit : ce menu.")
                 }
 
@@ -32,7 +32,8 @@ struct AboutView: View {
                     row("camera.viewfinder", "Captures", "Chaque capture part directement dans le presse-papier (⌘⇧4 puis ⌘V). Aperçu transitoire sous l'encoche, onglet dédié avec la dernière en grand et les précédentes en bande, glisser-déposer vers une autre app.")
                     row("calendar", "Agenda", "Mini calendrier navigable (clic sur un jour → ses réunions), prochains RDV, lien visio cliquable, rappels à cocher.")
                     row("music.note", "Musique", "Spotify / Apple Music : titre, contrôles, la loutre nage en rythme.")
-                    row("memorychip", "Système", "RAM (pression colorée), batterie et temps restant, minuteur Pomodoro.")
+                    row("memorychip", "Système", "RAM (pression colorée), batterie et temps restant.")
+                    row("moon.fill", "Concentration (Pomodoro)", "Session de travail puis pause, durées réglables. Une session met le Mac en Concentration, peut couper la musique, et la coupe à la fin ou dès que tu mets en pause. macOS n'autorisant aucune app à toucher la Concentration, ça passe par un raccourci de l'app Raccourcis — le menu se règle dans Réglages › Concentration.")
                     row("sparkles", "Nettoyage clavier", "Petite icône 🧽 de l'accueil : verrouille TOUTES les frappes pour nettoyer, l'encoche reste grande, seul le clic Déverrouiller libère.")
                     row("camera.fill", "Miroir", "La caméra en petit, pour se recoiffer avant une visio.")
                     row("terminal.fill", "Inbox Claude Code", "Une demande de validation Claude Code apparaît dans l'encoche, approuve ou refuse d'un clic (~/.otterisland/inbox).")

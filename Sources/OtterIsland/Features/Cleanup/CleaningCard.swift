@@ -17,6 +17,7 @@ struct CleaningCard: View {
                 )
                 Text(permissionDenied ? "Verrouillage impossible" : "Clavier verrouillé")
                     .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                    .tracking(Otter.trackingTitle)
                     .foregroundStyle(Otter.textPrimary)
             }
 

@@ -17,6 +17,9 @@ OtterIsland.xcodeproj/
 # macOS
 .DS_Store
 
+# Réglages Claude Code propres à la machine (les skills, eux, sont versionnés).
+.claude/settings.local.json
+
 # Divers
 *.moved-aside
 *.hmap

@@ -112,6 +112,12 @@ final class OtterScene: SKScene {
             startCleaning()
         case .overloaded:
             startOverloaded()
+        case .focused:
+            startFocused()
+        case .meetingSoon:
+            startMeetingSoon()
+        case .night:
+            startNight()
         case .idle:
             break
         }
@@ -297,18 +303,99 @@ final class OtterScene: SKScene {
         ]))
     }
 
+    // MARK: Concentration : casque sur les oreilles, elle ne bouge plus
+
+    /// Pomodoro en cours. Rien qui clignote ni qui saute : la loutre doit
+    /// signaler « je bosse » sans redevenir elle-même une source de
+    /// distraction — ce serait contredire la fonctionnalité qu'elle annonce.
+    private func startFocused() {
+        guard let otter else { return }
+        let headphones = SKLabelNode(text: "🎧")
+        headphones.name = "fx"
+        headphones.fontSize = 13
+        headphones.position = CGPoint(x: 0, y: otterSide * 0.30)
+        headphones.zPosition = 2
+        otter.addChild(headphones)
+
+        // Un souffle très lent, à peine perceptible, plutôt qu'une animation.
+        let pulse = SKAction.sequence([
+            .fadeAlpha(to: 0.75, duration: 1.6),
+            .fadeAlpha(to: 1.0, duration: 1.6),
+        ])
+        pulse.timingMode = .easeInEaseOut
+        headphones.run(.repeatForever(pulse))
+    }
+
+    // MARK: RDV imminent : elle regarde l'heure
+
+    private func startMeetingSoon() {
+        guard let otter else { return }
+        // Elle se penche d'un côté puis de l'autre, comme on cherche l'horloge.
+        let lean = SKAction.sequence([
+            .rotate(toAngle: 0.10, duration: 0.5),
+            .rotate(toAngle: -0.10, duration: 0.5),
+        ])
+        lean.timingMode = .easeInEaseOut
+        otter.run(.repeatForever(lean), withKey: "lean")
+
+        let spawn = SKAction.run { [weak self] in self?.spawnClock() }
+        run(.repeatForever(.sequence([spawn, .wait(forDuration: 1.6)])), withKey: "clock")
+    }
+
+    private func spawnClock() {
+        let clock = SKLabelNode(text: "⏰")
+        clock.name = "fx"
+        clock.fontSize = 12
+        clock.alpha = 0
+        clock.position = CGPoint(x: size.width * 0.68, y: size.height * 0.66)
+        addChild(clock)
+        clock.run(.sequence([
+            .fadeIn(withDuration: 0.15),
+            .group([
+                .sequence([
+                    .rotate(byAngle: 0.25, duration: 0.08),
+                    .rotate(byAngle: -0.5, duration: 0.16),
+                    .rotate(byAngle: 0.25, duration: 0.08),
+                ]),
+                .sequence([.wait(forDuration: 0.6), .fadeOut(withDuration: 0.4)]),
+            ]),
+            .removeFromParent(),
+        ]))
+    }
+
+    // MARK: Nuit : la lune est là, elle bâille
+
+    private func startNight() {
+        let moon = SKLabelNode(text: "🌙")
+        moon.name = "fx"
+        moon.fontSize = 12
+        moon.alpha = 0.85
+        moon.position = CGPoint(x: size.width * 0.76, y: size.height * 0.76)
+        addChild(moon)
+
+        // Bien plus espacé que les Zzz de `sleepy` : la nuit, elle somnole,
+        // elle ne dort pas encore.
+        let spawn = SKAction.run { [weak self] in self?.spawnZ() }
+        run(.repeatForever(.sequence([spawn, .wait(forDuration: 3.4)])), withKey: "zzz")
+    }
+
     // MARK: Effets (nodes nommés "fx")
 
     private func clearEffects() {
-        for key in ["zzz", "sparkle", "bubbles", "drops", "cleanmarks", "notes", "sweat"] {
+        for key in ["zzz", "sparkle", "bubbles", "drops", "cleanmarks", "notes", "sweat", "clock"] {
             removeAction(forKey: key)
         }
         otter?.removeAction(forKey: "swim")
         otter?.removeAction(forKey: "shiver")
         otter?.removeAction(forKey: "clean")
         otter?.removeAction(forKey: "jitter")
+        otter?.removeAction(forKey: "lean")
         otter?.zRotation = 0
         enumerateChildNodes(withName: "fx") { node, _ in node.removeFromParent() }
+        // Les effets accrochés AU CORPS (casque de concentration) ne sont pas
+        // des enfants de la scène : sans cette seconde passe, le casque restait
+        // sur les oreilles après la fin du Pomodoro.
+        otter?.enumerateChildNodes(withName: "fx") { node, _ in node.removeFromParent() }
     }
 
     private func startZzz() {
@@ -406,7 +493,83 @@ final class OtterScene: SKScene {
     func play(_ event: OtterEvent) {
         switch event {
         case .celebrate: celebrate()
+        case .snapshot: snapshot()
+        case .caught: caught()
+        case .pomodoroDone: pomodoroDone()
         }
+    }
+
+    /// Capture d'écran : un vrai flash d'appareil photo, court et sec.
+    private func snapshot() {
+        let flash = SKSpriteNode(color: .white, size: size)
+        flash.name = "fx"
+        flash.position = center
+        flash.zPosition = 10
+        flash.alpha = 0
+        addChild(flash)
+        flash.run(.sequence([
+            .fadeAlpha(to: 0.55, duration: 0.05),
+            .fadeOut(withDuration: 0.28),
+            .removeFromParent(),
+        ]))
+
+        let camera = SKLabelNode(text: "📸")
+        camera.name = "fx"
+        camera.fontSize = 14
+        camera.position = CGPoint(x: size.width * 0.5, y: size.height * 0.72)
+        camera.setScale(0.4)
+        addChild(camera)
+        camera.run(.sequence([
+            .group([.scale(to: 1, duration: 0.18), .moveBy(x: 0, y: 6, duration: 0.18)]),
+            .wait(forDuration: 0.35),
+            .fadeOut(withDuration: 0.25),
+            .removeFromParent(),
+        ]))
+        hop()
+    }
+
+    /// Fichier déposé sur l'étagère : elle l'attrape au vol.
+    private func caught() {
+        let parcel = SKLabelNode(text: "📦")
+        parcel.name = "fx"
+        parcel.fontSize = 13
+        parcel.position = CGPoint(x: size.width * 0.5, y: size.height * 1.05)
+        addChild(parcel)
+
+        let fall = SKAction.move(to: CGPoint(x: size.width * 0.5, y: size.height * 0.56), duration: 0.32)
+        fall.timingMode = .easeIn
+        parcel.run(.sequence([
+            fall,
+            .group([.scale(to: 0.6, duration: 0.18), .fadeOut(withDuration: 0.18)]),
+            .removeFromParent(),
+        ]))
+        // Elle se baisse pour réceptionner, puis se redresse.
+        otter?.run(.sequence([
+            .wait(forDuration: 0.24),
+            .moveBy(x: 0, y: -5, duration: 0.08),
+            .moveBy(x: 0, y: 5, duration: 0.2),
+        ]))
+    }
+
+    /// Session de travail bouclée : elle s'étire et souffle.
+    private func pomodoroDone() {
+        guard let otter else { return }
+        otter.run(.sequence([
+            .scaleX(to: 1.14, y: 0.92, duration: 0.22),
+            .scaleX(to: 1.0, y: 1.0, duration: 0.30),
+        ]))
+        let mark = SKLabelNode(text: "✅")
+        mark.name = "fx"
+        mark.fontSize = 14
+        mark.alpha = 0
+        mark.position = CGPoint(x: size.width * 0.5, y: size.height * 0.74)
+        addChild(mark)
+        mark.run(.sequence([
+            .group([.fadeIn(withDuration: 0.15), .moveBy(x: 0, y: 8, duration: 0.5)]),
+            .wait(forDuration: 0.5),
+            .fadeOut(withDuration: 0.35),
+            .removeFromParent(),
+        ]))
     }
 
     /// Approbation d'une action Claude Code : petite fête, elle lance un coquillage.

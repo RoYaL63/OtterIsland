@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Onglet affiché à l'ouverture des réglages.
 enum SettingsTab: Hashable {
-    case general, notch, update, about
+    case general, notch, focus, update, about
 }
 
 /// Qui commande l'onglet ouvert. Vit en dehors de la vue, dans l'AppDelegate :
@@ -24,6 +24,7 @@ struct SettingsView: View {
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @State private var launchAtLoginError: String?
     @State private var launchAtLoginNeedsApproval = LaunchAtLogin.needsApproval
+    @State private var floatingThumbnail = SystemScreenshotSettings.floatingThumbnailEnabled
     @State private var selectedScreenID: String = {
         guard let screen = NSScreen.main else { return "built-in" }
         return ScreenIdentifier.stableID(for: screen)
@@ -37,6 +38,9 @@ struct SettingsView: View {
             notch
                 .tabItem { Label("Encoche", systemImage: "macbook") }
                 .tag(SettingsTab.notch)
+            FocusSettingsView()
+                .tabItem { Label("Concentration", systemImage: "moon.fill") }
+                .tag(SettingsTab.focus)
             UpdateSettingsView(updater: updater)
                 .tabItem { Label("Mise à jour", systemImage: "arrow.down.circle") }
                 .tag(SettingsTab.update)
@@ -140,6 +144,16 @@ struct SettingsView: View {
             Text("⌘⇧4 puis ⌘V directement : `screencapture` n'écrit que sur le disque, OtterIsland met la capture dans le presse-papier. Redémarre OtterIsland après changement de l'aperçu.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            // LA cause du « ça met très longtemps » : tant que la vignette Apple
+            // est à l'écran, le fichier n'existe pas encore sur le disque.
+            Toggle("Vignette flottante de macOS", isOn: floatingThumbnailBinding)
+            Text(floatingThumbnail
+                 ? "Active : après ⌘⇧4, macOS garde la capture ~5 s le temps d'afficher sa vignette en bas à droite, et n'écrit le fichier qu'ensuite. Tant qu'elle est là, AUCUNE app ne peut voir la capture — d'où l'attente avant qu'elle arrive dans le presse-papier. Décoche pour que ce soit immédiat : l'aperçu d'OtterIsland la remplace (glisser, copier, ouvrir)."
+                 : "Désactivée : la capture est écrite tout de suite, l'aperçu de l'encoche et le presse-papier suivent dans la foulée. S'applique dès la prochaine capture.")
+                .font(.caption)
+                .foregroundStyle(floatingThumbnail ? .orange : .secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding()
     }
@@ -166,6 +180,19 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
         }
         .padding()
+    }
+
+    /// Miroir de la préférence système `com.apple.screencapture show-thumbnail`.
+    /// Le @State local sert uniquement à rafraîchir la vue : la vérité reste
+    /// dans les préférences de macOS, relues à l'ouverture des réglages.
+    private var floatingThumbnailBinding: Binding<Bool> {
+        Binding(
+            get: { floatingThumbnail },
+            set: { enabled in
+                SystemScreenshotSettings.setFloatingThumbnail(enabled)
+                floatingThumbnail = enabled
+            }
+        )
     }
 
     private var widthBinding: Binding<Double> {

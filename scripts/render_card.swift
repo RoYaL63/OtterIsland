@@ -32,8 +32,8 @@ private func card<Panel: View>(tab: NotchTab, @ViewBuilder panel: () -> Panel) -
             // La loutre est du SpriteKit : hors de l'app, on réserve sa place.
             Circle()
                 .fill(Color.white.opacity(0.06))
-                .frame(width: 72, height: 72)
-                .overlay(Text("🦦").font(.system(size: 34)))
+                .frame(width: OtterSceneHolder.side, height: OtterSceneHolder.side)
+                .overlay(Text("🦦").font(.system(size: 26)))
 
             VStack(alignment: .leading, spacing: 9) {
                 HStack {
@@ -42,7 +42,8 @@ private func card<Panel: View>(tab: NotchTab, @ViewBuilder panel: () -> Panel) -
                 }
                 panel()
             }
-            Spacer(minLength: 0)
+            // Pas de Spacer : miroir de NotchRootView.expandedContent, où il
+            // volait une dizaine de points de largeur au panneau.
         }
         .padding(.horizontal, 16)
         .padding(.top, notchHeight + 8)
@@ -116,7 +117,7 @@ enum RenderCard {
         let dir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : NSTemporaryDirectory()
 
         let battery = BatteryMonitor()
-        let pomodoro = PomodoroTimer()
+        let pomodoro = PomodoroTimer(settings: OtterSettings())
         let calendar = CalendarProvider()
         let nowPlaying = AppleScriptNowPlaying()
         let memory = MemoryMonitor()

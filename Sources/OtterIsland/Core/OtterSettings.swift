@@ -67,6 +67,45 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(autoCheckUpdates, forKey: Keys.autoCheckUpdates) }
     }
 
+    // MARK: Pomodoro et Concentration
+
+    /// Durée d'une session de travail, en minutes.
+    @Published var pomodoroWorkMinutes: Int {
+        didSet { defaults.set(pomodoroWorkMinutes, forKey: Keys.pomodoroWork) }
+    }
+
+    /// Durée de la pause enchaînée après une session. 0 = pas de pause.
+    @Published var pomodoroBreakMinutes: Int {
+        didSet { defaults.set(pomodoroBreakMinutes, forKey: Keys.pomodoroBreak) }
+    }
+
+    /// La pause démarre toute seule à la fin d'une session.
+    @Published var pomodoroAutoStartBreak: Bool {
+        didSet { defaults.set(pomodoroAutoStartBreak, forKey: Keys.pomodoroAutoBreak) }
+    }
+
+    /// Raccourci (app Raccourcis) lancé au début d'une session : c'est lui qui
+    /// met le Mac en Concentration. Vide = la fonction est inactive. Voir
+    /// `FocusMode` pour pourquoi il faut passer par Raccourcis.
+    @Published var pomodoroFocusShortcutOn: String {
+        didSet { defaults.set(pomodoroFocusShortcutOn, forKey: Keys.pomodoroFocusOn) }
+    }
+
+    /// Raccourci lancé à la fin d'une session, pour couper la Concentration.
+    @Published var pomodoroFocusShortcutOff: String {
+        didSet { defaults.set(pomodoroFocusShortcutOff, forKey: Keys.pomodoroFocusOff) }
+    }
+
+    /// Met la musique en pause pendant une session de travail.
+    @Published var pomodoroPauseMusic: Bool {
+        didSet { defaults.set(pomodoroPauseMusic, forKey: Keys.pomodoroPauseMusic) }
+    }
+
+    /// Son système à la fin d'une phase.
+    @Published var pomodoroChime: Bool {
+        didSet { defaults.set(pomodoroChime, forKey: Keys.pomodoroChime) }
+    }
+
     /// Ajustement fin de la largeur de l'encoche, en points. Négatif = plus étroit.
     /// Sert de valeur par défaut pour un écran sans réglage propre.
     @Published var notchWidthOffset: Double {
@@ -104,6 +143,13 @@ final class OtterSettings: ObservableObject {
             Keys.autoCheckUpdates: true,
             Keys.widthOffset: 0.0,
             Keys.dropOffset: 0.0,
+            Keys.pomodoroWork: 25,
+            Keys.pomodoroBreak: 5,
+            Keys.pomodoroAutoBreak: true,
+            Keys.pomodoroFocusOn: "",
+            Keys.pomodoroFocusOff: "",
+            Keys.pomodoroPauseMusic: false,
+            Keys.pomodoroChime: true,
         ])
         otterEnabled = defaults.bool(forKey: Keys.otterEnabled)
         showBattery = defaults.bool(forKey: Keys.showBattery)
@@ -120,6 +166,13 @@ final class OtterSettings: ObservableObject {
         expandedDropOffset = defaults.double(forKey: Keys.dropOffset)
         perScreenWidthOffset = defaults.dictionary(forKey: Keys.perScreenWidthOffset) as? [String: Double] ?? [:]
         perScreenDropOffset = defaults.dictionary(forKey: Keys.perScreenDropOffset) as? [String: Double] ?? [:]
+        pomodoroWorkMinutes = defaults.integer(forKey: Keys.pomodoroWork)
+        pomodoroBreakMinutes = defaults.integer(forKey: Keys.pomodoroBreak)
+        pomodoroAutoStartBreak = defaults.bool(forKey: Keys.pomodoroAutoBreak)
+        pomodoroFocusShortcutOn = defaults.string(forKey: Keys.pomodoroFocusOn) ?? ""
+        pomodoroFocusShortcutOff = defaults.string(forKey: Keys.pomodoroFocusOff) ?? ""
+        pomodoroPauseMusic = defaults.bool(forKey: Keys.pomodoroPauseMusic)
+        pomodoroChime = defaults.bool(forKey: Keys.pomodoroChime)
     }
 
     /// Largeur pour un écran donné : son réglage propre s'il existe, sinon la valeur par défaut.
@@ -156,5 +209,12 @@ final class OtterSettings: ObservableObject {
         static let dropOffset = "expandedDropOffset"
         static let perScreenWidthOffset = "perScreenWidthOffset"
         static let perScreenDropOffset = "perScreenDropOffset"
+        static let pomodoroWork = "pomodoroWorkMinutes"
+        static let pomodoroBreak = "pomodoroBreakMinutes"
+        static let pomodoroAutoBreak = "pomodoroAutoStartBreak"
+        static let pomodoroFocusOn = "pomodoroFocusShortcutOn"
+        static let pomodoroFocusOff = "pomodoroFocusShortcutOff"
+        static let pomodoroPauseMusic = "pomodoroPauseMusic"
+        static let pomodoroChime = "pomodoroChime"
     }
 }

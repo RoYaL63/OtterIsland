@@ -47,9 +47,22 @@ enum Otter {
     /// Titres, valeurs, tout ce qui se lit vraiment.
     static let textPrimary = Color.white
     /// Libellés, heures, unités : présents mais en retrait.
-    static let textSecondary = Color.white.opacity(0.64)
+    static let textSecondary = Color.white.opacity(0.72)
     /// Aides, états vides, contenu absent.
-    static let textTertiary = Color.white.opacity(0.40)
+    static let textTertiary = Color.white.opacity(0.50)
+
+    /// Correction de vibrance. Sur un matériau translucide, ce qui passe
+    /// derrière change en permanence : un gris plat qui tenait sur fond sombre
+    /// disparaît dès qu'une fenêtre claire passe sous l'encoche. Apple compense
+    /// par plus de contraste, une graisse un cran au-dessus et un chouïa de
+    /// chasse — d'où 0,72 / 0,50 au lieu de 0,64 / 0,40, et les libellés en
+    /// `.medium` plus bas.
+    ///
+    /// Chasse optique : le petit texte a besoin d'air (positive), le grand a
+    /// besoin d'être resserré (négative). Une valeur unique est fausse quelque
+    /// part — ces deux-là sont appliquées par taille.
+    static let trackingSmall: CGFloat = 0.15
+    static let trackingTitle: CGFloat = -0.1
 
     // MARK: Matière
 
@@ -86,16 +99,25 @@ enum Otter {
     /// Colonne d'alignement des icônes de rangée : toutes les glyphes d'une
     /// liste tombent sur la même verticale, quelle que soit leur largeur.
     /// Dimensionnée pour la pastille ronde d'`OtterIconBadge`.
-    static let iconColumn: CGFloat = 19
+    static let iconColumn: CGFloat = 18
 
     // MARK: Mouvement
 
     /// Réaction au survol : rapide, sans rebond. Le verre suit le curseur, il
     /// ne le rattrape pas.
     static let hoverMotion: Animation = .smooth(duration: 0.18)
-    /// Réaction à un changement d'état (onglet, sélection) : léger dépassement,
-    /// comme les contrôles du système.
-    static let selectionMotion: Animation = .spring(response: 0.34, dampingFraction: 0.76)
+
+    /// Changement d'état (onglet, sélection). Amorti critique, AUCUN
+    /// dépassement : règle d'Apple (« Designing Fluid Interfaces ») — le rebond
+    /// ne se justifie que si le geste portait lui-même de l'élan. Un clic
+    /// d'onglet n'en porte pas ; une pastille qui rebondit après un simple clic
+    /// se lit comme un tic nerveux. Réponse 0,34 s, la valeur maison pour un
+    /// déplacement (Apple ship 0,4 pour un repositionnement).
+    static let selectionMotion: Animation = .spring(response: 0.34, dampingFraction: 1.0)
+
+    /// Enfoncement d'un contrôle. Encore plus court : la réponse doit être
+    /// perçue comme instantanée, elle part au pointeur-BAS et non au relâchement.
+    static let pressMotion: Animation = .spring(response: 0.22, dampingFraction: 1.0)
 }
 
 // MARK: - Échelle typographique
@@ -105,15 +127,38 @@ extension Font {
     static let otterTitle = Font.system(size: 12.5, weight: .semibold)
     /// Corps d'une rangée : titre d'évènement, nom de morceau, nom de fichier.
     static let otterBody = Font.system(size: 11.5, weight: .medium)
-    /// Libellé d'un indicateur (« RAM », « Pomodoro »).
-    static let otterLabel = Font.system(size: 11, weight: .regular)
+    /// Libellé d'un indicateur (« RAM », « Pomodoro »). `.medium` et non
+    /// `.regular` : sur du verre, une graisse en dessous du corps de texte se
+    /// délave dès que le fond s'éclaircit (correction de vibrance).
+    static let otterLabel = Font.system(size: 11, weight: .medium)
     /// Valeur chiffrée. Chiffres à chasse fixe : le pourcentage de RAM ne doit
     /// pas faire danser la colonne à chaque relevé.
     static let otterValue = Font.system(size: 11, weight: .semibold).monospacedDigit()
-    /// Méta discrète : heure d'un RDV, durée restante.
-    static let otterMeta = Font.system(size: 10, weight: .regular)
+    /// Méta discrète : heure d'un RDV, durée restante. Même raison que
+    /// `otterLabel` pour le `.medium`.
+    static let otterMeta = Font.system(size: 10, weight: .medium)
     /// Micro-libellé : initiales des jours, minuterie.
     static let otterMicro = Font.system(size: 8.5, weight: .semibold)
+}
+
+// MARK: - Retour au clic
+
+/// Enfoncement d'un contrôle, au pointeur-BAS et non au relâchement.
+///
+/// « The moment lag appears, the feeling of directness falls off a cliff » :
+/// attendre le relâchement pour montrer quoi que ce soit donne une interface
+/// morte. `ButtonStyle` est le bon outil et pas un `DragGesture` posé à côté —
+/// `configuration.isPressed` bascule dès l'appui, gère seul l'hystérésis et
+/// l'annulation quand le curseur s'éloigne de la cible, et ne peut pas manger
+/// le clic.
+struct OtterPressStyle: ButtonStyle {
+    var scale: CGFloat = 0.93
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scale : 1)
+            .animation(Otter.pressMotion, value: configuration.isPressed)
+    }
 }
 
 // MARK: - Tuile
@@ -231,6 +276,7 @@ struct OtterEmptyState: View {
             if let subtitle {
                 Text(subtitle)
                     .font(.otterMeta)
+                    .tracking(Otter.trackingSmall)
                     .foregroundStyle(Otter.textTertiary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -262,10 +308,20 @@ struct OtterStatRow<Trailing: View>: View {
                 OtterIconBadge(icon: icon, tint: iconTint)
                 Text(label)
                     .font(.otterLabel)
+                    .tracking(Otter.trackingSmall)
                     .foregroundStyle(Otter.textSecondary)
                     .lineLimit(1)
+                    // Servi AVANT l'espace flexible. Sans cette priorité, le
+                    // HStack répartit la place restante entre le libellé et le
+                    // Spacer, et « Batterie » se tronquait en « Batte… » alors
+                    // que la rangée avait encore de la marge.
+                    .layoutPriority(1)
                 Spacer(minLength: 6)
-                trailing
+                // La valeur ne se casse JAMAIS : sans ce fixedSize, un temps
+                // restant un peu long (« 10 h 03 ») se replie sur deux lignes
+                // et fait enfler toute la rangée. C'est le libellé, déjà en
+                // lineLimit(1), qui doit céder en se tronquant.
+                trailing.fixedSize()
             }
             if let progress {
                 OtterMeter(value: progress, tint: progressTint)
@@ -283,7 +339,6 @@ struct OtterIconButton: View {
     let action: () -> Void
 
     @State private var isHovering = false
-    @State private var isPressed = false
 
     var body: some View {
         Button(action: action) {
@@ -291,25 +346,18 @@ struct OtterIconButton: View {
                 .font(.system(size: 11, weight: .semibold))
                 .frame(width: 26, height: 26)
                 .foregroundStyle(tint)
-                .contentShape(Rectangle())
+                // Le fond fait partie du label : il doit s'enfoncer AVEC la
+                // glyphe, pas rester immobile derrière elle.
+                .background(
+                    Circle()
+                        .fill(isHovering ? Otter.tileFillActive : Otter.chipFill)
+                        .overlay(SpecularRim(shape: Circle(), strength: isHovering ? 1 : 0.7, lineWidth: 0.75))
+                )
+                .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .background(
-            Circle()
-                .fill(isHovering ? Otter.tileFillActive : Otter.chipFill)
-                .overlay(SpecularRim(shape: Circle(), strength: isHovering ? 1 : 0.7, lineWidth: 0.75))
-        )
-        // Le verre s'enfonce sous le doigt puis rebondit : sans ce retour, une
-        // pastille ne se distingue pas d'une décoration.
-        .scaleEffect(isPressed ? 0.92 : 1)
+        .buttonStyle(OtterPressStyle())
         .onHover { isHovering = $0 }
         .animation(Otter.hoverMotion, value: isHovering)
-        .animation(Otter.selectionMotion, value: isPressed)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in isPressed = true }
-                .onEnded { _ in isPressed = false }
-        )
         .help(help)
     }
 }
@@ -331,7 +379,9 @@ struct OtterActionLink: View {
                 if let icon {
                     Image(systemName: icon).font(.system(size: 9, weight: .semibold))
                 }
-                Text(title).font(.system(size: 10, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(Otter.trackingSmall)
             }
             .foregroundStyle(isHovering ? Otter.textPrimary : tint)
             // 6 pt et pas 8 : trois de ces pastilles doivent tenir côte à côte
@@ -346,7 +396,7 @@ struct OtterActionLink: View {
             )
             .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(OtterPressStyle(scale: 0.95))
         .onHover { isHovering = $0 }
         .animation(Otter.hoverMotion, value: isHovering)
     }
@@ -382,6 +432,6 @@ struct OtterPillButtonStyle: ButtonStyle {
             )
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .opacity(configuration.isPressed ? 0.85 : 1)
-            .animation(Otter.hoverMotion, value: configuration.isPressed)
+            .animation(Otter.pressMotion, value: configuration.isPressed)
     }
 }

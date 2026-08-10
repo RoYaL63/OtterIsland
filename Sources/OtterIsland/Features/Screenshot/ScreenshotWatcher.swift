@@ -91,11 +91,35 @@ final class ScreenshotWatcher: ObservableObject {
     private func scan() {
         for file in currentImageFiles() where !seenPaths.contains(file.path) {
             seenPaths.insert(file.path)
-            // macOS écrit la capture en une ou deux passes rapides : petite marge
-            // avant lecture pour ne pas charger un fichier encore tronqué.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-                self?.load(file)
-            }
+            waitUntilStable(file)
+        }
+    }
+
+    /// Attend que le fichier ait fini d'être écrit, en le sondant au lieu de
+    /// dormir un temps fixe.
+    ///
+    /// Avant : 0,35 s d'attente systématique « au cas où ». Une capture est
+    /// écrite en un seul jet dans l'écrasante majorité des cas, donc c'était
+    /// 0,35 s perdues à chaque fois, ajoutées au délai de la vignette flottante
+    /// de macOS (voir `SystemScreenshotSettings`). Ici on relit la taille toutes
+    /// les 40 ms et on charge dès qu'elle ne bouge plus : ~80 ms en pratique.
+    private func waitUntilStable(_ file: URL, previousSize: Int = -1, attempt: Int = 0) {
+        // Plafond de sécurité (~1,2 s) : un fichier qui grossit encore après ça
+        // vient d'ailleurs qu'une capture d'écran, on le charge tel quel plutôt
+        // que de le sonder indéfiniment.
+        let size = (try? FileManager.default.attributesOfItem(atPath: file.path)[.size] as? Int) ?? nil
+        guard let size else { return }
+        if size > 0, size == previousSize || attempt >= 30 {
+            load(file)
+            return
+        }
+        // Le plafond doit sortir de la boucle, pas seulement autoriser le
+        // chargement : un fichier resté à 0 octet ne satisfait jamais
+        // `size > 0`, et sans ce garde-fou on le sondait toutes les 40 ms
+        // pour toujours.
+        guard attempt < 30 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) { [weak self] in
+            self?.waitUntilStable(file, previousSize: size, attempt: attempt + 1)
         }
     }
 

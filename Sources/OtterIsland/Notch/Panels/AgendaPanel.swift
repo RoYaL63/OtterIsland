@@ -86,9 +86,12 @@ struct AgendaPanel: View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 8) {
                 OtterIconBadge(icon: "calendar.badge.exclamationmark", tint: Otter.warning)
+                // La couleur vit dans la pastille, pas dans le texte : sur un
+                // matériau translucide, de l'orange sur fond changeant se lit
+                // moins bien que du blanc franc (règle de vibrance).
                 Text("Agenda non autorisé")
                     .font(.otterBody)
-                    .foregroundStyle(Otter.warning)
+                    .foregroundStyle(Otter.textPrimary)
             }
             Text("OtterIsland a besoin de l'accès Calendrier et Rappels pour afficher ta journée.")
                 .font(.otterMeta)

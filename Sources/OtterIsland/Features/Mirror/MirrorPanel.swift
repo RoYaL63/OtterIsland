@@ -32,7 +32,7 @@ struct MirrorPanel: View {
             OtterIconBadge(icon: "camera.fill", tint: Otter.warning, size: 34)
             Text("Caméra non autorisée")
                 .font(.otterBody)
-                .foregroundStyle(Otter.warning)
+                .foregroundStyle(Otter.textPrimary)
             OtterActionLink(title: "Ouvrir les réglages", icon: "gear", tint: Otter.warning) {
                 if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
                     NSWorkspace.shared.open(url)

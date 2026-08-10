@@ -185,14 +185,19 @@ struct OtterStatusPanel: View {
         }
     }
 
+    /// La rangée dit maintenant DANS QUELLE PHASE on est (« Concentration » /
+    /// « Pause ») et où en est le décompte : un minuteur qui n'affiche qu'un
+    /// nombre oblige à faire le calcul de tête pour savoir s'il reste beaucoup.
     private var pomodoroControl: some View {
         Button {
             pomodoro.toggle()
         } label: {
             OtterStatRow(
-                icon: pomodoro.isRunning ? "pause.circle.fill" : "timer",
+                icon: pomodoro.isRunning ? pomodoro.phase.icon : "timer",
                 iconTint: pomodoro.isRunning ? Otter.accent : Otter.textSecondary,
-                label: "Pomodoro"
+                label: pomodoro.phase.label,
+                progress: pomodoro.progress,
+                progressTint: pomodoro.phase == .rest ? Otter.positive : Otter.accent
             ) {
                 Text(pomodoro.display)
                     .font(.otterValue)
@@ -201,7 +206,9 @@ struct OtterStatusPanel: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(pomodoro.isRunning ? "Mettre le minuteur en pause" : "Démarrer un Pomodoro")
+        .help(pomodoro.isRunning
+              ? "Mettre en pause (la Concentration se coupe)"
+              : "Démarrer une session de \(pomodoro.workMinutes) min")
     }
 
     // MARK: Lecteur

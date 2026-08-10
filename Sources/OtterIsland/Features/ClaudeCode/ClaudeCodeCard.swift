@@ -12,6 +12,9 @@ struct ClaudeCodeCard: View {
                     OtterIconBadge(icon: "sparkles", tint: Otter.warning)
                     Text(request.title)
                         .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                        // Chasse négative sur le grand texte : les lettres se
+                        // desserrent optiquement quand le corps grandit.
+                        .tracking(Otter.trackingTitle)
                         .foregroundStyle(Otter.textPrimary)
                         .lineLimit(1)
                 }
