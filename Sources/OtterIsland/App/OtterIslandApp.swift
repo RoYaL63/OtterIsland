@@ -7,6 +7,12 @@ import SwiftUI
 struct OtterIslandApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    /// Une `App` doit déclarer au moins une scène, d'où ce `Settings`. Mais ce
+    /// n'est PAS par lui que la fenêtre de réglages s'ouvre : dans une app
+    /// agent, personne ne répond à `showSettingsWindow:` et l'appel échouait en
+    /// silence. C'est `SettingsWindowController`, côté AppDelegate, qui possède
+    /// la vraie fenêtre — la scène ci-dessous n'est qu'un repli si une future
+    /// version de macOS se remet à savoir l'ouvrir.
     var body: some Scene {
         Settings {
             SettingsView(updater: appDelegate.updater)

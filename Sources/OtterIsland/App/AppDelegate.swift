@@ -13,6 +13,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var notchController: NotchWindowController?
     private var clipboardWindow: ClipboardWindowController?
     private var aboutWindow: AboutWindowController?
+    /// Créée à la demande, mais gardée : la fenêtre doit survivre à sa fermeture.
+    private lazy var settingsWindow = SettingsWindowController(
+        settings: settings,
+        router: settingsRouter,
+        updater: updater
+    )
     private var statusItem: NSStatusItem?
     private var statusMenu: NSMenu?
     /// L'entrée de menu des mises à jour, gardée pour changer son libellé quand
@@ -114,9 +120,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Sans ça, « Rechercher les mises à jour… » atterrissait sur Général et
     /// ne proposait donc jamais rien.
     @objc private func openUpdates() {
-        settingsRouter.tab = .update
         updater.check()
-        openSettings()
+        settingsWindow.show(tab: .update)
     }
 
     /// Porte l'état de la mise à jour jusqu'à la barre des menus : pastille
@@ -137,12 +142,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem?.button?.attributedTitle = badged
     }
 
+    /// Les réglages ouvrent notre propre fenêtre (voir `SettingsWindowController`
+    /// pour le détail) : `showSettingsWindow:` ne trouvait personne pour lui
+    /// répondre dans une app agent, et échouait sans un mot.
     @objc private func openSettings() {
-        NSApp.activate(ignoringOtherApps: true)
-        // Le sélecteur a changé selon les versions de macOS : on tente les deux.
-        if !NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil) {
-            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-        }
+        settingsWindow.show(tab: .general)
     }
 
     /// Accès fiable au presse-papier depuis le menu, indépendant du raccourci
