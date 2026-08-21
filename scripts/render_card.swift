@@ -149,7 +149,8 @@ enum RenderCard {
             card(tab: .monitor) {
                 MonitorPanel(
                     monitor: systemMonitor, memory: memory,
-                    battery: battery, showBattery: true
+                    battery: battery, showBattery: true,
+                    onOpenWindow: {}
                 )
             },
             to: "\(dir)/card-moniteur.png"

@@ -1,5 +1,6 @@
 import Foundation
 import Darwin
+import AppKit
 
 /// Relevé de ce qui consomme les ressources du Mac.
 ///
@@ -24,12 +25,18 @@ final class SystemMonitor: ObservableObject {
 
     struct ProcessUsage: Identifiable, Equatable {
         let id: Int32
+        /// Processus parent : c'est lui qui permet de rattacher les cinq
+        /// « Google Chrome Helper » à Google Chrome.
+        let parent: Int32
         let name: String
         /// Pourcentage d'UN cœur : 100 % = un cœur saturé, 800 % = huit.
         let cpu: Double
         let memoryMB: Double
     }
 
+    /// Consommation regroupée par application — la vue utile. Les processus
+    /// bruts restent disponibles pour le rapport et le détail.
+    @Published private(set) var apps: [AppUsage] = []
     @Published private(set) var topByCPU: [ProcessUsage] = []
     @Published private(set) var topByMemory: [ProcessUsage] = []
     @Published private(set) var thermalState = ProcessInfo.processInfo.thermalState
@@ -49,7 +56,13 @@ final class SystemMonitor: ObservableObject {
         return min(1, total / (Double(coreCount) * 100))
     }
 
+    /// Compteur d'utilisateurs du relevé. La carte de l'encoche ET la fenêtre
+    /// détaillée peuvent l'observer en même temps : sans ce comptage, fermer
+    /// l'une arrêterait le relevé de l'autre.
+    private var subscribers = 0
+
     func start() {
+        subscribers += 1
         refresh()
         guard timer == nil else { return }
         let t = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
@@ -60,6 +73,8 @@ final class SystemMonitor: ObservableObject {
     }
 
     func stop() {
+        subscribers = max(0, subscribers - 1)
+        guard subscribers == 0 else { return }
         timer?.invalidate()
         timer = nil
     }
@@ -70,6 +85,7 @@ final class SystemMonitor: ObservableObject {
         let all = Self.sampleProcesses()
         topByCPU = Array(all.sorted { $0.cpu > $1.cpu }.prefix(6))
         topByMemory = Array(all.sorted { $0.memoryMB > $1.memoryMB }.prefix(6))
+        apps = Self.group(all)
         lastRefresh = Date()
     }
 
@@ -80,20 +96,85 @@ final class SystemMonitor: ObservableObject {
     /// entre deux relevés. `ps` fait déjà ce calcul, et c'est la même source que
     /// le Moniteur d'activité.
     private static func sampleProcesses() -> [ProcessUsage] {
-        guard let output = shell(["-Aceo", "pid=,pcpu=,rss=,comm="]) else { return [] }
+        guard let output = shell(["-Aceo", "pid=,ppid=,pcpu=,rss=,comm="]) else { return [] }
         return output.split(separator: "\n").compactMap { line in
             let parts = line.split(separator: " ", omittingEmptySubsequences: true)
-            guard parts.count >= 4,
+            guard parts.count >= 5,
                   let pid = Int32(parts[0]),
-                  let cpu = Double(parts[1]),
-                  let rssKB = Double(parts[2])
+                  let ppid = Int32(parts[1]),
+                  let cpu = Double(parts[2]),
+                  let rssKB = Double(parts[3])
             else { return nil }
-            let name = parts[3...].joined(separator: " ")
+            let name = parts[4...].joined(separator: " ")
             // Le processus `ps` lui-même et les tâches système à 0 partout ne
             // valent pas une ligne dans un diagnostic.
             guard cpu > 0 || rssKB > 0 else { return nil }
-            return ProcessUsage(id: pid, name: name, cpu: cpu, memoryMB: rssKB / 1024)
+            return ProcessUsage(id: pid, parent: ppid, name: name, cpu: cpu, memoryMB: rssKB / 1024)
         }
+    }
+
+    /// Rattache chaque processus à son application en remontant la chaîne des
+    /// parents jusqu'à un PID connu de `NSWorkspace`. Un helper de Chrome a pour
+    /// parent le processus Chrome principal ; deux ou trois sauts suffisent.
+    /// Ce qui ne se rattache à rien reste tel quel : ce sont les démons système,
+    /// qui méritent d'apparaître sous leur propre nom.
+    private static func group(_ processes: [ProcessUsage]) -> [AppUsage] {
+        let running = NSWorkspace.shared.runningApplications
+        var appInfo: [pid_t: (name: String, bundleID: String?)] = [:]
+        for app in running where app.processIdentifier > 0 {
+            appInfo[app.processIdentifier] = (
+                app.localizedName ?? app.bundleIdentifier ?? "Application",
+                app.bundleIdentifier
+            )
+        }
+
+        let parents = Dictionary(processes.map { ($0.id, $0.parent) }, uniquingKeysWith: { a, _ in a })
+
+        /// Remonte au plus 8 niveaux : au-delà, on est dans launchd et le
+        /// rattachement n'aurait plus de sens.
+        func owner(of pid: pid_t) -> pid_t? {
+            var current = pid
+            for _ in 0..<8 {
+                if appInfo[current] != nil { return current }
+                guard let next = parents[current], next > 1 else { return nil }
+                current = next
+            }
+            return nil
+        }
+
+        var groups: [pid_t: AppUsage] = [:]
+        for process in processes {
+            let ownerPID = owner(of: process.id)
+            let key = ownerPID ?? process.id
+            let info = ownerPID.flatMap { appInfo[$0] }
+
+            if var existing = groups[key] {
+                existing.cpu += process.cpu
+                existing.memoryMB += process.memoryMB
+                existing.processCount += 1
+                existing.processes.append(process)
+                groups[key] = existing
+            } else {
+                groups[key] = AppUsage(
+                    id: key,
+                    name: info?.name ?? process.name,
+                    bundleID: info?.bundleID,
+                    cpu: process.cpu,
+                    memoryMB: process.memoryMB,
+                    processCount: 1,
+                    isGUI: info != nil,
+                    processes: [process]
+                )
+            }
+        }
+
+        return groups.values
+            .map { group in
+                var sorted = group
+                sorted.processes.sort { $0.cpu > $1.cpu }
+                return sorted
+            }
+            .sorted { $0.cpu > $1.cpu }
     }
 
     private static func loadAverage() -> Double {

@@ -171,7 +171,8 @@ struct NotchRootView: View {
                 monitor: viewModel.systemMonitor,
                 memory: viewModel.memory,
                 battery: viewModel.battery,
-                showBattery: settings.showBattery
+                showBattery: settings.showBattery,
+                onOpenWindow: { viewModel.openMonitorWindow() }
             )
         case .mirror:
             MirrorPanel()

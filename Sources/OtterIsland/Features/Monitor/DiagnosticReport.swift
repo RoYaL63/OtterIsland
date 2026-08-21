@@ -44,7 +44,9 @@ enum DiagnosticReport {
         }
         out += "\n"
 
-        out += "## Ce qui consomme le CPU\n\n"
+        out += "## Consommation par application\n\n"
+        out += appTable(monitor.apps)
+        out += "\n## Ce qui consomme le CPU (processus bruts)\n\n"
         out += table(monitor.topByCPU)
         out += "\n## Ce qui occupe la mémoire\n\n"
         out += table(monitor.topByMemory)
@@ -101,6 +103,17 @@ enum DiagnosticReport {
     }
 
     // MARK: Mise en forme
+
+    /// Le tableau qui compte : cinq « Google Chrome Helper » à 17 % ne disent
+    /// rien, « Google Chrome — 84 %, 12 processus » se comprend.
+    private static func appTable(_ apps: [AppUsage]) -> String {
+        guard !apps.isEmpty else { return "_Aucun relevé._\n" }
+        var out = "| Application | CPU | Mémoire | Processus |\n|---|---:|---:|---:|\n"
+        for app in apps.prefix(10) where app.cpu > 0.5 || app.memoryMB > 100 {
+            out += "| \(app.name) | \(decimal(app.cpu, digits: 1)) % | \(String(format: "%.0f", app.memoryMB)) Mo | \(app.processCount) |\n"
+        }
+        return out
+    }
 
     private static func table(_ rows: [SystemMonitor.ProcessUsage]) -> String {
         guard !rows.isEmpty else { return "_Aucun relevé._\n" }

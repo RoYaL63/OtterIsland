@@ -11,6 +11,8 @@ struct MonitorPanel: View {
     @ObservedObject var memory: MemoryMonitor
     @ObservedObject var battery: BatteryMonitor
     let showBattery: Bool
+    /// Ouvre la fenêtre détaillée (processus, fenêtres, arrêt forcé).
+    var onOpenWindow: (() -> Void)?
 
     /// Chemin du dernier rapport enregistré : le lien devient « Révéler », pour
     /// qu'on retrouve le fichier sans se demander où il est parti.
@@ -113,16 +115,47 @@ struct MonitorPanel: View {
                 .tracking(0.6)
                 .foregroundStyle(Otter.textTertiary)
 
-            if monitor.topByCPU.isEmpty {
+            if monitor.apps.isEmpty {
                 Text("Relevé en cours…")
                     .font(.otterLabel)
                     .foregroundStyle(Otter.textTertiary)
             } else {
-                ForEach(monitor.topByCPU.prefix(4)) { process in
-                    processRow(process)
+                // Par APPLICATION et non par processus : « Google Chrome 84 % »
+                // se comprend, cinq « Google Chrome Helper » à 17 % non.
+                ForEach(monitor.apps.prefix(4)) { app in
+                    appRow(app)
                 }
             }
         }
+    }
+
+    private func appRow(_ app: AppUsage) -> some View {
+        HStack(spacing: 8) {
+            Text(app.name)
+                .font(.otterBody)
+                .foregroundStyle(Otter.textPrimary)
+                .lineLimit(1)
+                .layoutPriority(1)
+            if app.processCount > 1 {
+                Text("×\(app.processCount)")
+                    .font(.otterMicro)
+                    .foregroundStyle(Otter.textTertiary)
+                    .fixedSize()
+            }
+            Spacer(minLength: 4)
+            Text(app.memoryText)
+                .font(.otterMicro)
+                .foregroundStyle(Otter.textTertiary)
+                .lineLimit(1)
+                .fixedSize()
+            Text("\(Int(app.cpu)) %")
+                .font(.otterValue)
+                .foregroundStyle(app.cpu > 80 ? Otter.warning : Otter.textPrimary)
+                .lineLimit(1)
+                .frame(width: 36, alignment: .trailing)
+        }
+        .frame(height: 16)
+        .help("\(app.name) — \(app.processCount) processus, PID \(app.id)")
     }
 
     private func processRow(_ process: SystemMonitor.ProcessUsage) -> some View {
@@ -174,6 +207,9 @@ struct MonitorPanel: View {
                 OtterActionLink(title: "Révéler", icon: "folder") {
                     NSWorkspace.shared.activateFileViewerSelecting([savedReport])
                 }
+            }
+            if let onOpenWindow {
+                OtterActionLink(title: "En grand", icon: "macwindow", action: onOpenWindow)
             }
             OtterActionLink(title: "Actualiser", icon: "arrow.clockwise") {
                 monitor.refresh()

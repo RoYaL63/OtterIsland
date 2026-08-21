@@ -46,6 +46,10 @@ final class NotchViewModel: ObservableObject {
     /// Relevé CPU / thermique de l'onglet Moniteur. Ne tourne que pendant que
     /// l'onglet est affiché (voir `MonitorPanel`).
     let systemMonitor = SystemMonitor()
+    /// Fenêtre détaillée du moniteur, créée à la première ouverture.
+    private lazy var monitorWindow = MonitorWindowController(
+        monitor: systemMonitor, memory: memory, battery: battery
+    )
 
     /// HUD système transitoire (volume…), effacé automatiquement.
     @Published var hud: HUDState?
@@ -125,6 +129,12 @@ final class NotchViewModel: ObservableObject {
                 self?.otterEvent = OtterEventToken(event: .caught)
             }
             .store(in: &cancellables)
+    }
+
+    /// Ouvre le moniteur détaillé. La carte de l'encoche reste lisible d'un
+    /// coup d'œil ; tout ce qui demande de la place vit dans cette fenêtre.
+    func openMonitorWindow() {
+        monitorWindow.show()
     }
 
     /// Recalcule l'humeur à chaque signal de contexte et relance la minuterie de sommeil.
