@@ -32,6 +32,21 @@ Trousseaux d'accès › menu **Trousseaux d'accès** › *Assistant de certifica
 - Cocher **Laisser moi maîtriser les réglages**, puis mettre une validité longue
   (3650 jours — un certificat expiré casse la chaîne et les permissions avec).
 
+> **Piège** : une fois créé, `security find-identity -v -p codesigning` annonce
+> **`0 valid identities found`**, et avec `-v` en moins on lit
+> `CSSMERR_TP_NOT_TRUSTED`. Ce n'est PAS un problème et il n'y a rien à réparer :
+> l'évaluation de la chaîne de confiance échoue parce que le certificat est
+> auto-signé et qu'aucune autorité ne le contresigne — ce qui est précisément ce
+> qu'on a demandé. `codesign`, lui, s'en sert sans broncher. Le vérifier en une
+> commande plutôt que de partir chercher un réglage de confiance inexistant :
+>
+> ```bash
+> cp /bin/echo /tmp/sigtest && codesign -s "OtterIsland Signing" -f /tmp/sigtest \
+>   && codesign -dvv /tmp/sigtest 2>&1 | grep Authority
+> ```
+>
+> Si la sortie affiche `Authority=OtterIsland Signing`, le certificat est bon.
+
 ### 2. Exporter en .p12
 
 Dans Trousseaux d'accès, catégorie **Mes certificats**, clic droit sur
@@ -43,9 +58,26 @@ Puis encoder en base64 pour le transporter dans un secret GitHub :
 base64 -i OtterIsland-Signing.p12 | pbcopy
 ```
 
+L'export marche aussi en ligne de commande — le mot de passe est demandé
+interactivement, il ne traîne donc pas dans l'historique du shell :
+
+```bash
+security export -k login.keychain-db -t identities -f pkcs12 -o ~/Desktop/OtterIsland-Signing.p12
+```
+
 ### 3. Renseigner les secrets GitHub
 
-Dépôt › Settings › Secrets and variables › Actions › **New repository secret** :
+Depuis le terminal, avec `gh` (les valeurs ne passent pas par le presse-papier
+ni par l'historique) :
+
+```bash
+base64 -i ~/Desktop/OtterIsland-Signing.p12 | gh secret set MACOS_CERT_P12
+gh secret set MACOS_CERT_PASSWORD          # demande le mot de passe du .p12
+gh secret set MACOS_CERT_IDENTITY --body "OtterIsland Signing"
+```
+
+Ou par l'interface : dépôt › Settings › Secrets and variables › Actions ›
+**New repository secret** :
 
 | Secret | Valeur |
 |---|---|

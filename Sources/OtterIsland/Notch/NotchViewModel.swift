@@ -13,21 +13,21 @@ final class NotchViewModel: ObservableObject {
     @Published var otterMood: OtterMood = .idle
     /// Dernier événement ponctuel joué par la loutre (coquillage, etc.).
     @Published var otterEvent: OtterEventToken?
-    @Published var selectedTab: NotchTab = .otter
+    @Published var selectedTab: NotchTab = .home
 
     /// Taille de la carte étendue. Partagée entre la vue (frame de l'île) et le
     /// contrôleur (zone de survol pour le suivi souris) : les deux DOIVENT voir
     /// la même géométrie, sinon la carte se replie sous le curseur.
-    /// 284 de base : l'accueil en grille (indicateurs + mini calendrier +
-    /// lecteur + petites actions) a besoin de cette hauteur pour ne rien couper.
-    /// Les 48 pt gagnés sur les 236 d'avant sont l'air des tuiles groupées façon
-    /// Centre de contrôle : chaque module porte ses propres marges intérieures,
-    /// ce qu'un empilement séparé par des filets ne payait pas. Détail du budget
-    /// au pire cas — barre d'onglets 30, tuiles du haut 132 (le mini calendrier
-    /// à 6 semaines commande), tuile lecteur 38, écarts 17, chrome haut/bas 52.
+    /// 420 × 276. La carte a MAIGRI de 40 pt en largeur en perdant la colonne
+    /// de la loutre (56 pt + 12 d'écart), et le contenu y a pourtant gagné :
+    /// les tuiles disposent de 388 pt au lieu de 344.
+    ///
+    /// Budget vertical au pire cas — barre d'onglets 30, tuiles du haut 132 (le
+    /// mini calendrier à 6 semaines commande), tuile du bas 38, écarts 17,
+    /// chrome haut/bas 52. Soit 269 : les 7 pt restants sont la marge.
     var expandedSize: CGSize {
         let dropOffset = settings.dropOffset(for: currentScreenID ?? "")
-        return CGSize(width: 460, height: 284 + CGFloat(dropOffset))
+        return CGSize(width: 420, height: 276 + CGFloat(dropOffset))
     }
 
     let settings: OtterSettings
@@ -43,6 +43,9 @@ final class NotchViewModel: ObservableObject {
     let screenshot = ScreenshotWatcher()
     let keyboardLocker = KeyboardLocker()
     let memory = MemoryMonitor()
+    /// Relevé CPU / thermique de l'onglet Moniteur. Ne tourne que pendant que
+    /// l'onglet est affiché (voir `MonitorPanel`).
+    let systemMonitor = SystemMonitor()
 
     /// HUD système transitoire (volume…), effacé automatiquement.
     @Published var hud: HUDState?

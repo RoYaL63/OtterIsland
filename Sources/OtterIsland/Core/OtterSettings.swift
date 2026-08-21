@@ -67,6 +67,23 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(autoCheckUpdates, forKey: Keys.autoCheckUpdates) }
     }
 
+    // MARK: Ouverture de l'encoche
+
+    /// Le survol ouvre l'île. Décochable : c'est la seule façon d'être certain
+    /// qu'elle ne s'ouvrira jamais toute seule (la molette et le raccourci
+    /// continuent de marcher).
+    @Published var hoverToOpen: Bool {
+        didSet { defaults.set(hoverToOpen, forKey: Keys.hoverToOpen) }
+    }
+
+    /// Temps d'ARRÊT exigé sur l'encoche avant qu'elle s'ouvre, en secondes.
+    /// Ce n'est pas un simple délai : le pointeur doit rester immobile (voir
+    /// `NotchWindowController`). Traverser la zone pour aller cliquer un onglet
+    /// du navigateur n'ouvre donc rien, quelle que soit la lenteur du geste.
+    @Published var hoverOpenDelay: Double {
+        didSet { defaults.set(hoverOpenDelay, forKey: Keys.hoverOpenDelay) }
+    }
+
     // MARK: Pomodoro et Concentration
 
     /// Durée d'une session de travail, en minutes.
@@ -130,7 +147,7 @@ final class OtterSettings: ObservableObject {
 
     init() {
         defaults.register(defaults: [
-            Keys.otterEnabled: true,
+            Keys.otterEnabled: false,
             Keys.showBattery: true,
             Keys.claudeInbox: true,
             Keys.musicFollow: true,
@@ -143,6 +160,8 @@ final class OtterSettings: ObservableObject {
             Keys.autoCheckUpdates: true,
             Keys.widthOffset: 0.0,
             Keys.dropOffset: 0.0,
+            Keys.hoverToOpen: true,
+            Keys.hoverOpenDelay: 0.45,
             Keys.pomodoroWork: 25,
             Keys.pomodoroBreak: 5,
             Keys.pomodoroAutoBreak: true,
@@ -166,6 +185,8 @@ final class OtterSettings: ObservableObject {
         expandedDropOffset = defaults.double(forKey: Keys.dropOffset)
         perScreenWidthOffset = defaults.dictionary(forKey: Keys.perScreenWidthOffset) as? [String: Double] ?? [:]
         perScreenDropOffset = defaults.dictionary(forKey: Keys.perScreenDropOffset) as? [String: Double] ?? [:]
+        hoverToOpen = defaults.bool(forKey: Keys.hoverToOpen)
+        hoverOpenDelay = defaults.double(forKey: Keys.hoverOpenDelay)
         pomodoroWorkMinutes = defaults.integer(forKey: Keys.pomodoroWork)
         pomodoroBreakMinutes = defaults.integer(forKey: Keys.pomodoroBreak)
         pomodoroAutoStartBreak = defaults.bool(forKey: Keys.pomodoroAutoBreak)
@@ -209,6 +230,8 @@ final class OtterSettings: ObservableObject {
         static let dropOffset = "expandedDropOffset"
         static let perScreenWidthOffset = "perScreenWidthOffset"
         static let perScreenDropOffset = "perScreenDropOffset"
+        static let hoverToOpen = "hoverToOpen"
+        static let hoverOpenDelay = "hoverOpenDelay"
         static let pomodoroWork = "pomodoroWorkMinutes"
         static let pomodoroBreak = "pomodoroBreakMinutes"
         static let pomodoroAutoBreak = "pomodoroAutoStartBreak"

@@ -29,9 +29,16 @@ final class NotchWindowController {
     /// les événements et on déplie. La fenêtre ne bouge jamais, le survol
     /// SwiftUI reste fonctionnel une fois dépliée.
     private var mouseTimer: Timer?
-    /// Nombre de ticks consécutifs avec le pointeur dans l'encoche ; on exige
-    /// deux ticks (~160 ms) pour ne pas déplier sur un simple passage de souris.
+    /// Nombre de ticks consécutifs avec le pointeur ARRÊTÉ dans l'encoche.
     private var hoverTicks = 0
+    /// Position du pointeur au tick précédent, pour distinguer « il s'arrête
+    /// ici » de « il passe par là ».
+    private var lastMouse: NSPoint = .zero
+    /// Le pointeur est-il ressorti de la zone chaude depuis la dernière
+    /// fermeture ? Tant que non, aucune réouverture n'est possible.
+    private var hasExitedSinceClose = true
+    /// État déplié du tick précédent, pour détecter la fermeture.
+    private var wasExpanded = false
     /// Le repli automatique n'est « armé » qu'une fois le pointeur entré dans la
     /// carte étendue. Sinon une ouverture programmatique (raccourci presse-papier,
     /// verrouillage nettoyage) serait repliée au tick suivant, souris ailleurs.
@@ -83,11 +90,14 @@ final class NotchWindowController {
 
     // MARK: Suivi souris / clic-à-travers
 
+    /// Cadence du suivi souris. Partagée avec le calcul du temps d'arrêt exigé.
+    private static let tickInterval: TimeInterval = 0.08
+
     private func startMouseTracking() {
         guard mouseTimer == nil else { return }
         // Timer planifié sur le main run loop → tire sur le main thread,
         // l'assumeIsolated est donc sûr (même schéma que HotKey).
-        let timer = Timer(timeInterval: 0.08, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: Self.tickInterval, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.tickMouse() }
         }
         // .common : continue de tirer pendant les drags et les menus.
@@ -98,6 +108,17 @@ final class NotchWindowController {
     private func tickMouse() {
         guard let window, let metrics = viewModel.metrics else { return }
         let mouse = NSEvent.mouseLocation
+        defer { lastMouse = mouse }
+
+        // Toute fermeture, d'où qu'elle vienne, ré-arme la garde : il faudra
+        // ressortir de la zone avant de pouvoir rouvrir. Sans ça, un pointeur
+        // resté sur l'encoche pendant que la carte se referme relance
+        // immédiatement l'ouverture — l'île « clignote ».
+        if wasExpanded && !viewModel.isExpanded {
+            hasExitedSinceClose = false
+            hoverTicks = 0
+        }
+        wasExpanded = viewModel.isExpanded
 
         if viewModel.isExpanded {
             setIgnoresMouse(false, on: window)
@@ -111,32 +132,54 @@ final class NotchWindowController {
                 hoverTicks = 0
                 viewModel.setExpanded(false)
             }
-        } else {
-            hoverArmed = false
-            // Repliée : la fenêtre laisse tout passer, SAUF si l'aperçu de
-            // capture d'écran (cliquable) est affiché sous l'encoche.
-            let needsClicks = viewModel.screenshotPreview != nil
-            // Zone chaude élargie de 4 pt sur les côtés et prolongée AU-DESSUS du
-            // bord d'écran : pointeur plaqué en haut, mouseLocation.y vaut maxY,
-            // que `contains` exclut (borne supérieure ouverte).
-            let notch = metrics.notchRect
-            let hotZone = NSRect(
-                x: notch.minX - 4, y: notch.minY,
-                width: notch.width + 8, height: notch.height + 8
-            )
-            if hotZone.contains(mouse) {
-                hoverTicks += 1
-                if hoverTicks >= 2 {
-                    hoverTicks = 0
-                    hoverArmed = true
-                    setIgnoresMouse(false, on: window)
-                    viewModel.setExpanded(true)
-                }
-            } else {
-                hoverTicks = 0
-                setIgnoresMouse(!needsClicks, on: window)
-            }
+            return
         }
+
+        hoverArmed = false
+        // Repliée : la fenêtre laisse tout passer, SAUF si l'aperçu de
+        // capture d'écran (cliquable) est affiché sous l'encoche.
+        let needsClicks = viewModel.screenshotPreview != nil
+        // Zone chaude prolongée AU-DESSUS du bord d'écran : pointeur plaqué en
+        // haut, mouseLocation.y vaut maxY, que `contains` exclut (borne
+        // supérieure ouverte). Plus d'élargissement latéral : la zone colle
+        // désormais à l'encoche physique, elle ne déborde plus sur les onglets
+        // du navigateur qui vivent juste à côté.
+        let notch = metrics.notchRect
+        let hotZone = NSRect(
+            x: notch.minX, y: notch.minY,
+            width: notch.width, height: notch.height + 8
+        )
+
+        guard hotZone.contains(mouse) else {
+            hasExitedSinceClose = true
+            hoverTicks = 0
+            setIgnoresMouse(!needsClicks, on: window)
+            return
+        }
+
+        setIgnoresMouse(!needsClicks, on: window)
+        guard settings.hoverToOpen, hasExitedSinceClose else { return }
+
+        // Le critère n'est pas « depuis combien de temps le pointeur est dans la
+        // zone » mais « depuis combien de temps il y est IMMOBILE ». Traverser
+        // l'encoche pour aller cliquer un onglet du navigateur remet le compteur
+        // à zéro à chaque tick, quelle que soit la lenteur du geste ; s'arrêter
+        // dessus, même une demi-seconde, ouvre. C'est la différence entre un
+        // passage et une intention.
+        let moved = hypot(mouse.x - lastMouse.x, mouse.y - lastMouse.y)
+        guard moved <= 4 else {
+            hoverTicks = 0
+            return
+        }
+
+        hoverTicks += 1
+        let required = max(1, Int((settings.hoverOpenDelay / Self.tickInterval).rounded()))
+        guard hoverTicks >= required else { return }
+
+        hoverTicks = 0
+        hoverArmed = true
+        setIgnoresMouse(false, on: window)
+        viewModel.setExpanded(true)
     }
 
     /// Évite de re-poser la même valeur 12 fois par seconde au window server.

@@ -66,8 +66,14 @@ struct NotchRootView: View {
         }
         .frame(width: currentWidth, height: currentHeight)
         .contentShape(Rectangle())
+        // Ce onHover ne sert plus qu'à REFERMER. L'ouverture est décidée par
+        // `NotchWindowController`, qui exige un pointeur immobile : la laisser
+        // aussi ici court-circuitait cette garde dès que la fenêtre acceptait
+        // les clics (aperçu de capture affiché), et l'île s'ouvrait au moindre
+        // passage.
         .onHover { hovering in
-            viewModel.setExpanded(hovering)
+            guard !hovering else { return }
+            viewModel.setExpanded(false)
         }
         // Un fichier glissé au-dessus de l'encoche l'ouvre sur l'Étagère, sinon
         // impossible d'y déposer quoi que ce soit tant qu'elle reste repliée.
@@ -138,7 +144,7 @@ struct NotchRootView: View {
     @ViewBuilder
     private var panel: some View {
         switch viewModel.selectedTab {
-        case .otter:
+        case .home:
             OtterStatusPanel(
                 battery: viewModel.battery,
                 pomodoro: viewModel.pomodoro,
@@ -160,6 +166,13 @@ struct NotchRootView: View {
             ClipboardPanel(clipboard: viewModel.clipboard) { item in
                 viewModel.pasteFromClipboard(item)
             }
+        case .monitor:
+            MonitorPanel(
+                monitor: viewModel.systemMonitor,
+                memory: viewModel.memory,
+                battery: viewModel.battery,
+                showBattery: settings.showBattery
+            )
         case .mirror:
             MirrorPanel()
         case .screenshots:

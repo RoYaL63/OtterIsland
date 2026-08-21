@@ -19,7 +19,7 @@ import AppKit
 private func card<Panel: View>(tab: NotchTab, @ViewBuilder panel: () -> Panel) -> some View {
     let notchWidth: CGFloat = 200
     let notchHeight: CGFloat = 32
-    let size = CGSize(width: 460, height: 284)
+    let size = CGSize(width: 420, height: 276)
 
     return ZStack(alignment: .top) {
         NotchGlassBackground(
@@ -29,12 +29,8 @@ private func card<Panel: View>(tab: NotchTab, @ViewBuilder panel: () -> Panel) -
             isExpanded: true
         )
         HStack(spacing: 12) {
-            // La loutre est du SpriteKit : hors de l'app, on réserve sa place.
-            Circle()
-                .fill(Color.white.opacity(0.06))
-                .frame(width: OtterSceneHolder.side, height: OtterSceneHolder.side)
-                .overlay(Text("🦦").font(.system(size: 26)))
-
+            // La loutre est désactivée par défaut : la carte n'a plus de colonne
+            // à gauche, tout le contenu part du bord.
             VStack(alignment: .leading, spacing: 9) {
                 HStack {
                     Spacer(minLength: 0)
@@ -124,7 +120,7 @@ enum RenderCard {
         memory.start() // relevé mémoire : aucune permission
 
         snapshot(
-            card(tab: .otter) {
+            card(tab: .home) {
                 OtterStatusPanel(
                     battery: battery, pomodoro: pomodoro, calendar: calendar,
                     nowPlaying: nowPlaying, memory: memory, showBattery: true,
@@ -146,6 +142,28 @@ enum RenderCard {
             card(tab: .agenda) { AgendaPanel(calendar: calendar) },
             to: "\(dir)/card-agenda.png"
         )
+
+        let systemMonitor = SystemMonitor()
+        systemMonitor.refresh()
+        snapshot(
+            card(tab: .monitor) {
+                MonitorPanel(
+                    monitor: systemMonitor, memory: memory,
+                    battery: battery, showBattery: true
+                )
+            },
+            to: "\(dir)/card-moniteur.png"
+        )
+
+        // Rapport de diagnostic écrit à côté des planches : c'est le seul moyen
+        // de relire le Markdown produit sans lancer l'app.
+        let report = DiagnosticReport.build(
+            monitor: systemMonitor, memory: memory,
+            battery: battery, showBattery: true
+        )
+        let reportPath = "\(dir)/diagnostic-exemple.md"
+        try? report.write(toFile: reportPath, atomically: true, encoding: .utf8)
+        print("→ \(reportPath)")
 
         exit(0)
     }

@@ -68,6 +68,18 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
+            // L'ouverture intempestive est le reproche n°1 : ces deux réglages
+            // vivent en haut de l'onglet, pas noyés en bas.
+            Toggle("Ouvrir au survol de l'encoche", isOn: $settings.hoverToOpen)
+            VStack(alignment: .leading) {
+                Text("Temps d'arrêt avant ouverture : \(String(format: "%.2f", settings.hoverOpenDelay)) s")
+                Slider(value: $settings.hoverOpenDelay, in: 0.1...1.5, step: 0.05)
+            }
+            .disabled(!settings.hoverToOpen)
+            Text("Le pointeur doit rester IMMOBILE sur l'encoche pendant ce temps. Traverser la zone pour aller cliquer ailleurs — un onglet de navigateur, par exemple — n'ouvre rien, quelle que soit la lenteur du geste. Et après une fermeture, il faut ressortir de la zone avant de pouvoir rouvrir.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
             Toggle("Loutre de compagnie", isOn: $settings.otterEnabled)
             Toggle("Afficher la batterie", isOn: $settings.showBattery)
             Toggle("Inbox Claude Code", isOn: $settings.claudeCodeInboxEnabled)
