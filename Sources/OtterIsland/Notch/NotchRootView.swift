@@ -161,6 +161,7 @@ struct NotchRootView: View {
                 monitor: viewModel.systemMonitor,
                 memory: viewModel.memory,
                 battery: viewModel.battery,
+                history: viewModel.usageHistory,
                 showBattery: settings.showBattery,
                 onOpenWindow: { viewModel.openMonitorWindow() }
             )

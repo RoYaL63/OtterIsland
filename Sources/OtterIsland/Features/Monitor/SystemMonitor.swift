@@ -11,11 +11,10 @@ import AppKit
 ///   charge moyenne (`getloadavg`), et l'état thermique tel que le système le
 ///   déclare (`ProcessInfo.thermalState`). C'est ce dernier qui répond à « mon
 ///   Mac chauffe » : macOS y résume lui-même sa pression thermique.
-/// - **NON lisible** : la température des cœurs et la vitesse des ventilateurs.
-///   Elles vivent dans le SMC, dont la lecture demande soit `powermetrics` en
-///   root, soit un helper privilégié installé à part. Une app normale n'y a pas
-///   accès, et prétendre le contraire en affichant un chiffre inventé serait
-///   pire que de ne rien afficher.
+/// - **Lisible via le SMC** (voir `SMCReader`) : la vitesse des ventilateurs et
+///   la température de la puce. Les clés de température varient d'une puce à
+///   l'autre ; quand aucune ne répond, l'interface le dit au lieu d'inventer
+///   un chiffre.
 ///
 /// Le relevé ne tourne QUE quand l'onglet est visible (`start()` / `stop()`) :
 /// un `ps` toutes les 5 secondes en permanence ferait de ce moniteur l'une des
@@ -45,8 +44,23 @@ final class SystemMonitor: ObservableObject {
     /// cœurs a la machine.
     @Published private(set) var loadRatio: Double = 0
     @Published private(set) var lastRefresh: Date?
+    /// Charge moyenne 1, 5 et 15 min, ramenée aux cœurs. Comparer les trois dit
+    /// si la charge monte, dure ou retombe.
+    @Published private(set) var loadRatios: [Double] = [0, 0, 0]
+    /// Ventilateurs et températures ; nil si le SMC est illisible.
+    @Published private(set) var sensors: SMCReader.Snapshot?
+    /// Derniers relevés de CPU (0…1), du plus ancien au plus récent : 60 points
+    /// à 5 s = les 5 dernières minutes. Une charge SOUTENUE fait chauffer, un
+    /// pic de deux secondes non.
+    @Published private(set) var cpuHistory: [Double] = []
+    /// Espace disque, en octets. Un SSD presque plein empêche macOS d'agrandir
+    /// son swap : c'est une cause classique de gros ralentissements.
+    @Published private(set) var diskFree: Double = 0
+    @Published private(set) var diskTotal: Double = 0
 
     private var timer: Timer?
+    private let smc = SMCReader()
+    private let historyLength = 60
 
     var coreCount: Int { ProcessInfo.processInfo.processorCount }
 
@@ -81,12 +95,46 @@ final class SystemMonitor: ObservableObject {
 
     func refresh() {
         thermalState = ProcessInfo.processInfo.thermalState
-        loadRatio = Self.loadAverage() / Double(coreCount)
+        let loads = Self.loadAverages()
+        loadRatios = loads.map { $0 / Double(coreCount) }
+        loadRatio = loadRatios[0]
         let all = Self.sampleProcesses()
         topByCPU = Array(all.sorted { $0.cpu > $1.cpu }.prefix(6))
         topByMemory = Array(all.sorted { $0.memoryMB > $1.memoryMB }.prefix(6))
         apps = Self.group(all)
+        sensors = smc.snapshot()
+        let total = all.reduce(0) { $0 + $1.cpu }
+        cpuHistory.append(min(1, total / (Double(coreCount) * 100)))
+        if cpuHistory.count > historyLength {
+            cpuHistory.removeFirst(cpuHistory.count - historyLength)
+        }
+        let disk = Self.diskSpace()
+        diskFree = disk.free
+        diskTotal = disk.total
         lastRefresh = Date()
+    }
+
+    /// Moyenne des relevés récents : ce que la machine endure depuis quelques
+    /// minutes, et non l'instantané.
+    var sustainedCPU: Double {
+        guard !cpuHistory.isEmpty else { return cpuUsage }
+        return cpuHistory.reduce(0, +) / Double(cpuHistory.count)
+    }
+
+    /// Part de chaque application dans la charge totale, 0…1.
+    func share(of app: AppUsage) -> Double {
+        let total = apps.reduce(0) { $0 + $1.cpu }
+        return total > 0 ? app.cpu / total : 0
+    }
+
+    static func diskSpace() -> (free: Double, total: Double) {
+        let root = URL(fileURLWithPath: "/")
+        let values = try? root.resourceValues(forKeys: [
+            .volumeAvailableCapacityForImportantUsageKey, .volumeTotalCapacityKey,
+        ])
+        let free = values?.volumeAvailableCapacityForImportantUsage.map { Double($0) } ?? 0
+        let total = values?.volumeTotalCapacity.map { Double($0) } ?? 0
+        return (free, total)
     }
 
     // MARK: Relevé
@@ -95,7 +143,7 @@ final class SystemMonitor: ObservableObject {
     /// cumulés depuis le lancement du processus, qu'il faudrait dériver soi-même
     /// entre deux relevés. `ps` fait déjà ce calcul, et c'est la même source que
     /// le Moniteur d'activité.
-    private static func sampleProcesses() -> [ProcessUsage] {
+    static func sampleProcesses() -> [ProcessUsage] {
         guard let output = shell(["-Aceo", "pid=,ppid=,pcpu=,rss=,comm="]) else { return [] }
         return output.split(separator: "\n").compactMap { line in
             let parts = line.split(separator: " ", omittingEmptySubsequences: true)
@@ -118,7 +166,7 @@ final class SystemMonitor: ObservableObject {
     /// parent le processus Chrome principal ; deux ou trois sauts suffisent.
     /// Ce qui ne se rattache à rien reste tel quel : ce sont les démons système,
     /// qui méritent d'apparaître sous leur propre nom.
-    private static func group(_ processes: [ProcessUsage]) -> [AppUsage] {
+    static func group(_ processes: [ProcessUsage]) -> [AppUsage] {
         let running = NSWorkspace.shared.runningApplications
         var appInfo: [pid_t: (name: String, bundleID: String?)] = [:]
         for app in running where app.processIdentifier > 0 {
@@ -142,9 +190,17 @@ final class SystemMonitor: ObservableObject {
             return nil
         }
 
+        // Les pages web de Safari sont des services XPC lancés par launchd, pas
+        // des enfants de Safari : sans ce rattachement, Safari paraissait
+        // sobre pendant que « com.apple.WebKit.WebContent » brûlait un cœur.
+        let safariPID = running.first { $0.bundleIdentifier == "com.apple.Safari" }?.processIdentifier
+
         var groups: [pid_t: AppUsage] = [:]
         for process in processes {
-            let ownerPID = owner(of: process.id)
+            var ownerPID = owner(of: process.id)
+            if ownerPID == nil, let safariPID, KnownProcesses.isSafariWebContent(process.name) {
+                ownerPID = safariPID
+            }
             let key = ownerPID ?? process.id
             let info = ownerPID.flatMap { appInfo[$0] }
 
@@ -177,10 +233,10 @@ final class SystemMonitor: ObservableObject {
             .sorted { $0.cpu > $1.cpu }
     }
 
-    private static func loadAverage() -> Double {
+    private static func loadAverages() -> [Double] {
         var loads = [Double](repeating: 0, count: 3)
-        guard getloadavg(&loads, 3) > 0 else { return 0 }
-        return loads[0]
+        guard getloadavg(&loads, 3) == 3 else { return [0, 0, 0] }
+        return loads
     }
 
     private static func shell(_ arguments: [String]) -> String? {

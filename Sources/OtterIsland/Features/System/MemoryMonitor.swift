@@ -14,6 +14,36 @@ final class MemoryMonitor: ObservableObject {
     /// Fraction 0...1 de RAM « utilisée » au sens Moniteur d'activité
     /// (active + wired + compressée).
     @Published private(set) var usedFraction: Double = 0
+    /// Ventilation détaillée, au sens du Moniteur d'activité.
+    @Published private(set) var breakdown: Breakdown?
+    /// Pages écrites dans le swap par seconde, entre les deux derniers relevés.
+    /// C'est LE signe d'un Mac qui manque de RAM : tant qu'il est à zéro, une
+    /// mémoire « pleine » n'est qu'un cache bien rempli.
+    @Published private(set) var swapOutsPerSecond: Double = 0
+
+    /// Ce que contient la RAM, en octets. Les mêmes catégories que le Moniteur
+    /// d'activité, calculées de la même façon :
+    /// - app = pages anonymes (internal) moins ce qui est purgeable ;
+    /// - câblée = verrouillée par le noyau, jamais compressée ni swappée ;
+    /// - compressée = ce qu'occupe le compresseur (pas ce qu'il contient) ;
+    /// - cache = fichiers récemment lus + purgeable, rendu instantanément à qui
+    ///   en a besoin : ce n'est PAS de la mémoire « perdue ».
+    struct Breakdown: Equatable {
+        let total: Double
+        let app: Double
+        let wired: Double
+        let compressed: Double
+        let cached: Double
+        let free: Double
+        let swapUsed: Double
+        let swapTotal: Double
+
+        var used: Double { app + wired + compressed }
+        var fraction: Double { total > 0 ? min(1, used / total) : 0 }
+    }
+
+    private var lastSwapOuts: UInt64?
+    private var lastSampleDate: Date?
 
     private var source: DispatchSourceMemoryPressure?
     private var timer: Timer?
@@ -76,6 +106,46 @@ final class MemoryMonitor: ObservableObject {
                     + Double(stats.wire_count)
                     + Double(stats.compressor_page_count)) * pageSize
         usedFraction = min(1, max(0, used / total))
+
+        let purgeable = Double(stats.purgeable_count)
+        let app = max(0, Double(stats.internal_page_count) - purgeable) * pageSize
+        let swap = Self.swapUsage()
+        breakdown = Breakdown(
+            total: total,
+            app: app,
+            wired: Double(stats.wire_count) * pageSize,
+            compressed: Double(stats.compressor_page_count) * pageSize,
+            cached: (Double(stats.external_page_count) + purgeable) * pageSize,
+            free: Double(stats.free_count) * pageSize,
+            swapUsed: swap.used,
+            swapTotal: swap.total
+        )
+
+        let now = Date()
+        if let lastSwapOuts, let lastSampleDate, stats.swapouts >= lastSwapOuts {
+            let elapsed = now.timeIntervalSince(lastSampleDate)
+            if elapsed > 0 {
+                swapOutsPerSecond = Double(stats.swapouts - lastSwapOuts) / elapsed
+            }
+        }
+        lastSwapOuts = stats.swapouts
+        lastSampleDate = now
+    }
+
+    /// Relevé à la demande (bouton Actualiser, ouverture de la fenêtre) sans
+    /// attendre le prochain tic de 10 s.
+    func refresh() {
+        sample()
+    }
+
+    /// `vm.swapusage` : le fichier d'échange sur le SSD. macOS l'agrandit à la
+    /// demande ; un swap de plusieurs Go qui ne redescend pas signifie que la
+    /// RAM ne suffit plus pour ce qu'on garde ouvert.
+    private static func swapUsage() -> (used: Double, total: Double) {
+        var usage = xsw_usage()
+        var size = MemoryLayout<xsw_usage>.size
+        guard sysctlbyname("vm.swapusage", &usage, &size, nil, 0) == 0 else { return (0, 0) }
+        return (Double(usage.xsu_used), Double(usage.xsu_total))
     }
 
     deinit {

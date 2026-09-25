@@ -14,8 +14,11 @@ enum DiagnosticReport {
         monitor: SystemMonitor,
         memory: MemoryMonitor,
         battery: BatteryMonitor,
-        showBattery: Bool
+        showBattery: Bool,
+        history: UsageHistory? = nil
     ) -> String {
+        let findings = HealthAdvisor.findings(monitor: monitor, memory: memory, battery: battery, history: history)
+        let verdict = HealthAdvisor.verdict(for: findings)
         var out = ""
         out += "# Diagnostic système — OtterIsland\n\n"
         out += "_Généré le \(stamp.string(from: Date()))_\n\n"
@@ -28,12 +31,31 @@ enum DiagnosticReport {
         out += "| macOS | \(ProcessInfo.processInfo.operatingSystemVersionString) |\n"
         out += "| Allumé depuis | \(uptime()) |\n\n"
 
+        out += "## Verdict\n\n"
+        out += "**\(verdict.title)** — \(verdict.subtitle)\n\n"
+        for finding in findings {
+            let action = HealthAdvisor.label(for: finding.action).map { " → _\($0)_" } ?? ""
+            out += "- **[\(finding.category.rawValue)] \(finding.title)** — \(finding.detail)\(action)\n"
+        }
+        out += "\n"
+
         out += "## État actuel\n\n"
         out += "| Indicateur | Valeur | Lecture |\n|---|---|---|\n"
         out += "| État thermique | **\(monitor.thermalState.label)** | \(monitor.thermalState.explanation) |\n"
         out += "| Charge CPU | \(percent(monitor.cpuUsage)) | Somme des processus, ramenée aux \(monitor.coreCount) cœurs |\n"
         out += "| Charge moyenne (1 min) | \(decimal(monitor.loadRatio)) × cœurs | 1,00 = machine pleine |\n"
         out += "| Mémoire utilisée | \(percent(memory.usedFraction)) | Pression : \(pressureLabel(memory.pressure)) |\n"
+        if let sensors = monitor.sensors {
+            if let cpu = sensors.cpuMax {
+                out += "| Température puce | \(Int(cpu)) °C | moyenne \(Int(sensors.cpuAverage ?? cpu)) °C |\n"
+            }
+            for fan in sensors.fans {
+                out += "| Ventilateur \(fan.index + 1) | \(Int(fan.rpm)) tr/min | min \(Int(fan.minRPM)), max \(Int(fan.maxRPM)) |\n"
+            }
+        }
+        if monitor.diskTotal > 0 {
+            out += "| Disque libre | \(HealthAdvisor.format(bytes: monitor.diskFree)) | sur \(HealthAdvisor.format(bytes: monitor.diskTotal)) |\n"
+        }
         if showBattery {
             // « 100 % — sur batterie » est trompeur : macOS cesse d'annoncer la
             // charge dès que la batterie est pleine, alors que le Mac est
@@ -43,6 +65,17 @@ enum DiagnosticReport {
             out += "| Batterie | \(battery.percentage) % | \(state) |\n"
         }
         out += "\n"
+
+        if let b = memory.breakdown {
+            out += "## Mémoire en détail\n\n"
+            out += "| Part | Taille |\n|---|---:|\n"
+            out += "| Applications | \(HealthAdvisor.format(bytes: b.app)) |\n"
+            out += "| Câblée (système) | \(HealthAdvisor.format(bytes: b.wired)) |\n"
+            out += "| Compressée | \(HealthAdvisor.format(bytes: b.compressed)) |\n"
+            out += "| Cache (libérable) | \(HealthAdvisor.format(bytes: b.cached)) |\n"
+            out += "| Libre | \(HealthAdvisor.format(bytes: b.free)) |\n"
+            out += "| Swap sur le SSD | \(HealthAdvisor.format(bytes: b.swapUsed)) |\n\n"
+        }
 
         out += "## Consommation par application\n\n"
         out += appTable(monitor.apps)
@@ -54,12 +87,27 @@ enum DiagnosticReport {
         out += "\n## Ce qui fait chauffer\n\n"
         out += diagnosis(monitor: monitor, memory: memory)
 
+        if let history, !history.appSummaries.isEmpty {
+            out += "\n## Sur les 14 derniers jours\n\n"
+            out += "| Application | CPU moyen | RAM moyenne | Lourde | Jours |\n|---|---:|---:|---:|---:|\n"
+            for s in history.appSummaries.prefix(10) {
+                out += "| \(s.name) | \(Int(s.averageCPU)) % | \(HealthAdvisor.format(megabytes: s.averageMemoryMB)) | \(Int(s.heavyRatio * 100)) % | \(s.daysSeen) |\n"
+            }
+            if !history.pageSummaries.isEmpty {
+                out += "\n**Pages ouvertes lors des emballements du navigateur :**\n\n"
+                for page in history.pageSummaries.prefix(8) {
+                    out += "- \(page.name) (\(page.bundleID ?? "")) — \(page.samples) fois, \(Int(page.averageCPU)) % CPU moyen\n"
+                }
+            }
+        }
+
         out += "\n## Limites de ce rapport\n\n"
         out += """
-        - La **température des cœurs** et la **vitesse des ventilateurs** ne sont pas lisibles \
-        par une application ordinaire : elles vivent dans le SMC, dont l'accès demande `powermetrics` \
-        en root ou un helper privilégié. Ce rapport s'appuie donc sur l'état thermique déclaré par \
-        macOS, qui est la même information que celle utilisée par le système pour décider de brider.
+        - La **température** et les **ventilateurs** sont lus dans le SMC. Apple ne documente pas \
+        les clés de température, qui changent d'une puce à l'autre : si elles manquent, le rapport \
+        s'appuie sur l'état thermique déclaré par macOS, celui que le système utilise pour brider.
+        - Le CPU d'un navigateur est celui de TOUTE l'application : les titres de pages indiquent \
+        l'onglet actif pendant un emballement, pas une mesure onglet par onglet.
         - Les pourcentages CPU sont ceux de `ps`, c'est-à-dire une moyenne depuis le dernier relevé, \
         pas une valeur instantanée. Un pic très court peut ne pas y apparaître.
         - Le pourcentage CPU est exprimé **par cœur** : 100 % signifie un cœur saturé, pas la machine.

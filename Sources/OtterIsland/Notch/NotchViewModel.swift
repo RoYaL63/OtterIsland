@@ -46,9 +46,13 @@ final class NotchViewModel: ObservableObject {
     /// Relevé CPU / thermique de l'onglet Moniteur. Ne tourne que pendant que
     /// l'onglet est affiché (voir `MonitorPanel`).
     let systemMonitor = SystemMonitor()
+    /// Relevé de fond (une fois par minute) des apps et pages qui pèsent sur
+    /// le Mac, pour l'onglet Historique du moniteur.
+    let usageHistory = UsageHistory()
     /// Fenêtre détaillée du moniteur, créée à la première ouverture.
     private lazy var monitorWindow = MonitorWindowController(
-        monitor: systemMonitor, memory: memory, battery: battery
+        monitor: systemMonitor, memory: memory, battery: battery,
+        history: usageHistory, settings: settings
     )
 
     /// HUD système transitoire (volume…), effacé automatiquement.
@@ -86,6 +90,23 @@ final class NotchViewModel: ObservableObject {
         if settings.screenshotPreviewEnabled {
             screenshot.start()
         }
+        usageHistory.recordPageTitles = settings.monitorRecordPageTitles
+        if settings.monitorHistoryEnabled {
+            usageHistory.start()
+        }
+        // Réglages appliqués à chaud : pas besoin de relancer l'app pour
+        // couper l'historique ou l'enregistrement des pages.
+        settings.$monitorHistoryEnabled
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                if enabled { self?.usageHistory.start() } else { self?.usageHistory.stop() }
+            }
+            .store(in: &cancellables)
+        settings.$monitorRecordPageTitles
+            .dropFirst()
+            .sink { [weak self] enabled in self?.usageHistory.recordPageTitles = enabled }
+            .store(in: &cancellables)
         wireMood()
         wireCelebrations()
         wireHUD()

@@ -166,6 +166,15 @@ struct SettingsView: View {
                 .font(.caption)
                 .foregroundStyle(floatingThumbnail ? .orange : .secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            Divider()
+
+            Toggle("Moniteur : suivre ce qui ralentit le Mac au fil des jours", isOn: $settings.monitorHistoryEnabled)
+            Toggle("Moniteur : noter les pages web lors des emballements", isOn: $settings.monitorRecordPageTitles)
+                .disabled(!settings.monitorHistoryEnabled)
+            Text("Un relevé par minute, gardé 14 jours, uniquement sur ce Mac. Alimente l'onglet Historique et le diagnostic du Moniteur.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .padding()
     }

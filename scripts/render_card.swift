@@ -149,9 +149,10 @@ enum RenderCard {
             card(tab: .monitor) {
                 MonitorPanel(
                     monitor: systemMonitor, memory: memory,
-                    battery: battery, showBattery: true,
+                    battery: battery, history: UsageHistory(), showBattery: true,
                     onOpenWindow: {}
                 )
+                .environmentObject(OtterSettings())
             },
             to: "\(dir)/card-moniteur.png"
         )
