@@ -151,7 +151,7 @@ struct SettingsView: View {
 
             Divider()
 
-            Toggle("Aperçu des captures d'écran dans l'encoche", isOn: $settings.screenshotPreviewEnabled)
+            Toggle("Notification des captures d'écran (en bas à droite)", isOn: $settings.screenshotPreviewEnabled)
             Toggle("Copier la capture dans le presse-papier", isOn: $settings.screenshotAutoCopy)
             Text("⌘⇧4 puis ⌘V directement : `screencapture` n'écrit que sur le disque, OtterIsland met la capture dans le presse-papier. Redémarre OtterIsland après changement de l'aperçu.")
                 .font(.caption)
@@ -161,8 +161,8 @@ struct SettingsView: View {
             // est à l'écran, le fichier n'existe pas encore sur le disque.
             Toggle("Vignette flottante de macOS", isOn: floatingThumbnailBinding)
             Text(floatingThumbnail
-                 ? "Active : après ⌘⇧4, macOS garde la capture ~5 s le temps d'afficher sa vignette en bas à droite, et n'écrit le fichier qu'ensuite. Tant qu'elle est là, AUCUNE app ne peut voir la capture — d'où l'attente avant qu'elle arrive dans le presse-papier. Décoche pour que ce soit immédiat : l'aperçu d'OtterIsland la remplace (glisser, copier, ouvrir)."
-                 : "Désactivée : la capture est écrite tout de suite, l'aperçu de l'encoche et le presse-papier suivent dans la foulée. S'applique dès la prochaine capture.")
+                 ? "Active : après ⌘⇧4, macOS garde la capture ~5 s le temps d'afficher sa vignette en bas à droite, et n'écrit le fichier qu'ensuite. Tant qu'elle est là, AUCUNE app ne peut voir la capture — d'où l'attente avant qu'elle arrive dans le presse-papier. Décoche pour que ce soit immédiat : la notification d'OtterIsland la remplace (clic pour modifier, glisser, copier)."
+                 : "Désactivée : la capture est écrite tout de suite, la notification et le presse-papier suivent dans la foulée. S'applique dès la prochaine capture.")
                 .font(.caption)
                 .foregroundStyle(floatingThumbnail ? .orange : .secondary)
                 .fixedSize(horizontal: false, vertical: true)
