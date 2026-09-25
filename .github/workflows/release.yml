@@ -5,7 +5,14 @@ on:
   push:
     tags:
       - "v*.*.*"
+  # Bouton « Run workflow » de l'onglet Actions : publie une version sans
+  # avoir à pousser de tag depuis un terminal. Le tag est créé par la release.
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version à publier, sans le v (ex. 0.2.7) — doit correspondre à MARKETING_VERSION dans project.yml"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -18,10 +25,30 @@ jobs:
       # Le contexte `secrets` n'est pas utilisable directement dans un `if:` de
       # step — on le projette une fois ici, en booléen.
       HAS_SIGNING_CERT: ${{ secrets.MACOS_CERT_P12 != '' }}
+      # Tag de la release : celui poussé, ou « v » + la version saisie à la main.
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Garde-fou : une release dont le tag ne correspond pas à la version
+      # compilée ferait proposer la mise à jour en boucle (l'app installée se
+      # croirait toujours en retard).
+      - name: Vérifier la version
+        run: |
+          BUILT=$(grep -E '^\s*MARKETING_VERSION:' project.yml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "Tag : $RELEASE_TAG — version compilée : $BUILT"
+          if [ "v$BUILT" != "$RELEASE_TAG" ]; then
+            echo "::error::Le tag $RELEASE_TAG ne correspond pas à MARKETING_VERSION ($BUILT) dans project.yml."
+            exit 1
+          fi
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::error::La release $RELEASE_TAG existe déjà."
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Installer XcodeGen
         run: brew install xcodegen
@@ -108,8 +135,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ github.ref_name }}" OtterIsland.dmg OtterIsland.zip \
-            --title "OtterIsland ${{ github.ref_name }}" \
+          gh release create "$RELEASE_TAG" OtterIsland.dmg OtterIsland.zip \
+            --target "${{ github.sha }}" \
+            --title "OtterIsland $RELEASE_TAG" \
             --generate-notes \
             --notes "**Nouvelle installation** : télécharge \`OtterIsland.dmg\`, ouvre-le, glisse la loutre sur Applications. L'app propose aussi de s'y déplacer toute seule au premier lancement.
 
