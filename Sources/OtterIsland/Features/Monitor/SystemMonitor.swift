@@ -65,10 +65,9 @@ final class SystemMonitor: ObservableObject {
     var coreCount: Int { ProcessInfo.processInfo.processorCount }
 
     /// Somme des pourcentages CPU rapportée au nombre de cœurs, 0…1.
-    var cpuUsage: Double {
-        let total = topByCPU.reduce(0) { $0 + $1.cpu }
-        return min(1, total / (Double(coreCount) * 100))
-    }
+    /// Calculée sur TOUS les processus, comme `cpuHistory` : sommer les six
+    /// premiers seulement sous-estimait la charge et contredisait la courbe.
+    @Published private(set) var cpuUsage: Double = 0
 
     /// Compteur d'utilisateurs du relevé. La carte de l'encoche ET la fenêtre
     /// détaillée peuvent l'observer en même temps : sans ce comptage, fermer
@@ -104,7 +103,8 @@ final class SystemMonitor: ObservableObject {
         apps = Self.group(all)
         sensors = smc.snapshot()
         let total = all.reduce(0) { $0 + $1.cpu }
-        cpuHistory.append(min(1, total / (Double(coreCount) * 100)))
+        cpuUsage = min(1, total / (Double(coreCount) * 100))
+        cpuHistory.append(cpuUsage)
         if cpuHistory.count > historyLength {
             cpuHistory.removeFirst(cpuHistory.count - historyLength)
         }

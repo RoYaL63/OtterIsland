@@ -145,6 +145,10 @@ enum RenderCard {
 
         let systemMonitor = SystemMonitor()
         systemMonitor.refresh()
+        // Historique coupé : la planche ne doit afficher aucune app ni page
+        // réellement utilisée sur ce Mac.
+        let monitorSettings = OtterSettings()
+        monitorSettings.monitorHistoryEnabled = false
         snapshot(
             card(tab: .monitor) {
                 MonitorPanel(
@@ -152,7 +156,7 @@ enum RenderCard {
                     battery: battery, history: UsageHistory(), showBattery: true,
                     onOpenWindow: {}
                 )
-                .environmentObject(OtterSettings())
+                .environmentObject(monitorSettings)
             },
             to: "\(dir)/card-moniteur.png"
         )

@@ -250,7 +250,9 @@ final class UsageHistory: ObservableObject {
         if let first = store.firstSample, first < limit { store.firstSample = limit }
     }
 
-    private func save() {
+    /// Appelé aussi à la fermeture de l'app : sans ça, jusqu'à dix minutes de
+    /// relevés étaient perdues à chaque fois qu'on quittait.
+    func save() {
         samplesSinceSave = 0
         Persistence.save(store, to: fileName)
     }

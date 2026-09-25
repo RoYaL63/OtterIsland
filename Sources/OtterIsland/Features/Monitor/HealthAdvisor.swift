@@ -107,7 +107,7 @@ enum HealthAdvisor {
             out.append(Finding(
                 id: "heat.throttle", severity: thermal == .critical ? .critical : .warning, category: .heat,
                 icon: "thermometer.high", title: "Le Mac surchauffe", detail: why,
-                action: hottest.map(quitAction) ?? .nothing
+                action: hottest.map { quitAction($0) } ?? .nothing
             ))
         }
 
@@ -211,7 +211,7 @@ enum HealthAdvisor {
             out.append(Finding(
                 id: "ram.pressure", severity: memory.pressure == .critical ? .critical : .warning, category: .memory,
                 icon: "memorychip", title: "Mémoire saturée", detail: detail,
-                action: top.map(quitAction) ?? .nothing
+                action: top.map { quitAction($0) } ?? .nothing
             ))
         }
 
@@ -301,7 +301,7 @@ enum HealthAdvisor {
                 icon: "clock.arrow.circlepath",
                 title: "\(offender.name) ralentit régulièrement le Mac",
                 detail: parts.joined(separator: ", ") + ". Ferme-la quand tu ne t'en sers pas, ou cherche une version plus légère (web vs app, moins d'extensions).",
-                action: running.map(quitAction) ?? .nothing
+                action: running.map { quitAction($0) } ?? .nothing
             ))
         }
         if let page = history.pageSummaries.first, page.samples >= 5 {
@@ -354,7 +354,7 @@ enum HealthAdvisor {
             _ = ProcessTerminator.quit(pid: pid)
         case .openActivityMonitor:
             if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.ActivityMonitor") {
-                NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+                NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration()) { _, _ in }
             }
         case .nothing:
             break

@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 
 /// Couleurs partagées par les onglets de la fenêtre Moniteur.
+@MainActor
 enum MonitorStyle {
     static func tint(_ severity: HealthAdvisor.Severity) -> Color {
         switch severity {
