@@ -10,6 +10,8 @@ struct MonitorPanel: View {
     @ObservedObject var monitor: SystemMonitor
     @ObservedObject var memory: MemoryMonitor
     @ObservedObject var battery: BatteryMonitor
+    @ObservedObject var history: UsageHistory
+    @EnvironmentObject var settings: OtterSettings
     let showBattery: Bool
     /// Ouvre la fenêtre détaillée (processus, fenêtres, arrêt forcé).
     var onOpenWindow: (() -> Void)?
@@ -53,7 +55,10 @@ struct MonitorPanel: View {
                 iconTint: thermalTint,
                 label: "Thermique"
             ) {
-                Text(monitor.thermalState.label)
+                // La température, quand le SMC la donne, à côté de l'état
+                // déclaré par macOS : « Normal · 52 °C » se lit d'un coup.
+                Text(monitor.sensors?.cpuMax.map { "\(monitor.thermalState.label) · \(Int($0))°" }
+                     ?? monitor.thermalState.label)
                     .font(.otterValue)
                     .foregroundStyle(thermalTint)
             }
@@ -79,13 +84,41 @@ struct MonitorPanel: View {
                     .font(.otterValue)
                     .foregroundStyle(Otter.textPrimary)
             }
-            // Ce que le système FAIT à cet état vaut mieux que l'état seul.
-            Text(monitor.thermalState.explanation)
-                .font(.otterMicro)
-                .foregroundStyle(Otter.textTertiary)
-                .lineLimit(2)
-                .minimumScaleFactor(0.9)
-                .fixedSize(horizontal: false, vertical: true)
+            // Le verdict plutôt que l'état : « Redémarrage conseillé » dit quoi
+            // faire, « Normal » ne dit rien. Le clic mène au détail.
+            Button(action: { onOpenWindow?() }) {
+                HStack(alignment: .top, spacing: 4) {
+                    Circle()
+                        .fill(verdictTint)
+                        .frame(width: 5, height: 5)
+                        .padding(.top, 3)
+                    Text(verdict.title)
+                        .font(.otterMicro)
+                        .foregroundStyle(verdict.severity >= .advice ? Otter.textPrimary : Otter.textTertiary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.9)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.leading)
+                }
+            }
+            .buttonStyle(.plain)
+            .help(verdict.subtitle)
+        }
+    }
+
+    private var verdict: HealthAdvisor.Verdict {
+        HealthAdvisor.verdict(for: HealthAdvisor.findings(
+            monitor: monitor, memory: memory, battery: battery,
+            history: settings.monitorHistoryEnabled ? history : nil
+        ))
+    }
+
+    private var verdictTint: Color {
+        switch verdict.severity {
+        case .info: return Otter.positive
+        case .advice: return Otter.accent
+        case .warning: return Otter.warning
+        case .critical: return Otter.danger
         }
     }
 
@@ -199,7 +232,8 @@ struct MonitorPanel: View {
                     monitor: monitor,
                     memory: memory,
                     battery: battery,
-                    showBattery: showBattery
+                    showBattery: showBattery,
+                    history: settings.monitorHistoryEnabled ? history : nil
                 )
                 savedReport = DiagnosticReport.save(markdown)
             }
@@ -213,6 +247,7 @@ struct MonitorPanel: View {
             }
             OtterActionLink(title: "Actualiser", icon: "arrow.clockwise") {
                 monitor.refresh()
+                memory.refresh()
             }
             Spacer(minLength: 0)
             if let date = monitor.lastRefresh {

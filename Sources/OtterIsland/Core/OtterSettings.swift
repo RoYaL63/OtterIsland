@@ -62,6 +62,18 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(screenshotAutoCopy, forKey: Keys.screenshotAutoCopy) }
     }
 
+    /// Relevé léger (une fois par minute) des applications qui pèsent, pour
+    /// repérer celles qui ralentissent le Mac de façon récurrente.
+    @Published var monitorHistoryEnabled: Bool {
+        didSet { defaults.set(monitorHistoryEnabled, forKey: Keys.monitorHistory) }
+    }
+
+    /// Note le titre des pages ouvertes quand un navigateur s'emballe. Reste
+    /// sur ce Mac, mais c'est un historique de navigation partiel : réglable.
+    @Published var monitorRecordPageTitles: Bool {
+        didSet { defaults.set(monitorRecordPageTitles, forKey: Keys.monitorPageTitles) }
+    }
+
     /// Cherche une nouvelle version au lancement (une seule requête GitHub).
     @Published var autoCheckUpdates: Bool {
         didSet { defaults.set(autoCheckUpdates, forKey: Keys.autoCheckUpdates) }
@@ -158,6 +170,8 @@ final class OtterSettings: ObservableObject {
             Keys.screenshotPreviewEnabled: true,
             Keys.screenshotAutoCopy: true,
             Keys.autoCheckUpdates: true,
+            Keys.monitorHistory: true,
+            Keys.monitorPageTitles: true,
             Keys.widthOffset: 0.0,
             Keys.dropOffset: 0.0,
             Keys.hoverToOpen: true,
@@ -181,6 +195,8 @@ final class OtterSettings: ObservableObject {
         screenshotPreviewEnabled = defaults.bool(forKey: Keys.screenshotPreviewEnabled)
         screenshotAutoCopy = defaults.bool(forKey: Keys.screenshotAutoCopy)
         autoCheckUpdates = defaults.bool(forKey: Keys.autoCheckUpdates)
+        monitorHistoryEnabled = defaults.bool(forKey: Keys.monitorHistory)
+        monitorRecordPageTitles = defaults.bool(forKey: Keys.monitorPageTitles)
         notchWidthOffset = defaults.double(forKey: Keys.widthOffset)
         expandedDropOffset = defaults.double(forKey: Keys.dropOffset)
         perScreenWidthOffset = defaults.dictionary(forKey: Keys.perScreenWidthOffset) as? [String: Double] ?? [:]
@@ -226,6 +242,8 @@ final class OtterSettings: ObservableObject {
         static let screenshotPreviewEnabled = "screenshotPreviewEnabled"
         static let screenshotAutoCopy = "screenshotAutoCopy"
         static let autoCheckUpdates = "autoCheckUpdates"
+        static let monitorHistory = "monitorHistoryEnabled"
+        static let monitorPageTitles = "monitorRecordPageTitles"
         static let widthOffset = "notchWidthOffset"
         static let dropOffset = "expandedDropOffset"
         static let perScreenWidthOffset = "perScreenWidthOffset"

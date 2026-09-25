@@ -9,6 +9,8 @@ final class NotchWindowController {
     private var window: NotchWindow?
     private let gestures: GestureController
     private var clipboardHotKey: HotKey?
+    /// Notification de capture en bas à droite de l'écran.
+    private let screenshotToast: ScreenshotToastController
 
     /// Marge autour de l'encoche pour laisser respirer la carte étendue et la loutre.
     private let panelWidth: CGFloat = 720
@@ -49,6 +51,7 @@ final class NotchWindowController {
         let viewModel = NotchViewModel(settings: settings)
         self.viewModel = viewModel
         self.gestures = GestureController(viewModel: viewModel)
+        self.screenshotToast = ScreenshotToastController(viewModel: viewModel, settings: settings)
         if settings.gestureControl {
             gestures.start()
         }
@@ -136,9 +139,8 @@ final class NotchWindowController {
         }
 
         hoverArmed = false
-        // Repliée : la fenêtre laisse tout passer, SAUF si l'aperçu de
-        // capture d'écran (cliquable) est affiché sous l'encoche.
-        let needsClicks = viewModel.screenshotPreview != nil
+        // Repliée : la fenêtre laisse tout passer. L'aperçu de capture vit
+        // désormais dans son propre panneau (`ScreenshotToastController`).
         // Zone chaude prolongée AU-DESSUS du bord d'écran : pointeur plaqué en
         // haut, mouseLocation.y vaut maxY, que `contains` exclut (borne
         // supérieure ouverte). Plus d'élargissement latéral : la zone colle
@@ -153,11 +155,11 @@ final class NotchWindowController {
         guard hotZone.contains(mouse) else {
             hasExitedSinceClose = true
             hoverTicks = 0
-            setIgnoresMouse(!needsClicks, on: window)
+            setIgnoresMouse(true, on: window)
             return
         }
 
-        setIgnoresMouse(!needsClicks, on: window)
+        setIgnoresMouse(true, on: window)
         guard settings.hoverToOpen, hasExitedSinceClose else { return }
 
         // Le critère n'est pas « depuis combien de temps le pointeur est dans la

@@ -46,9 +46,13 @@ final class NotchViewModel: ObservableObject {
     /// Relevé CPU / thermique de l'onglet Moniteur. Ne tourne que pendant que
     /// l'onglet est affiché (voir `MonitorPanel`).
     let systemMonitor = SystemMonitor()
+    /// Relevé de fond (une fois par minute) des apps et pages qui pèsent sur
+    /// le Mac, pour l'onglet Historique du moniteur.
+    let usageHistory = UsageHistory()
     /// Fenêtre détaillée du moniteur, créée à la première ouverture.
     private lazy var monitorWindow = MonitorWindowController(
-        monitor: systemMonitor, memory: memory, battery: battery
+        monitor: systemMonitor, memory: memory, battery: battery,
+        history: usageHistory, settings: settings
     )
 
     /// HUD système transitoire (volume…), effacé automatiquement.
@@ -86,6 +90,23 @@ final class NotchViewModel: ObservableObject {
         if settings.screenshotPreviewEnabled {
             screenshot.start()
         }
+        usageHistory.recordPageTitles = settings.monitorRecordPageTitles
+        if settings.monitorHistoryEnabled {
+            usageHistory.start()
+        }
+        // Réglages appliqués à chaud : pas besoin de relancer l'app pour
+        // couper l'historique ou l'enregistrement des pages.
+        settings.$monitorHistoryEnabled
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                if enabled { self?.usageHistory.start() } else { self?.usageHistory.stop() }
+            }
+            .store(in: &cancellables)
+        settings.$monitorRecordPageTitles
+            .dropFirst()
+            .sink { [weak self] enabled in self?.usageHistory.recordPageTitles = enabled }
+            .store(in: &cancellables)
         wireMood()
         wireCelebrations()
         wireHUD()
@@ -241,18 +262,43 @@ final class NotchViewModel: ObservableObject {
         // elle doit se voir dans la seconde, pas seulement dans une carte.
         otterEvent = OtterEventToken(event: .snapshot)
         screenshotPreview = shot
+        scheduleScreenshotClear(after: 5)
+    }
+
+    private func scheduleScreenshotClear(after delay: TimeInterval) {
         screenshotClearTimer?.invalidate()
-        screenshotClearTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: false) { [weak self] _ in
+        screenshotClearTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 withAnimation(.easeOut(duration: 0.2)) { self?.screenshotPreview = nil }
             }
         }
     }
 
-    /// Ouvre la capture dans l'app par défaut (Aperçu) et referme la carte.
+    /// Le pointeur sur la notification la garde affichée ; en le retirant, elle
+    /// repart pour quelques secondes au lieu de disparaître sous la souris.
+    func holdScreenshotPreview(_ hovering: Bool) {
+        guard screenshotPreview != nil else { return }
+        if hovering {
+            screenshotClearTimer?.invalidate()
+        } else {
+            scheduleScreenshotClear(after: 3)
+        }
+    }
+
+    /// Ouvre la capture dans l'éditeur — Aperçu, explicitement, et non l'app
+    /// par défaut des images : c'est lui qui porte les outils d'annotation, et
+    /// un clic sur la notification doit mener à la retouche, comme sur la
+    /// vignette de macOS. Repli sur l'app par défaut si Aperçu est introuvable.
     func openScreenshotPreview() {
         guard let shot = screenshotPreview else { return }
-        NSWorkspace.shared.open(shot.url)
+        let workspace = NSWorkspace.shared
+        if let preview = workspace.urlForApplication(withBundleIdentifier: "com.apple.Preview") {
+            let configuration = NSWorkspace.OpenConfiguration()
+            configuration.activates = true
+            workspace.open([shot.url], withApplicationAt: preview, configuration: configuration)
+        } else {
+            workspace.open(shot.url)
+        }
         dismissScreenshotPreview()
     }
 

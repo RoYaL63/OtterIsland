@@ -28,15 +28,6 @@ struct NotchRootView: View {
                             .combined(with: .scale(scale: 0.94, anchor: .top))
                     )
             }
-            if let shot = viewModel.screenshotPreview, !viewModel.isExpanded {
-                ScreenshotPreviewView(
-                    shot: shot,
-                    didCopy: settings.screenshotAutoCopy,
-                    onOpen: { viewModel.openScreenshotPreview() },
-                    onDismiss: { viewModel.dismissScreenshotPreview() }
-                )
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -69,8 +60,7 @@ struct NotchRootView: View {
         // Ce onHover ne sert plus qu'à REFERMER. L'ouverture est décidée par
         // `NotchWindowController`, qui exige un pointeur immobile : la laisser
         // aussi ici court-circuitait cette garde dès que la fenêtre acceptait
-        // les clics (aperçu de capture affiché), et l'île s'ouvrait au moindre
-        // passage.
+        // les clics, et l'île s'ouvrait au moindre passage.
         .onHover { hovering in
             guard !hovering else { return }
             viewModel.setExpanded(false)
@@ -171,6 +161,7 @@ struct NotchRootView: View {
                 monitor: viewModel.systemMonitor,
                 memory: viewModel.memory,
                 battery: viewModel.battery,
+                history: viewModel.usageHistory,
                 showBattery: settings.showBattery,
                 onOpenWindow: { viewModel.openMonitorWindow() }
             )

@@ -160,6 +160,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        notchController?.viewModel.usageHistory.save()
         NotificationCenter.default.removeObserver(self)
     }
 }
