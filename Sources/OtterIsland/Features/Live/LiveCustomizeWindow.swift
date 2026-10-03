@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import SwiftUI
 
 /// Fenêtre « Personnaliser le Live ». L'island garde l'essentiel (outils,
@@ -230,7 +231,7 @@ struct LiveCustomizeView: View {
     private var keysSection: some View {
         Section("Touches affichées") {
             Toggle("Afficher les raccourcis tapés", isOn: binding(\.showKeys))
-            Text("Seulement les combinaisons avec ⌘, ⌃ ou ⌥, et Échap — jamais le texte tapé.")
+            Text("Seulement les combinaisons avec ⌘ ou ⌃, et Échap — jamais le texte tapé (⌥ seul sert à taper des caractères de mots de passe).")
                 .font(.caption).foregroundStyle(.secondary)
             Picker("Position", selection: binding(\.keysPosition)) {
                 ForEach(LiveKeysPosition.allCases) { Text($0.title).tag($0) }

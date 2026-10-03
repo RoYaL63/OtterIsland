@@ -37,7 +37,7 @@ enum LiveTool: String, CaseIterable, Identifiable, Codable {
         case .rectangle: return "R"
         case .ellipse: return "O"
         case .marker: return "S"
-        case .laser: return "L"
+        case .laser: return "T"
         }
     }
 }

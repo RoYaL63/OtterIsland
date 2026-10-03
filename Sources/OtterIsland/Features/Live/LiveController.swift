@@ -89,9 +89,13 @@ final class LiveController: ObservableObject {
         }
     }
 
-    func stop() {
+    /// - Parameter waitForFocus: à la fermeture de l'app, le raccourci qui
+    ///   coupe la Concentration doit être lancé AVANT que le processus meure.
+    func stop(waitForFocus: Bool = false) {
         guard isActive else { return }
         isActive = false
+        activeCanvas = nil
+        modifierHeld = false
         setTool(nil)
         overlays.forEach { $0.canvas.clearAll(); $0.orderOut(nil) }
         overlays = []
@@ -107,7 +111,11 @@ final class LiveController: ObservableObject {
         hasDrawings = false
         spotlightOn = false
         if style.prefs.focusDuringLive {
-            FocusMode.trigger(settings.pomodoroFocusShortcutOff)
+            if waitForFocus {
+                FocusMode.runAndWait(settings.pomodoroFocusShortcutOff)
+            } else {
+                FocusMode.trigger(settings.pomodoroFocusShortcutOff)
+            }
         }
     }
 
@@ -134,8 +142,13 @@ final class LiveController: ObservableObject {
                     },
                 ]
             }
-        } else {
+        } else if !penHotKeys.isEmpty {
+            // Libérés au tour suivant : Échap arrive ICI depuis le gestionnaire
+            // Carbon de son propre raccourci, qui ne doit pas être détruit
+            // pendant qu'il s'exécute.
+            let released = penHotKeys
             penHotKeys = []
+            DispatchQueue.main.async { _ = released }
         }
     }
 
@@ -267,6 +280,8 @@ final class LiveController: ObservableObject {
     // MARK: - Fenêtres
 
     private func rebuildOverlays() {
+        activeCanvas = nil
+        modifierHeld = false
         overlays.forEach { $0.orderOut(nil) }
         overlays = NSScreen.screens.map { screen in
             let window = LiveOverlayWindow(screen: screen)

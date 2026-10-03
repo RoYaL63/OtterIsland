@@ -97,7 +97,8 @@ struct NotchRootView: View {
 
     private var expandedContent: some View {
         HStack(spacing: 12) {
-            if settings.otterEnabled {
+            // En Live, la barre d'outils prend toute la largeur.
+            if settings.otterEnabled && !viewModel.live.isActive {
                 OtterSceneView(mood: viewModel.otterMood, event: viewModel.otterEvent)
                     .frame(width: OtterSceneHolder.side, height: OtterSceneHolder.side)
             }

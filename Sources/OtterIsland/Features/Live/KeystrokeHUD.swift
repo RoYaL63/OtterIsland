@@ -75,9 +75,12 @@ final class KeystrokeHUD: ObservableObject {
     // MARK: Lecture d'un événement clavier
 
     /// Libellés à afficher pour cette frappe, ou nil si ce n'est pas un raccourci.
+    ///
+    /// ⌥ seul (ou ⌥⇧) ne compte PAS comme raccourci : sur un clavier Mac,
+    /// c'est ainsi qu'on tape |, ~, { ou [ — des caractères de mots de passe.
     static func labels(for event: NSEvent) -> [String]? {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        let isShortcut = flags.contains(.command) || flags.contains(.control) || flags.contains(.option)
+        let isShortcut = flags.contains(.command) || flags.contains(.control)
         let keyCode = Int(event.keyCode)
         guard isShortcut || keyCode == kVK_Escape else { return nil }
 

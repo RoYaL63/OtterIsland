@@ -172,7 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         notchController?.viewModel.usageHistory.save()
         // Rendre la Concentration et la souris dans l'état où on les a trouvées.
-        notchController?.viewModel.live.stop()
+        notchController?.viewModel.live.stop(waitForFocus: true)
         NotificationCenter.default.removeObserver(self)
     }
 }

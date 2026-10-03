@@ -34,11 +34,15 @@ enum SecretScanner {
     static func visibleSecretRects() -> [CGRect] {
         guard AXIsProcessTrusted() else { return [] }
         let system = AXUIElementCreateSystemWide()
+        // Une app figée ne doit pas figer l'île : 0,2 s au lieu des ~6 s par
+        // défaut de l'Accessibilité, sur le thread principal.
+        AXUIElementSetMessagingTimeout(system, 0.2)
         var focusedRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(system, kAXFocusedUIElementAttribute as CFString, &focusedRef) == .success,
               let focusedRef, CFGetTypeID(focusedRef) == AXUIElementGetTypeID()
         else { return [] }
         let element = focusedRef as! AXUIElement
+        AXUIElementSetMessagingTimeout(element, 0.2)
 
         // Un vrai champ mot de passe affiche déjà des points : rien à faire.
         if stringAttribute(element, kAXRoleAttribute) == "AXSecureTextField" { return [] }
