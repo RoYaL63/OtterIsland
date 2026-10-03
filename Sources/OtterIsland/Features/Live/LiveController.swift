@@ -52,7 +52,9 @@ final class LiveController: ObservableObject {
     private var activeCanvas: LiveCanvasView?
     private var trail: [LiveCanvasView.TrailPoint] = []
     private var trailCanvas: LiveCanvasView?
-    private var lastBubble: CFTimeInterval = 0
+    /// Dernier mouvement (position, instant), pour la vitesse des étincelles
+    /// et leur arrêt quand la souris s'immobilise.
+    private var lastMove: (point: CGPoint, time: CFTimeInterval)?
     private var cancellables = Set<AnyCancellable>()
     private lazy var customizeWindow = LiveCustomizeWindowController(live: self)
 
@@ -341,7 +343,7 @@ final class LiveController: ObservableObject {
 
     private func canvasMouseDown(_ canvas: LiveCanvasView, _ point: CGPoint, _ event: NSEvent) {
         if style.prefs.clickRipples {
-            canvas.spawnRipple(at: point, color: event.type == .rightMouseDown ? .systemBlue : .systemYellow)
+            canvas.spawnClick(Self.clickKind(event), at: point, color: style.effectColor)
         }
         guard event.type == .leftMouseDown else { return }
         // En mode stylo, cliquer sur un dessin l'efface.
@@ -415,8 +417,12 @@ final class LiveController: ObservableObject {
 
     private func globalClick(_ event: NSEvent) {
         guard style.prefs.clickRipples, let overlay = overlay(containing: NSEvent.mouseLocation) else { return }
-        let color: NSColor = event.type == .rightMouseDown ? .systemBlue : .systemYellow
-        overlay.canvas.spawnRipple(at: overlay.local(NSEvent.mouseLocation), color: color)
+        overlay.canvas.spawnClick(Self.clickKind(event), at: overlay.local(NSEvent.mouseLocation), color: style.effectColor)
+    }
+
+    private static func clickKind(_ event: NSEvent) -> LiveCanvasView.ClickKind {
+        if event.type == .rightMouseDown { return .right }
+        return event.clickCount >= 2 ? .double : .left
     }
 
     private func keyPressed(_ event: NSEvent) {
@@ -455,25 +461,37 @@ final class LiveController: ObservableObject {
         case .none:
             canvas.hideCursorEffects()
         case .halo:
-            if trailCanvas !== canvas { trailCanvas?.hideCursorEffects(); trailCanvas = canvas }
-            canvas.renderHalo(at: point, color: style.effectColor, size: p.cursorEffectSize)
-        case .meteor, .otterRiver:
-            if trailCanvas !== canvas {
-                trailCanvas?.hideCursorEffects()
-                trailCanvas = canvas
-                trail = []
-            }
+            switchEffectCanvas(to: canvas)
+            canvas.renderRing(at: point, color: style.effectColor, size: p.cursorEffectSize)
+        case .meteor:
+            switchEffectCanvas(to: canvas)
             let now = CACurrentMediaTime()
             trail.append(.init(point: point, time: now))
-            // Ronds dans l'eau, espacés : un par 0,14 s de mouvement suffit
-            // à donner la matière sans encombrer l'écran.
-            if p.cursorEffect == .otterRiver, now - lastBubble > 0.14 {
-                lastBubble = now
-                canvas.spawnWaterRing(at: point, color: style.effectColor, size: p.cursorEffectSize)
-            }
             renderTrail(now: now)
             startTrailTimer()
+        case .sparkles:
+            switchEffectCanvas(to: canvas)
+            let now = CACurrentMediaTime()
+            var speed: CGFloat = 0
+            if let last = lastMove, now > last.time {
+                speed = hypot(point.x - last.point.x, point.y - last.point.y) / CGFloat(now - last.time)
+            }
+            lastMove = (point, now)
+            canvas.emitSparks(at: point, color: style.effectColor, size: p.cursorEffectSize, speed: speed)
+            startTrailTimer()
+        case .dots:
+            switchEffectCanvas(to: canvas)
+            canvas.dropDots(at: point, color: style.effectColor, size: p.cursorEffectSize)
         }
+    }
+
+    /// L'effet suit le curseur d'un écran à l'autre : on éteint l'ancien.
+    private func switchEffectCanvas(to canvas: LiveCanvasView) {
+        guard trailCanvas !== canvas else { return }
+        trailCanvas?.hideCursorEffects()
+        trailCanvas = canvas
+        trail = []
+        lastMove = nil
     }
 
     /// La traînée doit se résorber APRÈS l'arrêt de la souris : une minuterie
@@ -487,27 +505,33 @@ final class LiveController: ObservableObject {
         trailTimer = t
     }
 
+    /// Une image de l'effet en cours, tant qu'il reste quelque chose à faire
+    /// vivre : la comète se résorbe, les étincelles s'arrêtent 60 ms après le
+    /// dernier mouvement. Puis la minuterie s'arrête d'elle-même.
     private func renderTrail(now: CFTimeInterval) {
         let p = style.prefs
-        let lifetime = p.cursorEffect == .otterRiver ? 0.6 : 0.3
-        trail.removeAll { now - $0.time > lifetime }
-        if trail.count > 90 { trail.removeFirst(trail.count - 90) }
-        guard let canvas = trailCanvas else { return }
-        if p.cursorEffect == .otterRiver {
-            canvas.renderRiver(trail: trail, color: style.effectColor, size: p.cursorEffectSize)
-        } else {
-            canvas.renderMeteor(trail: trail, color: style.effectColor, size: p.cursorEffectSize)
-        }
-        if trail.isEmpty {
-            trailTimer?.invalidate()
-            trailTimer = nil
+        guard let canvas = trailCanvas else { stopTrailTimer(); return }
+        switch p.cursorEffect {
+        case .meteor:
+            trail.removeAll { now - $0.time > 0.3 }
+            if trail.count > 90 { trail.removeFirst(trail.count - 90) }
+            canvas.renderComet(trail: trail, color: style.effectColor, size: p.cursorEffectSize)
+            if trail.isEmpty { stopTrailTimer() }
+        case .sparkles:
+            if let last = lastMove, now - last.time < 0.06 { return }
+            canvas.stopSparks()
+            lastMove = nil
+            stopTrailTimer()
+        default:
+            stopTrailTimer()
         }
     }
 
-    /// Ne réagit qu'aux changements qui comptent : faire glisser le sélecteur
-    /// de couleur émet des dizaines de changements par seconde, qui ne doivent
-    /// ni relancer le masquage ni effacer la traînée. Les couleurs, elles, sont
-    /// lues à chaque image : elles s'appliquent sans rien faire ici.
+    private func stopTrailTimer() {
+        trailTimer?.invalidate()
+        trailTimer = nil
+    }
+
     private func preferencesChanged() {
         let old = lastPrefs
         let new = style.prefs

@@ -78,8 +78,12 @@ final class LiveCanvasView: NSView {
     private let trailGlowLayer = CAShapeLayer()
     private let trailCoreLayer = CAShapeLayer()
     private let headLayer = CAShapeLayer()
-    /// Reflet clair au centre du ruban de la rivière.
-    private let sheenLayer = CAShapeLayer()
+    /// Étincelles : système de particules entièrement calculé par le serveur
+    /// de rendu. L'app ne fait que déplacer son point d'émission.
+    private let sparkEmitter = CAEmitterLayer()
+    /// Distance parcourue depuis le dernier point du sillage « Pointillés ».
+    private var dotDistance: CGFloat = 0
+    private var lastDotPoint: CGPoint?
 
     private(set) var shapes: [LiveShape] = []
     private var currentLayer: CAShapeLayer?
@@ -106,10 +110,15 @@ final class LiveCanvasView: NSView {
         spotlightLayer.fillRule = .evenOdd
         spotlightLayer.opacity = 0
 
-        for sub in [trailGlowLayer, trailCoreLayer, sheenLayer, headLayer, haloLayer] {
+        for sub in [trailGlowLayer, trailCoreLayer, headLayer, haloLayer] {
             sub.actions = Self.noActions
             effectsLayer.addSublayer(sub)
         }
+        sparkEmitter.actions = Self.noActions
+        sparkEmitter.emitterShape = .point
+        sparkEmitter.renderMode = .additive
+        sparkEmitter.birthRate = 0
+        effectsLayer.addSublayer(sparkEmitter)
         spotlightLayer.actions = Self.noActions
     }
 
@@ -310,25 +319,31 @@ final class LiveCanvasView: NSView {
         haloLayer.isHidden = true
         trailGlowLayer.path = nil
         trailCoreLayer.path = nil
-        sheenLayer.path = nil
         headLayer.isHidden = true
+        sparkEmitter.birthRate = 0
+        lastDotPoint = nil
     }
 
-    func renderHalo(at point: CGPoint, color: NSColor, size: Double) {
-        let r = 22 * CGFloat(size)
+    /// Anneau fin : un cercle de 1,5 pt autour de la pointe, sans remplissage.
+    /// Il signale le curseur sans le noyer sous une pastille.
+    func renderRing(at point: CGPoint, color: NSColor, size: Double) {
+        let r = 13 * CGFloat(size)
         haloLayer.isHidden = false
         haloLayer.path = CGPath(ellipseIn: CGRect(x: point.x - r, y: point.y - r, width: r * 2, height: r * 2), transform: nil)
-        haloLayer.fillColor = color.withAlphaComponent(0.22).cgColor
+        haloLayer.fillColor = nil
         haloLayer.strokeColor = color.withAlphaComponent(0.9).cgColor
-        haloLayer.lineWidth = 2
+        haloLayer.lineWidth = 1.5
+        haloLayer.shadowColor = color.cgColor
+        haloLayer.shadowOpacity = 0.6
+        haloLayer.shadowRadius = 3
+        haloLayer.shadowOffset = .zero
     }
 
-    /// Météorite : une traînée effilée, large à la tête et fine à la queue. Elle
+    /// Comète : UNE traînée continue, effilée, avec une tête blanche. Elle
     /// garde les 0,3 dernière seconde de trajectoire, donc s'allonge toute
     /// seule quand le geste accélère et se résorbe à l'arrêt.
-    func renderMeteor(trail: [TrailPoint], color: NSColor, size: Double) {
+    func renderComet(trail: [TrailPoint], color: NSColor, size: Double) {
         haloLayer.isHidden = true
-        sheenLayer.path = nil
         guard trail.count >= 2, let head = trail.last?.point else {
             trailGlowLayer.path = nil
             trailCoreLayer.path = nil
@@ -348,68 +363,113 @@ final class LiveCanvasView: NSView {
         headLayer.fillColor = NSColor.white.withAlphaComponent(0.95).cgColor
     }
 
-    /// Rivière : un ruban d'eau lisse qui suit exactement le geste — pas
-    /// d'ondulation —, plus long et plus doux que la météorite, avec un reflet
-    /// clair en son centre. Les ronds dans l'eau sont posés à part, voir
-    /// `spawnWaterRing`.
-    func renderRiver(trail: [TrailPoint], color: NSColor, size: Double) {
+    /// Étincelles : pas de ligne du tout — des points de lumière jaillissent
+    /// du curseur, s'éparpillent, tombent un peu et scintillent en s'éteignant.
+    /// Rien n'est émis quand la souris est immobile.
+    func emitSparks(at point: CGPoint, color: NSColor, size: Double, speed: CGFloat) {
         haloLayer.isHidden = true
+        trailGlowLayer.path = nil
+        trailCoreLayer.path = nil
         headLayer.isHidden = true
-        guard trail.count >= 2 else {
-            trailGlowLayer.path = nil
-            trailCoreLayer.path = nil
-            sheenLayer.path = nil
-            return
+        if sparkEmitter.emitterCells == nil || sparkEmitter.emitterCells?.first?.name != color.hexString + "\(size)" {
+            sparkEmitter.emitterCells = [Self.sparkCell(color: color, size: size)]
+            sparkEmitter.beginTime = CACurrentMediaTime()
         }
-        let points = Self.smoothed(trail.map(\.point))
-        let width = 7 * CGFloat(size)
-        trailGlowLayer.path = Self.taperedPath(points, maxWidth: width * 2.8)
-        trailGlowLayer.fillColor = color.withAlphaComponent(0.16).cgColor
-        trailCoreLayer.path = Self.taperedPath(points, maxWidth: width)
-        trailCoreLayer.fillColor = color.withAlphaComponent(0.78).cgColor
-        trailCoreLayer.strokeColor = nil
-
-        // Reflet : la moitié avant du ruban seulement, fine ligne blanche.
-        let sheen = CGMutablePath()
-        let front = Array(points.suffix(max(2, points.count / 2)))
-        sheen.addLines(between: front)
-        sheenLayer.path = sheen
-        sheenLayer.fillColor = nil
-        sheenLayer.strokeColor = NSColor.white.withAlphaComponent(0.45).cgColor
-        sheenLayer.lineWidth = max(1, width * 0.18)
-        sheenLayer.lineCap = .round
-        sheenLayer.lineJoin = .round
+        sparkEmitter.emitterPosition = point
+        // Plus le geste est rapide, plus il y a d'étincelles (plafonné).
+        sparkEmitter.birthRate = Float(min(3, max(0.6, speed / 400)))
     }
 
-    /// Rond dans l'eau : un anneau fin qui s'élargit lentement et s'efface.
-    /// Animé par Core Animation, sans travail de l'app après la pose.
-    func spawnWaterRing(at point: CGPoint, color: NSColor, size: Double) {
-        let ring = CAShapeLayer()
-        let r = 6 * CGFloat(size)
-        ring.path = CGPath(ellipseIn: CGRect(x: -r, y: -r, width: r * 2, height: r * 2), transform: nil)
-        ring.fillColor = nil
-        ring.strokeColor = color.withAlphaComponent(0.6).cgColor
-        ring.lineWidth = 1.2
-        ring.position = point
-        effectsLayer.insertSublayer(ring, below: trailGlowLayer)
+    func stopSparks() {
+        sparkEmitter.birthRate = 0
+    }
 
-        let grow = CABasicAnimation(keyPath: "transform.scale")
-        grow.fromValue = 1
-        grow.toValue = 3.2
-        let fadeOut = CABasicAnimation(keyPath: "opacity")
-        fadeOut.fromValue = 0.8
-        fadeOut.toValue = 0
-        let group = CAAnimationGroup()
-        group.animations = [grow, fadeOut]
-        group.duration = 1.0
-        group.timingFunction = CAMediaTimingFunction(name: .easeOut)
-        group.isRemovedOnCompletion = false
-        group.fillMode = .forwards
+    private static func sparkCell(color: NSColor, size: Double) -> CAEmitterCell {
+        let cell = CAEmitterCell()
+        cell.name = color.hexString + "\(size)"
+        cell.contents = sparkImage
+        cell.birthRate = 90
+        cell.lifetime = 0.75
+        cell.lifetimeRange = 0.25
+        cell.velocity = 55
+        cell.velocityRange = 40
+        cell.emissionRange = .pi * 2
+        cell.yAcceleration = -140
+        cell.scale = 0.16 * CGFloat(size)
+        cell.scaleRange = 0.08 * CGFloat(size)
+        cell.scaleSpeed = -0.18 * CGFloat(size)
+        cell.alphaSpeed = -1.25
+        cell.spin = 3
+        cell.spinRange = 6
+        cell.color = color.cgColor
+        cell.redRange = 0.15
+        cell.greenRange = 0.15
+        cell.blueRange = 0.15
+        return cell
+    }
 
-        CATransaction.begin()
-        CATransaction.setCompletionBlock { ring.removeFromSuperlayer() }
-        ring.add(group, forKey: "ring")
-        CATransaction.commit()
+    /// Étoile douce à quatre branches, dessinée une fois.
+    private static let sparkImage: CGImage? = {
+        let side = 64
+        guard let ctx = CGContext(
+            data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        let c = CGFloat(side) / 2
+        // Cœur flou
+        let glow = CGGradient(
+            colorsSpace: CGColorSpaceCreateDeviceRGB(),
+            colors: [CGColor(red: 1, green: 1, blue: 1, alpha: 1), CGColor(red: 1, green: 1, blue: 1, alpha: 0)] as CFArray,
+            locations: [0, 1]
+        )
+        if let glow {
+            ctx.drawRadialGradient(glow, startCenter: CGPoint(x: c, y: c), startRadius: 0, endCenter: CGPoint(x: c, y: c), endRadius: c * 0.55, options: [])
+        }
+        // Branches
+        ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.9))
+        let star = CGMutablePath()
+        star.move(to: CGPoint(x: c, y: 0))
+        star.addQuadCurve(to: CGPoint(x: CGFloat(side), y: c), control: CGPoint(x: c, y: c))
+        star.addQuadCurve(to: CGPoint(x: c, y: CGFloat(side)), control: CGPoint(x: c, y: c))
+        star.addQuadCurve(to: CGPoint(x: 0, y: c), control: CGPoint(x: c, y: c))
+        star.addQuadCurve(to: CGPoint(x: c, y: 0), control: CGPoint(x: c, y: c))
+        ctx.addPath(star)
+        ctx.fillPath()
+        return ctx.makeImage()
+    }()
+
+    /// Pointillés : un point posé tous les 16 pt parcourus, qui rétrécit et
+    /// s'efface. Le chemin se lit comme une série d'empreintes, sans ligne.
+    func dropDots(at point: CGPoint, color: NSColor, size: Double) {
+        haloLayer.isHidden = true
+        trailGlowLayer.path = nil
+        trailCoreLayer.path = nil
+        headLayer.isHidden = true
+        guard let last = lastDotPoint else {
+            lastDotPoint = point
+            spawnDot(at: point, color: color, size: size)
+            return
+        }
+        dotDistance += hypot(point.x - last.x, point.y - last.y)
+        lastDotPoint = point
+        let spacing = 16 * CGFloat(size)
+        if dotDistance >= spacing {
+            dotDistance = 0
+            spawnDot(at: point, color: color, size: size)
+        }
+    }
+
+    private func spawnDot(at point: CGPoint, color: NSColor, size: Double) {
+        let r = 4 * CGFloat(size)
+        let dot = CAShapeLayer()
+        dot.path = CGPath(ellipseIn: CGRect(x: -r, y: -r, width: r * 2, height: r * 2), transform: nil)
+        dot.fillColor = color.cgColor
+        dot.position = point
+        effectsLayer.addSublayer(dot)
+        animateOut(dot, duration: 0.8, keyframes: [
+            ("transform.scale", 1.0, 0.15),
+            ("opacity", 1.0, 0.0),
+        ])
     }
 
     /// Lissage de Chaikin (deux passes) : la trajectoire brute de la souris
@@ -430,33 +490,74 @@ final class LiveCanvasView: NSView {
         return current
     }
 
-    /// Onde au clic : un anneau qui s'ouvre et s'efface.
-    func spawnRipple(at point: CGPoint, color: NSColor) {
+    // MARK: - Clics
+
+    enum ClickKind { case left, double, right }
+
+    /// Une forme différente par bouton, dans la même couleur :
+    /// - clic gauche : un anneau net qui s'ouvre ;
+    /// - double-clic : deux anneaux décalés, comme un écho ;
+    /// - clic droit : un losange qui tourne d'un quart de tour en s'agrandissant.
+    func spawnClick(_ kind: ClickKind, at point: CGPoint, color: NSColor) {
+        switch kind {
+        case .left:
+            spawnRing(at: point, color: color, delay: 0)
+        case .double:
+            spawnRing(at: point, color: color, delay: 0)
+            spawnRing(at: point, color: color, delay: 0.12)
+        case .right:
+            let side: CGFloat = 14
+            let diamond = CAShapeLayer()
+            diamond.path = CGPath(roundedRect: CGRect(x: -side / 2, y: -side / 2, width: side, height: side), cornerWidth: 3, cornerHeight: 3, transform: nil)
+            diamond.fillColor = color.withAlphaComponent(0.18).cgColor
+            diamond.strokeColor = color.cgColor
+            diamond.lineWidth = 2
+            diamond.position = point
+            diamond.transform = CATransform3DMakeRotation(.pi / 4, 0, 0, 1)
+            effectsLayer.addSublayer(diamond)
+            animateOut(diamond, duration: 0.5, keyframes: [
+                ("transform.scale", 1.0, 2.8),
+                ("transform.rotation.z", Double.pi / 4, Double.pi * 0.75),
+                ("opacity", 1.0, 0.0),
+            ])
+        }
+    }
+
+    private func spawnRing(at point: CGPoint, color: NSColor, delay: CFTimeInterval) {
+        let r: CGFloat = 8
         let ring = CAShapeLayer()
-        let r: CGFloat = 9
         ring.path = CGPath(ellipseIn: CGRect(x: -r, y: -r, width: r * 2, height: r * 2), transform: nil)
         ring.fillColor = nil
         ring.strokeColor = color.cgColor
-        ring.lineWidth = 2.5
+        ring.lineWidth = 2
         ring.position = point
+        ring.opacity = delay > 0 ? 0 : 1
         effectsLayer.addSublayer(ring)
+        animateOut(ring, duration: 0.45, delay: delay, keyframes: [
+            ("transform.scale", 1.0, 3.4),
+            ("opacity", 1.0, 0.0),
+        ])
+    }
 
-        let grow = CABasicAnimation(keyPath: "transform.scale")
-        grow.fromValue = 1
-        grow.toValue = 3.6
-        let fadeOut = CABasicAnimation(keyPath: "opacity")
-        fadeOut.fromValue = 1
-        fadeOut.toValue = 0
+    /// Anime un calque de passage puis le retire — tout se joue dans le
+    /// serveur de rendu.
+    private func animateOut(_ layer: CALayer, duration: CFTimeInterval, delay: CFTimeInterval = 0, keyframes: [(String, Double, Double)]) {
         let group = CAAnimationGroup()
-        group.animations = [grow, fadeOut]
-        group.duration = 0.55
+        group.animations = keyframes.map { key, from, to in
+            let animation = CABasicAnimation(keyPath: key)
+            animation.fromValue = from
+            animation.toValue = to
+            return animation
+        }
+        group.duration = duration
+        group.beginTime = CACurrentMediaTime() + delay
         group.timingFunction = CAMediaTimingFunction(name: .easeOut)
         group.isRemovedOnCompletion = false
-        group.fillMode = .forwards
+        group.fillMode = .both
 
         CATransaction.begin()
-        CATransaction.setCompletionBlock { ring.removeFromSuperlayer() }
-        ring.add(group, forKey: "ripple")
+        CATransaction.setCompletionBlock { layer.removeFromSuperlayer() }
+        layer.add(group, forKey: "out")
         CATransaction.commit()
     }
 

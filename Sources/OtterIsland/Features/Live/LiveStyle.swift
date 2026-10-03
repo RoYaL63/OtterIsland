@@ -42,29 +42,31 @@ enum LiveTool: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-/// Effet qui accompagne le curseur pendant le Live.
+/// Effet qui accompagne le curseur pendant le Live. Trois mécanismes
+/// vraiment différents — une traînée continue, des particules, des points
+/// posés — plutôt que trois variantes de la même traînée.
 enum LiveCursorEffect: String, CaseIterable, Identifiable, Codable {
-    // `otterRiver` garde son nom brut : c'est lui qui est enregistré dans les
-    // préférences des versions précédentes.
-    case none, halo, meteor, otterRiver
+    case none, halo, meteor, sparkles, dots
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .none: return "Aucun"
-        case .halo: return "Halo"
-        case .meteor: return "Météorite"
-        case .otterRiver: return "Rivière"
+        case .halo: return "Anneau fin"
+        case .meteor: return "Comète"
+        case .sparkles: return "Étincelles"
+        case .dots: return "Pointillés"
         }
     }
 
     var detail: String {
         switch self {
         case .none: return "Le curseur reste tel quel."
-        case .halo: return "Un anneau lumineux suit le curseur."
-        case .meteor: return "Une traînée de feu qui s'allonge avec la vitesse du geste."
-        case .otterRiver: return "Un ruban d'eau lisse qui suit le geste, avec des ronds dans l'eau."
+        case .halo: return "Un cercle fin autour de la pointe, sans pastille qui masque ce qu'on montre."
+        case .meteor: return "Une traînée continue et effilée, à tête blanche, qui s'allonge avec la vitesse du geste."
+        case .sparkles: return "Aucune ligne : des éclats de lumière jaillissent du curseur, retombent et scintillent. Plus le geste est rapide, plus il y en a."
+        case .dots: return "Une série de points posés le long du trajet, qui rétrécissent et s'effacent — le chemin se lit comme des empreintes."
         }
     }
 }

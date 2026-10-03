@@ -116,9 +116,10 @@ struct LiveToolbar: View {
 
     private var effectIcon: String {
         switch style.prefs.cursorEffect {
-        case .none, .halo: return "cursorarrow.rays"
-        case .meteor: return "sparkles"
-        case .otterRiver: return "drop.fill"
+        case .none, .halo: return "circle.dashed"
+        case .meteor: return "wand.and.rays"
+        case .sparkles: return "sparkles"
+        case .dots: return "circle.grid.cross"
         }
     }
 
