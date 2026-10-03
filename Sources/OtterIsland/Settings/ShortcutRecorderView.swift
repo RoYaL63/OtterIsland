@@ -25,7 +25,12 @@ struct ShortcutRecorderView: View {
     }
 
     private var display: String {
-        Self.symbols(for: UInt32(modifiers)) + (Self.keyName(for: Int32(keyCode)) ?? "?")
+        Self.display(keyCode: keyCode, modifiers: modifiers)
+    }
+
+    /// « ⌃⌥B » : réutilisé par la barre du Live pour afficher les raccourcis.
+    static func display(keyCode: Int, modifiers: Int) -> String {
+        symbols(for: UInt32(modifiers)) + (keyName(for: Int32(keyCode)) ?? "?")
     }
 
     private func startRecording() {
@@ -56,7 +61,7 @@ struct ShortcutRecorderView: View {
         return result
     }
 
-    private static func symbols(for modifiers: UInt32) -> String {
+    static func symbols(for modifiers: UInt32) -> String {
         var s = ""
         if modifiers & UInt32(controlKey) != 0 { s += "⌃" }
         if modifiers & UInt32(optionKey) != 0 { s += "⌥" }
@@ -65,15 +70,16 @@ struct ShortcutRecorderView: View {
         return s
     }
 
-    /// Table volontairement limitée aux lettres et chiffres : suffisant pour ce
-    /// raccourci (ouverture du presse-papier).
-    private static func keyName(for keyCode: Int32) -> String? {
+    /// Lettres, chiffres et quelques touches courantes.
+    static func keyName(for keyCode: Int32) -> String? {
         let map: [Int32: String] = [
             0: "A", 11: "B", 8: "C", 2: "D", 14: "E", 3: "F", 5: "G", 4: "H",
             34: "I", 38: "J", 40: "K", 37: "L", 46: "M", 45: "N", 31: "O", 35: "P",
             12: "Q", 15: "R", 1: "S", 17: "T", 32: "U", 9: "V", 13: "W", 7: "X",
             16: "Y", 6: "Z",
             29: "0", 18: "1", 19: "2", 20: "3", 21: "4", 23: "5", 22: "6", 26: "7", 28: "8", 25: "9",
+            49: "Espace", 36: "↩", 48: "⇥", 53: "esc", 123: "←", 124: "→", 125: "↓", 126: "↑",
+            43: ",", 47: ".", 44: "/", 41: ";", 39: "'", 33: "[", 30: "]", 27: "-", 24: "=",
         ]
         return map[keyCode]
     }

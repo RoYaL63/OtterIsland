@@ -32,7 +32,7 @@ final class NotchViewModel: ObservableObject {
         // En Live, l'île ne montre que la barre d'outils : plus large, bien
         // moins haute, pour couvrir le moins possible de l'écran partagé.
         if live.isActive && liveDetour == nil {
-            return CGSize(width: 520, height: notchHeight + 112)
+            return CGSize(width: 560, height: notchHeight + 112)
         }
         let dropOffset = settings.dropOffset(for: currentScreenID ?? "")
         return CGSize(width: 420, height: 276 + CGFloat(dropOffset))

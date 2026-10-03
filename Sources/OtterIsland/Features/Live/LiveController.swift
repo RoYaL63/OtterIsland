@@ -22,6 +22,8 @@ final class LiveController: ObservableObject {
     @Published var keysOn = true
     @Published var maskingOn = true
     @Published private(set) var hasDrawings = false
+    /// Bureau caché derrière le fond d'écran.
+    @Published private(set) var desktopHidden = false
     /// Le raccourci global ⌃⌥L a-t-il pu être enregistré ?
     @Published private(set) var toggleHotKeyFailed = false
     /// Raccourcis ⌃⌥ que macOS a refusés : la combinaison est déjà prise par
@@ -31,6 +33,8 @@ final class LiveController: ObservableObject {
 
     let style: LiveStyle
     let keystrokes = KeystrokeHUD()
+    private let desktop = DesktopCover()
+    private let badgeEditor = BadgeLabelEditor()
     private let settings: OtterSettings
 
     private var overlays: [LiveOverlayWindow] = []
@@ -102,6 +106,10 @@ final class LiveController: ObservableObject {
         installLiveHotKeys()
         startModifierWatch()
         updateMaskTimer()
+        if style.prefs.hideDesktop {
+            desktop.show(style: style.prefs)
+            desktopHidden = true
+        }
         if style.prefs.focusDuringLive {
             FocusMode.trigger(settings.pomodoroFocusShortcutOn)
         }
@@ -112,6 +120,9 @@ final class LiveController: ObservableObject {
     func stop(waitForFocus: Bool = false) {
         guard isActive else { return }
         isActive = false
+        badgeEditor.commit()
+        desktop.hide()
+        desktopHidden = false
         activeCanvas = nil
         modifierHeld = false
         setTool(nil)
@@ -151,6 +162,7 @@ final class LiveController: ObservableObject {
     /// continuent de marcher partout. Échap est seulement OBSERVÉ (voir
     /// `keyPressed`) pour sortir du mode stylo ; l'annulation passe par ⌃⌥Z.
     func setTool(_ newTool: LiveTool?) {
+        if newTool != .badge { badgeEditor.commit() }
         tool = newTool
         updateMouseCapture()
     }
@@ -169,6 +181,7 @@ final class LiveController: ObservableObject {
     }
 
     func clearAll() {
+        badgeEditor.cancel()
         overlays.forEach { $0.canvas.clearAll() }
         refreshHasDrawings()
     }
@@ -187,6 +200,17 @@ final class LiveController: ObservableObject {
     func toggleKeys() {
         keysOn.toggle()
         if !keysOn { keystrokes.hide() }
+    }
+
+    /// Cache ou montre le bureau pendant le Live.
+    func toggleDesktop() {
+        if desktopHidden {
+            desktop.hide()
+            desktopHidden = false
+        } else {
+            desktop.show(style: style.prefs)
+            desktopHidden = true
+        }
     }
 
     func toggleMasking() {
@@ -234,6 +258,8 @@ final class LiveController: ObservableObject {
         Shortcut(id: "ellipse", letter: "O", title: "Cercle", keyCode: kVK_ANSI_O),
         Shortcut(id: "marker", letter: "S", title: "Surligneur", keyCode: kVK_ANSI_S),
         Shortcut(id: "laser", letter: "T", title: "Laser", keyCode: kVK_ANSI_T),
+        Shortcut(id: "badge", letter: "N", title: "Pastille numérotée", keyCode: kVK_ANSI_N),
+        Shortcut(id: "desktop", letter: "D", title: "Cacher le bureau", keyCode: kVK_ANSI_D),
         Shortcut(id: "effect", letter: "H", title: "Effet de curseur", keyCode: kVK_ANSI_H),
         Shortcut(id: "spotlight", letter: "B", title: "Projecteur", keyCode: kVK_ANSI_B),
         Shortcut(id: "keys", letter: "K", title: "Touches affichées", keyCode: kVK_ANSI_K),
@@ -247,10 +273,32 @@ final class LiveController: ObservableObject {
         shortcuts.first { $0.id == id }?.letter ?? ""
     }
 
+    /// La combinaison en vigueur : celle choisie dans le panneau, sinon ⌃⌥ + lettre.
+    func combo(for id: String) -> LiveKeyCombo {
+        if let custom = style.prefs.shortcuts[id] { return custom }
+        let keyCode = Self.shortcuts.first { $0.id == id }?.keyCode ?? 0
+        return LiveKeyCombo(keyCode: keyCode, modifiers: Int(Self.liveModifiers))
+    }
+
+    /// « ⌃⌥B » — affiché sur les boutons de la barre et dans le panneau.
+    func comboLabel(for id: String) -> String {
+        if id == "zoom" { return "⌥⌘8" }
+        let c = combo(for: id)
+        return ShortcutRecorderView.display(keyCode: c.keyCode, modifiers: c.modifiers)
+    }
+
+    /// Remet tous les raccourcis en service après un changement dans le panneau.
+    private func reinstallHotKeys() {
+        toggleHotKey = nil
+        installToggleHotKey()
+        if isActive { installLiveHotKeys() }
+    }
+
     private static let liveModifiers = UInt32(controlKey | optionKey)
 
     private func installToggleHotKey() {
-        let hotKey = HotKey(keyCode: UInt32(kVK_ANSI_L), modifiers: Self.liveModifiers) { [weak self] in
+        let c = combo(for: "live")
+        let hotKey = HotKey(keyCode: UInt32(c.keyCode), modifiers: UInt32(c.modifiers)) { [weak self] in
             MainActor.assumeIsolated { self?.toggle() }
         }
         toggleHotKey = hotKey
@@ -260,16 +308,17 @@ final class LiveController: ObservableObject {
     private func installLiveHotKeys() {
         // Le raccourci du presse-papier passe avant tout : s'il tombe sur une
         // combinaison ⌃⌥, le Live renonce à la sienne.
-        let clipboardTaken = settings.clipboardHotKeyModifiers == Int(controlKey | optionKey)
-            ? settings.clipboardHotKeyCode : -1
+        let clipboard = LiveKeyCombo(keyCode: settings.clipboardHotKeyCode, modifiers: settings.clipboardHotKeyModifiers)
         var failed: Set<String> = []
         var installed: [HotKey] = []
+        liveHotKeys = []
         for shortcut in Self.shortcuts where shortcut.id != "live" && shortcut.id != "zoom" {
-            guard shortcut.keyCode != clipboardTaken else {
+            let c = combo(for: shortcut.id)
+            guard c != clipboard else {
                 failed.insert(shortcut.id)
                 continue
             }
-            let hotKey = HotKey(keyCode: UInt32(shortcut.keyCode), modifiers: Self.liveModifiers) { [weak self] in
+            let hotKey = HotKey(keyCode: UInt32(c.keyCode), modifiers: UInt32(c.modifiers)) { [weak self] in
                 MainActor.assumeIsolated { self?.perform(shortcut.id) }
             }
             if hotKey.isRegistered { installed.append(hotKey) } else { failed.insert(shortcut.id) }
@@ -288,6 +337,7 @@ final class LiveController: ObservableObject {
         case "undo": undo()
         case "clear": clearAll()
         case "zoom": toggleSystemZoom()
+        case "desktop": toggleDesktop()
         case "live": toggle()
         default: break
         }
@@ -359,6 +409,10 @@ final class LiveController: ObservableObject {
             canvas.spawnClick(Self.clickKind(event), at: point, color: style.effectColor)
         }
         guard event.type == .leftMouseDown else { return }
+        if tool == .badge {
+            placeBadge(on: canvas, at: point)
+            return
+        }
         // En mode stylo, cliquer sur un dessin l'efface.
         if tool != nil, tool != .laser, let shape = canvas.shape(at: point) {
             canvas.remove(shape)
@@ -372,6 +426,34 @@ final class LiveController: ObservableObject {
         )
         canvas.beginStroke(at: point, tool: tool ?? .pen, style: strokeStyle)
         activeCanvas = canvas
+    }
+
+    /// Pastille : un clic pose la suivante et ouvre la saisie de l'étiquette.
+    /// Recliquer ailleurs valide l'étiquette (ou laisse la pastille seule) et
+    /// pose la suivante ; cliquer sur une pastille l'efface.
+    private func placeBadge(on canvas: LiveCanvasView, at point: CGPoint) {
+        badgeEditor.commit()
+        if let existing = canvas.shape(at: point) {
+            canvas.remove(existing)
+            refreshHasDrawings()
+            return
+        }
+        let number = (overlays.flatMap { $0.canvas.badges }.compactMap(\.badgeNumber).max() ?? 0) + 1
+        let p = style.prefs
+        let shape = canvas.placeBadge(
+            at: point, number: number, color: style.color,
+            fadeSeconds: p.badgesPersist ? 0 : p.fadeSeconds
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshHasDrawings() }
+        }
+        refreshHasDrawings()
+        guard let window = canvas.window else { return }
+        let local = canvas.labelAnchor(for: shape)
+        let anchor = NSPoint(x: window.frame.minX + local.x, y: window.frame.minY + local.y)
+        badgeEditor.begin(at: anchor) { [weak canvas, weak shape] text in
+            guard let canvas, let shape, !text.isEmpty else { return }
+            canvas.setLabel(text, on: shape)
+        }
     }
 
     private func canvasMouseDragged(_ canvas: LiveCanvasView, _ point: CGPoint) {
@@ -439,6 +521,8 @@ final class LiveController: ObservableObject {
     }
 
     private func keyPressed(_ event: NSEvent) {
+        // On tape une étiquette : ni Échap « tout effacer », ni bande des touches.
+        if badgeEditor.isEditing { return }
         // Échap observé (pas intercepté) : l'app au premier plan le reçoit
         // aussi, mais le mode stylo s'arrête et les dessins s'effacent.
         if Int(event.keyCode) == kVK_Escape, tool != nil,
@@ -549,7 +633,15 @@ final class LiveController: ObservableObject {
         let old = lastPrefs
         let new = style.prefs
         lastPrefs = new
+        // Les raccourcis comptent même Live éteint : ⌃⌥L (ou son remplaçant)
+        // doit pouvoir le démarrer.
+        if old.shortcuts != new.shortcuts {
+            reinstallHotKeys()
+        }
         guard isActive else { return }
+        if desktopHidden, old.desktopCover != new.desktopCover || old.desktopColorHex != new.desktopColorHex {
+            desktop.show(style: new)
+        }
         if old.cursorEffect != new.cursorEffect {
             overlays.forEach { $0.canvas.hideCursorEffects() }
             trail = []

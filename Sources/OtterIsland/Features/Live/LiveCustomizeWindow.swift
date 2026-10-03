@@ -62,6 +62,8 @@ struct LiveCustomizeView: View {
             spotlightSection
             keysSection
             privacySection
+            desktopSection
+            badgeSection
             shortcutsSection
             Section {
                 HStack {
@@ -329,32 +331,109 @@ struct LiveCustomizeView: View {
 
     // MARK: Raccourcis
 
+    // MARK: Bureau
+
+    private var desktopSection: some View {
+        Section("Bureau") {
+            Toggle("Cacher le bureau au démarrage du Live", isOn: binding(\.hideDesktop))
+            Text("Les icônes du bureau disparaissent derrière le fond d'écran ; les fenêtres restent. Le bouton Bureau de la barre (et son raccourci) bascule à tout moment.")
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Picker("Recouvrir par", selection: binding(\.desktopCover)) {
+                ForEach(LiveDesktopCover.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            if style.prefs.desktopCover == .solid {
+                HStack(spacing: 8) {
+                    ForEach(["#1C1C1E", "#0B2229", "#F2F2F7", "#123C3A", "#2C2C54"], id: \.self) { hex in
+                        Button {
+                            style.prefs.desktopColorHex = hex
+                        } label: {
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(Color(hex: hex))
+                                .frame(width: 30, height: 20)
+                                .overlay(RoundedRectangle(cornerRadius: 5).stroke(
+                                    style.prefs.desktopColorHex == hex ? Color.accentColor : Color.primary.opacity(0.2),
+                                    lineWidth: style.prefs.desktopColorHex == hex ? 2 : 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Spacer()
+                    Text(style.prefs.desktopColorHex).font(.caption.monospaced()).foregroundStyle(.secondary)
+                }
+            }
+            Toggle("Masquer aussi les autres apps (réaffichées à la fin du Live)", isOn: binding(\.hideOtherApps))
+        }
+    }
+
+    // MARK: Pastilles
+
+    private var badgeSection: some View {
+        Section("Pastilles numérotées") {
+            Text("Outil Pastille : chaque clic pose ①, ②, ③… Tape aussitôt une étiquette et valide par ↩ ; reclique ailleurs (ou Échap) pour garder la pastille seule. Un clic sur une pastille l'efface ; Tout effacer recommence à ①. Elles prennent la couleur du trait.")
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Toggle("Les pastilles restent jusqu'à l'effacement", isOn: binding(\.badgesPersist))
+        }
+    }
+
+    // MARK: Raccourcis
+
     private var shortcutsSection: some View {
-        Section("Raccourcis (⌃⌥ + touche)") {
+        Section("Raccourcis") {
             if live.toggleHotKeyFailed {
-                Text("⌃⌥L est déjà pris par une autre app : utilise le bouton de l'island pour lancer le Live.")
+                Text("\(live.comboLabel(for: "live")) est déjà pris par une autre app : choisis-en un autre, ou lance le Live depuis l'island.")
                     .font(.caption).foregroundStyle(.orange)
             }
+            Text("Clique une combinaison pour en enregistrer une nouvelle (au moins une touche ⌘, ⌃, ⌥ ou ⇧).")
+                .font(.caption).foregroundStyle(.secondary)
             ForEach(LiveController.shortcuts) { shortcut in
                 HStack {
                     Text(shortcut.title)
                     if live.failedShortcuts.contains(shortcut.id) {
-                        Text("déjà pris par une autre app")
+                        Text("déjà pris")
                             .font(.caption)
                             .foregroundStyle(.orange)
                     }
                     Spacer()
-                    Text(shortcut.id == "zoom" ? "⌥⌘8" : "⌃⌥\(shortcut.letter)")
-                        .font(.body.monospaced())
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 1)
-                        .background(RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.08)))
+                    if shortcut.id == "zoom" {
+                        Text("⌥⌘8 (macOS)")
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ShortcutRecorderView(
+                            keyCode: comboBinding(shortcut.id, \.keyCode),
+                            modifiers: comboBinding(shortcut.id, \.modifiers)
+                        )
+                        if style.prefs.shortcuts[shortcut.id] != nil {
+                            Button {
+                                style.prefs.shortcuts[shortcut.id] = nil
+                            } label: {
+                                Image(systemName: "arrow.uturn.backward.circle")
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Revenir à ⌃⌥\(shortcut.letter)")
+                        }
+                    }
                 }
             }
             Text("En mode stylo : Échap efface tout et rend la souris, un clic sur un dessin l'efface. Le Live ne capture aucun raccourci des apps : ⌘Z, ⌘V ou le raccourci du presse-papier continuent de marcher.")
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    /// Liaison vers un champ du raccourci `id` : lit la combinaison en vigueur,
+    /// écrit une combinaison personnalisée.
+    private func comboBinding(_ id: String, _ keyPath: WritableKeyPath<LiveKeyCombo, Int>) -> Binding<Int> {
+        Binding(
+            get: { live.combo(for: id)[keyPath: keyPath] },
+            set: { newValue in
+                var combo = live.combo(for: id)
+                combo[keyPath: keyPath] = newValue
+                style.prefs.shortcuts[id] = combo
+            }
+        )
     }
 
     // MARK: Liaisons
