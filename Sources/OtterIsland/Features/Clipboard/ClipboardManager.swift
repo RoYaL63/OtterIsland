@@ -50,7 +50,7 @@ final class ClipboardManager: ObservableObject {
     ]
 
     private func capture() {
-        if let types = pasteboard.types, types.contains(where: Self.privateTypes.contains) {
+        if let types = pasteboard.types, types.contains(where: { Self.privateTypes.contains($0) }) {
             return
         }
         if let string = pasteboard.string(forType: .string),
