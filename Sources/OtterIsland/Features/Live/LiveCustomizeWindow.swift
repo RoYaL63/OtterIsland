@@ -202,7 +202,7 @@ struct LiveCustomizeView: View {
                     Slider(value: binding(\.cursorEffectSize), in: 0.6...2)
                 }
             }
-            Toggle("Ondes au clic (jaune à gauche, bleu à droite)", isOn: binding(\.clickRipples))
+            Toggle("Animation au clic (anneau à gauche, double anneau au double-clic, losange à droite)", isOn: binding(\.clickRipples))
         }
     }
 
@@ -302,9 +302,9 @@ struct LiveCustomizeView: View {
 
     private static let effectPresets = [
         EffectPreset(name: "Feu", hex: "#FFB340"),
-        EffectPreset(name: "Comète", hex: "#7FDBFF"),
-        EffectPreset(name: "Rivière", hex: "#5EE9D3"),
-        EffectPreset(name: "Néon", hex: "#FF2D95"),
+        EffectPreset(name: "Glace", hex: "#7FDBFF"),
+        EffectPreset(name: "Menthe", hex: "#5EE9D3"),
+        EffectPreset(name: "Rose", hex: "#FF2D95"),
         EffectPreset(name: "Or", hex: "#FFD60A"),
     ]
 
@@ -338,6 +338,11 @@ struct LiveCustomizeView: View {
             ForEach(LiveController.shortcuts) { shortcut in
                 HStack {
                     Text(shortcut.title)
+                    if live.failedShortcuts.contains(shortcut.id) {
+                        Text("déjà pris par une autre app")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
                     Spacer()
                     Text(shortcut.id == "zoom" ? "⌥⌘8" : "⌃⌥\(shortcut.letter)")
                         .font(.body.monospaced())

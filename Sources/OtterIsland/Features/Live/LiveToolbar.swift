@@ -111,14 +111,22 @@ struct LiveToolbar: View {
         }
         let modifier = style.prefs.drawModifier
         let draw = modifier == .none ? "" : "Maintiens \(modifier.title.prefix(1)) et glisse pour dessiner · "
-        return draw + "Raccourcis : ⌃⌥ + la lettre du bouton · ⌃⌥L arrête le Live"
+        if !live.failedShortcuts.isEmpty {
+            return draw + "Certains raccourcis ⌃⌥ sont pris par une autre app (barrés) · ⌃⌥L arrête le Live"
+        }
+        return draw + "Raccourcis : ⌃⌥ + la lettre (⌃⌥B projecteur…) · ⌃⌥L arrête le Live"
+    }
+
+    private func shortcutFailed(_ letter: String) -> Bool {
+        LiveController.shortcuts.contains { $0.letter == letter && live.failedShortcuts.contains($0.id) }
     }
 
     private var effectIcon: String {
         switch style.prefs.cursorEffect {
-        case .none, .halo: return "cursorarrow.rays"
-        case .meteor: return "sparkles"
-        case .otterRiver: return "drop.fill"
+        case .none, .halo: return "circle.dashed"
+        case .meteor: return "wand.and.rays"
+        case .sparkles: return "sparkles"
+        case .dots: return "circle.grid.cross"
         }
     }
 
@@ -134,26 +142,29 @@ struct LiveToolbar: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .semibold))
-                .frame(width: 28, height: 26)
+                .padding(.top, 5)
+                .frame(width: 30, height: 32, alignment: .top)
                 .foregroundStyle(isOn ? (filled ? Color.black.opacity(0.82) : Otter.accent) : Otter.textSecondary)
                 .background {
                     if isOn {
                         Capsule().fill(filled ? Otter.accent : Otter.accent.opacity(0.18))
                     }
                 }
-                .overlay(alignment: .bottomTrailing) {
+                .overlay(alignment: .bottom) {
                     if let letter {
-                        Text(letter)
-                            .font(.system(size: 6.5, weight: .bold, design: .rounded))
+                        // Combinaison complète : « B » seul laissait croire
+                        // qu'il suffisait d'appuyer sur la lettre.
+                        Text("⌃⌥\(letter)")
+                            .font(.system(size: 6, weight: .bold, design: .rounded))
                             .foregroundStyle(isOn && filled ? Color.black.opacity(0.55) : Otter.textTertiary)
-                            .padding(.trailing, 3)
-                            .padding(.bottom, 1)
+                            .strikethrough(shortcutFailed(letter))
+                            .padding(.bottom, 3)
                     }
                 }
                 .contentShape(Capsule())
         }
         .buttonStyle(OtterPressStyle(scale: 0.9))
-        .help(letter.map { "\(title) — ⌃⌥\($0)" } ?? title)
+        .help(letter.map { shortcutFailed($0) ? "\(title) — ⌃⌥\($0) est déjà pris par une autre app" : "\(title) — ⌃⌥\($0)" } ?? title)
     }
 
     private func swatch(_ hex: String) -> some View {

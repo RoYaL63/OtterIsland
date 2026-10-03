@@ -35,7 +35,16 @@ enum SecretScanner {
         #"eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}"#, // JWT (Supabase…)
         #"hooks\.slack\.com/services/[A-Za-z0-9/]{20,}"#,
         #"hook\.[a-z0-9]+\.make\.com/([A-Za-z0-9]{12,})"#,      // webhook Make
-        #"(?i)bearer\s+([A-Za-z0-9._\-]{20,})"#,
+        #"(?i)\b(?:bearer|basic|token|digest)\s+([A-Za-z0-9._~+/=\-]{16,})"#,  // Authorization: Bearer …
+        // En-têtes HTTP d'authentification : on garde le nom (et « Bearer »),
+        // on masque la valeur.
+        #"(?i)(?:authorization|proxy-authorization|x-api-key|api-key|x-auth-token|x-access-token|x-goog-api-key|x-make-apikey|apikey|cookie|set-cookie)["']?\s*[:=]\s*["']?(?:(?:bearer|basic|token|digest)\s+)?([^\s"',;]{8,})"#,
+        // Paramètres d'URL : ?key=… &api_key=… &access_token=…
+        #"(?i)[?&](?:key|api_?key|apikey|token|access_token|auth|secret|password|sig|signature)=([^&\s"'#]{8,})"#,
+        // Identifiants dans une URL : https://user:motdepasse@hote
+        #"(?i)[a-z][a-z0-9+.\-]*://[^\s/:@]+:([^\s/@]{4,})@"#,
+        // Clés privées PEM
+        #"-----BEGIN [A-Z ]*PRIVATE KEY-----"#,
         #"(?i)(?:password|passwd|pwd|secret|token|api[_\-]?key|access[_\-]?key|private[_\-]?key)["']?\s*[:=]\s*["']?([^\s"',;]{6,})"#,
     ].compactMap { try? NSRegularExpression(pattern: $0) }
 
@@ -121,34 +130,55 @@ enum SecretScanner {
 
     // MARK: Fenêtre active
 
-    /// Parcours en largeur, plafonné : une page web peut compter des milliers
-    /// d'éléments. Un seul aller-retour par élément (rôle, valeur, enfants).
+    /// Parcours en largeur de la fenêtre, limité à ce qui est À L'ÉCRAN : un
+    /// sous-arbre dont le cadre ne touche pas la fenêtre (le bas d'une page de
+    /// résultats, un onglet caché) n'est pas visité. Sans cet élagage, une page
+    /// Google épuisait le budget dans son en-tête avant d'atteindre le bloc de
+    /// code affiché. Un seul aller-retour par élément.
     private static func scanTree(_ root: AXUIElement, primaryHeight: CGFloat) -> [CGRect] {
+        let windowFrame = frame(of: root, primaryHeight: primaryHeight, limitSize: false)
         var queue: [AXUIElement] = [root]
-        var visited = 0
+        var head = 0
         var rects: [CGRect] = []
-        let attributes = [kAXRoleAttribute, kAXValueAttribute, kAXChildrenAttribute] as CFArray
+        let attributes = [kAXRoleAttribute, kAXValueAttribute, kAXChildrenAttribute, kAXPositionAttribute, kAXSizeAttribute] as CFArray
 
-        while !queue.isEmpty, visited < 500, rects.count < 40 {
-            let node = queue.removeFirst()
-            visited += 1
+        while head < queue.count, head < 2500, rects.count < 40 {
+            let node = queue[head]
+            head += 1
             AXUIElementSetMessagingTimeout(node, 0.1)
             var valuesRef: CFArray?
             guard AXUIElementCopyMultipleAttributeValues(node, attributes, AXCopyMultipleAttributeOptions(rawValue: 0), &valuesRef) == .success,
-                  let values = valuesRef as? [AnyObject], values.count == 3
+                  let values = valuesRef as? [AnyObject], values.count == 5
             else { continue }
+
+            // Élagage : hors de la fenêtre visible, on ne descend pas.
+            if let windowFrame, let nodeFrame = rect(position: values[3], size: values[4], primaryHeight: primaryHeight),
+               nodeFrame.width > 0, nodeFrame.height > 0, !nodeFrame.intersects(windowFrame) {
+                continue
+            }
 
             let role = values[0] as? String ?? ""
             if role == "AXSecureTextField" { continue }
-            if textRoles.contains(role), let text = values[1] as? String, text.count >= 12 {
+            if textRoles.contains(role), let text = values[1] as? String, text.count >= 8 {
                 let clipped = String(text.prefix(4000))
                 rects += self.rects(in: clipped, offset: 0, element: node, primaryHeight: primaryHeight, fallbackToFrame: true)
             }
             if let children = values[2] as? [AXUIElement] {
-                queue.append(contentsOf: children.prefix(200))
+                queue.append(contentsOf: children.prefix(300))
             }
         }
         return rects
+    }
+
+    /// Cadre écran à partir des valeurs AXPosition / AXSize déjà lues.
+    private static func rect(position: AnyObject, size: AnyObject, primaryHeight: CGFloat) -> CGRect? {
+        let posRef = position as CFTypeRef, sizeRef = size as CFTypeRef
+        guard CFGetTypeID(posRef) == AXValueGetTypeID(), CFGetTypeID(sizeRef) == AXValueGetTypeID() else { return nil }
+        var origin = CGPoint.zero, extent = CGSize.zero
+        guard AXValueGetValue(posRef as! AXValue, .cgPoint, &origin),
+              AXValueGetValue(sizeRef as! AXValue, .cgSize, &extent)
+        else { return nil }
+        return ScreenGeometry.cocoaRect(fromTopLeft: CGRect(origin: origin, size: extent), primaryHeight: primaryHeight)
     }
 
     // MARK: Correspondances
@@ -187,7 +217,7 @@ enum SecretScanner {
         return ScreenGeometry.cocoaRect(fromTopLeft: rect, primaryHeight: primaryHeight)
     }
 
-    private static func frame(of element: AXUIElement, primaryHeight: CGFloat) -> CGRect? {
+    private static func frame(of element: AXUIElement, primaryHeight: CGFloat, limitSize: Bool = true) -> CGRect? {
         var posRef: CFTypeRef?, sizeRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &posRef) == .success,
               AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeRef) == .success,
@@ -197,7 +227,10 @@ enum SecretScanner {
         var origin = CGPoint.zero, size = CGSize.zero
         AXValueGetValue(posRef as! AXValue, .cgPoint, &origin)
         AXValueGetValue(sizeRef as! AXValue, .cgSize, &size)
-        guard size.width > 0, size.height > 0, size.width < 4000, size.height < 600 else { return nil }
+        guard size.width > 0, size.height > 0 else { return nil }
+        // Masquer tout un élément n'a de sens que pour une ligne ou un champ :
+        // un bloc de 600 pt couvrirait la moitié de l'écran.
+        if limitSize, size.width >= 4000 || size.height >= 600 { return nil }
         return ScreenGeometry.cocoaRect(fromTopLeft: CGRect(origin: origin, size: size), primaryHeight: primaryHeight)
     }
 
