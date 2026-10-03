@@ -32,7 +32,18 @@ final class LiveController: ObservableObject {
     private var overlays: [LiveOverlayWindow] = []
     private var monitors: [Any] = []
     private var liveHotKeys: [HotKey] = []
-    private var penHotKeys: [HotKey] = []
+    /// Scan des secrets : en arrière-plan, un seul à la fois.
+    private let scanQueue = DispatchQueue(label: "otterisland.live.secrets", qos: .userInitiated)
+    private var scanInFlight = false
+    private var scanTick = 0
+    /// Secrets du champ actif (remplacés à chaque scan) et de la fenêtre
+    /// entière (remplacés seulement par les scans complets) : les deux
+    /// restent affichés, sinon une clé trouvée dans la page réapparaissait
+    /// une demi-seconde sur deux.
+    private var focusedSecretRects: [CGRect] = []
+    private var deepSecretRects: [CGRect] = []
+    /// Dernières préférences vues, pour ne réagir qu'aux changements utiles.
+    private var lastPrefs: LivePreferences
     private var toggleHotKey: HotKey?
     private var maskTimer: Timer?
     private var modifierTimer: Timer?
@@ -48,6 +59,7 @@ final class LiveController: ObservableObject {
     init(settings: OtterSettings, style: LiveStyle = LiveStyle()) {
         self.settings = settings
         self.style = style
+        self.lastPrefs = style.prefs
         keysOn = style.prefs.showKeys
         installToggleHotKey()
 
@@ -102,7 +114,8 @@ final class LiveController: ObservableObject {
         monitors.forEach { NSEvent.removeMonitor($0) }
         monitors = []
         liveHotKeys = []
-        penHotKeys = []
+        focusedSecretRects = []
+        deepSecretRects = []
         maskTimer?.invalidate(); maskTimer = nil
         modifierTimer?.invalidate(); modifierTimer = nil
         trailTimer?.invalidate(); trailTimer = nil
@@ -126,30 +139,12 @@ final class LiveController: ObservableObject {
         setTool(tool == newTool ? nil : newTool)
     }
 
+    /// Le Live ne CAPTURE aucun raccourci des apps (⌘Z, ⌘V, Échap…) : ils
+    /// continuent de marcher partout. Échap est seulement OBSERVÉ (voir
+    /// `keyPressed`) pour sortir du mode stylo ; l'annulation passe par ⌃⌥Z.
     func setTool(_ newTool: LiveTool?) {
         tool = newTool
         updateMouseCapture()
-        // Échap et ⌘Z ne sont réservés qu'en mode stylo : le reste du temps,
-        // ils appartiennent aux apps.
-        if newTool != nil, isActive {
-            if penHotKeys.isEmpty {
-                penHotKeys = [
-                    HotKey(keyCode: UInt32(kVK_Escape), modifiers: 0) { [weak self] in
-                        MainActor.assumeIsolated { self?.escape() }
-                    },
-                    HotKey(keyCode: UInt32(kVK_ANSI_Z), modifiers: UInt32(cmdKey)) { [weak self] in
-                        MainActor.assumeIsolated { self?.undo() }
-                    },
-                ]
-            }
-        } else if !penHotKeys.isEmpty {
-            // Libérés au tour suivant : Échap arrive ICI depuis le gestionnaire
-            // Carbon de son propre raccourci, qui ne doit pas être détruit
-            // pendant qu'il s'exécute.
-            let released = penHotKeys
-            penHotKeys = []
-            DispatchQueue.main.async { _ = released }
-        }
     }
 
     /// Échap : efface tout, puis rend la souris.
@@ -255,7 +250,13 @@ final class LiveController: ObservableObject {
     }
 
     private func installLiveHotKeys() {
-        liveHotKeys = Self.shortcuts.filter { $0.id != "live" && $0.id != "zoom" }.map { shortcut in
+        // Le raccourci du presse-papier passe avant tout : s'il tombe sur une
+        // combinaison ⌃⌥, le Live renonce à la sienne.
+        let clipboardTaken = settings.clipboardHotKeyModifiers == Int(controlKey | optionKey)
+            ? settings.clipboardHotKeyCode : -1
+        liveHotKeys = Self.shortcuts.filter {
+            $0.id != "live" && $0.id != "zoom" && $0.keyCode != clipboardTaken
+        }.map { shortcut in
             HotKey(keyCode: UInt32(shortcut.keyCode), modifiers: Self.liveModifiers) { [weak self] in
                 MainActor.assumeIsolated { self?.perform(shortcut.id) }
             }
@@ -404,6 +405,12 @@ final class LiveController: ObservableObject {
         if let keys = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
             MainActor.assumeIsolated { self?.keyPressed(event) }
         }) { monitors.append(keys) }
+        // Quand OtterIsland est au premier plan (panneau Personnaliser), les
+        // frappes ne passent pas par le moniteur global.
+        if let localKeys = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
+            MainActor.assumeIsolated { self?.keyPressed(event) }
+            return event
+        }) { monitors.append(localKeys) }
     }
 
     private func globalClick(_ event: NSEvent) {
@@ -413,6 +420,12 @@ final class LiveController: ObservableObject {
     }
 
     private func keyPressed(_ event: NSEvent) {
+        // Échap observé (pas intercepté) : l'app au premier plan le reçoit
+        // aussi, mais le mode stylo s'arrête et les dessins s'effacent.
+        if Int(event.keyCode) == kVK_Escape, tool != nil,
+           event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
+            escape()
+        }
         guard keysOn, let labels = KeystrokeHUD.labels(for: event) else { return }
         keystrokes.show(labels, position: style.prefs.keysPosition, scale: style.prefs.keysScale)
     }
@@ -452,9 +465,11 @@ final class LiveController: ObservableObject {
             }
             let now = CACurrentMediaTime()
             trail.append(.init(point: point, time: now))
-            if p.cursorEffect == .otterRiver, now - lastBubble > 0.07 {
+            // Ronds dans l'eau, espacés : un par 0,14 s de mouvement suffit
+            // à donner la matière sans encombrer l'écran.
+            if p.cursorEffect == .otterRiver, now - lastBubble > 0.14 {
                 lastBubble = now
-                canvas.spawnBubble(at: point, color: style.effectColor, size: p.cursorEffectSize)
+                canvas.spawnWaterRing(at: point, color: style.effectColor, size: p.cursorEffectSize)
             }
             renderTrail(now: now)
             startTrailTimer()
@@ -479,7 +494,7 @@ final class LiveController: ObservableObject {
         if trail.count > 90 { trail.removeFirst(trail.count - 90) }
         guard let canvas = trailCanvas else { return }
         if p.cursorEffect == .otterRiver {
-            canvas.renderOtterRiver(trail: trail, color: style.effectColor, size: p.cursorEffectSize, now: now)
+            canvas.renderRiver(trail: trail, color: style.effectColor, size: p.cursorEffectSize)
         } else {
             canvas.renderMeteor(trail: trail, color: style.effectColor, size: p.cursorEffectSize)
         }
@@ -489,12 +504,25 @@ final class LiveController: ObservableObject {
         }
     }
 
+    /// Ne réagit qu'aux changements qui comptent : faire glisser le sélecteur
+    /// de couleur émet des dizaines de changements par seconde, qui ne doivent
+    /// ni relancer le masquage ni effacer la traînée. Les couleurs, elles, sont
+    /// lues à chaque image : elles s'appliquent sans rien faire ici.
     private func preferencesChanged() {
+        let old = lastPrefs
+        let new = style.prefs
+        lastPrefs = new
         guard isActive else { return }
-        overlays.forEach { $0.canvas.hideCursorEffects() }
-        trail = []
-        updateMaskTimer()
-        if spotlightOn { updateCursorEffects(at: NSEvent.mouseLocation) }
+        if old.cursorEffect != new.cursorEffect {
+            overlays.forEach { $0.canvas.hideCursorEffects() }
+            trail = []
+        }
+        if old.maskSecrets != new.maskSecrets || old.maskApps != new.maskApps || old.maskedBundleIDs != new.maskedBundleIDs {
+            updateMaskTimer()
+        }
+        if spotlightOn, old.spotlightRadius != new.spotlightRadius || old.spotlightDarkness != new.spotlightDarkness {
+            updateCursorEffects(at: NSEvent.mouseLocation)
+        }
     }
 
     // MARK: - Masquage
@@ -504,6 +532,8 @@ final class LiveController: ObservableObject {
         let needed = isActive && maskingOn && (p.maskSecrets || p.maskApps)
         if !needed {
             maskTimer?.invalidate(); maskTimer = nil
+            focusedSecretRects = []
+            deepSecretRects = []
             overlays.forEach { $0.canvas.renderMasks([]) }
             return
         }
@@ -519,13 +549,50 @@ final class LiveController: ObservableObject {
 
     private func refreshMasks() {
         let p = style.prefs
+        if p.maskSecrets {
+            startSecretScan()
+        } else {
+            focusedSecretRects = []
+            deepSecretRects = []
+        }
+        renderAllMasks()
+    }
+
+    /// Le scan des secrets part en arrière-plan ; la fenêtre active entière
+    /// n'est parcourue qu'un relevé sur deux (une fois par seconde).
+    private func startSecretScan() {
+        guard !scanInFlight else { return }
+        scanInFlight = true
+        scanTick += 1
+        let deep = scanTick % 2 == 0
+        let height = ScreenGeometry.primaryHeight
+        scanQueue.async { [weak self] in
+            let rects = SecretScanner.visibleSecretRects(primaryHeight: height, deep: deep)
+            DispatchQueue.main.async { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    self.scanInFlight = false
+                    guard self.isActive, self.maskingOn, self.style.prefs.maskSecrets else { return }
+                    if deep {
+                        // Le scan complet couvre aussi le champ actif.
+                        self.deepSecretRects = rects
+                        self.focusedSecretRects = []
+                    } else {
+                        self.focusedSecretRects = rects
+                    }
+                    self.renderAllMasks()
+                }
+            }
+        }
+    }
+
+    private func renderAllMasks() {
+        let p = style.prefs
         var masks: [(CGRect, LiveCanvasView.MaskKind)] = []
         if p.maskApps {
             masks += AppMasker.windowRects(for: Set(p.maskedBundleIDs)).map { ($0, LiveCanvasView.MaskKind.app) }
         }
-        if p.maskSecrets {
-            masks += SecretScanner.visibleSecretRects().map { ($0, LiveCanvasView.MaskKind.secret) }
-        }
+        masks += (focusedSecretRects + deepSecretRects).map { ($0, LiveCanvasView.MaskKind.secret) }
         for overlay in overlays {
             let local = masks.compactMap { rect, kind -> (CGRect, LiveCanvasView.MaskKind)? in
                 let clipped = rect.intersection(overlay.frame)

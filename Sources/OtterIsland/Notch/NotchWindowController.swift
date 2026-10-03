@@ -147,19 +147,11 @@ final class NotchWindowController {
         // désormais à l'encoche physique, elle ne déborde plus sur les onglets
         // du navigateur qui vivent juste à côté.
         let notch = metrics.notchRect
-        // En Live, le « menton » sous l'encoche fait partie de la zone.
         let live = viewModel.live.isActive
-        let collapsed = viewModel.collapsedSize
-        let hotZone = live
-            ? NSRect(
-                x: metrics.screenFrame.midX - collapsed.width / 2,
-                y: metrics.screenFrame.maxY - collapsed.height,
-                width: collapsed.width, height: collapsed.height + 8
-            )
-            : NSRect(
-                x: notch.minX, y: notch.minY,
-                width: notch.width, height: notch.height + 8
-            )
+        let hotZone = NSRect(
+            x: notch.minX, y: notch.minY,
+            width: notch.width, height: notch.height + 8
+        )
 
         guard hotZone.contains(mouse) else {
             hasExitedSinceClose = true
@@ -177,9 +169,13 @@ final class NotchWindowController {
         // à zéro à chaque tick, quelle que soit la lenteur du geste ; s'arrêter
         // dessus, même une demi-seconde, ouvre. C'est la différence entre un
         // passage et une intention.
-        // En Live, la barre d'outils doit venir tout de suite : on vient la
-        // chercher exprès, en pleine démo.
+        // En Live, la barre d'outils vient vite (0,16 s dans l'encoche, même
+        // en mouvement) : on vient la chercher exprès, en pleine démo. Pas
+        // instantanément pour autant — un pointeur qui ne fait que traverser
+        // l'encoche n'ouvre rien.
         if live {
+            hoverTicks += 1
+            guard hoverTicks >= 2 else { return }
             hoverTicks = 0
             hoverArmed = true
             setIgnoresMouse(false, on: window)

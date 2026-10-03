@@ -78,7 +78,8 @@ final class LiveCanvasView: NSView {
     private let trailGlowLayer = CAShapeLayer()
     private let trailCoreLayer = CAShapeLayer()
     private let headLayer = CAShapeLayer()
-    private let otterLayer = CATextLayer()
+    /// Reflet clair au centre du ruban de la rivière.
+    private let sheenLayer = CAShapeLayer()
 
     private(set) var shapes: [LiveShape] = []
     private var currentLayer: CAShapeLayer?
@@ -105,15 +106,10 @@ final class LiveCanvasView: NSView {
         spotlightLayer.fillRule = .evenOdd
         spotlightLayer.opacity = 0
 
-        for sub in [trailGlowLayer, trailCoreLayer, headLayer, haloLayer] {
+        for sub in [trailGlowLayer, trailCoreLayer, sheenLayer, headLayer, haloLayer] {
             sub.actions = Self.noActions
             effectsLayer.addSublayer(sub)
         }
-        otterLayer.actions = Self.noActions
-        otterLayer.string = "🦦"
-        otterLayer.alignmentMode = .center
-        otterLayer.isHidden = true
-        effectsLayer.addSublayer(otterLayer)
         spotlightLayer.actions = Self.noActions
     }
 
@@ -314,8 +310,8 @@ final class LiveCanvasView: NSView {
         haloLayer.isHidden = true
         trailGlowLayer.path = nil
         trailCoreLayer.path = nil
+        sheenLayer.path = nil
         headLayer.isHidden = true
-        otterLayer.isHidden = true
     }
 
     func renderHalo(at point: CGPoint, color: NSColor, size: Double) {
@@ -332,17 +328,19 @@ final class LiveCanvasView: NSView {
     /// seule quand le geste accélère et se résorbe à l'arrêt.
     func renderMeteor(trail: [TrailPoint], color: NSColor, size: Double) {
         haloLayer.isHidden = true
-        otterLayer.isHidden = true
+        sheenLayer.path = nil
         guard trail.count >= 2, let head = trail.last?.point else {
             trailGlowLayer.path = nil
             trailCoreLayer.path = nil
             headLayer.isHidden = true
             return
         }
+        let points = Self.smoothed(trail.map(\.point))
         let maxWidth = 9 * CGFloat(size)
-        trailCoreLayer.path = Self.taperedPath(trail.map(\.point), maxWidth: maxWidth)
+        trailCoreLayer.path = Self.taperedPath(points, maxWidth: maxWidth)
         trailCoreLayer.fillColor = color.withAlphaComponent(0.92).cgColor
-        trailGlowLayer.path = Self.taperedPath(trail.map(\.point), maxWidth: maxWidth * 2.4)
+        trailCoreLayer.strokeColor = nil
+        trailGlowLayer.path = Self.taperedPath(points, maxWidth: maxWidth * 2.4)
         trailGlowLayer.fillColor = color.withAlphaComponent(0.22).cgColor
         let r = maxWidth * 0.75
         headLayer.isHidden = false
@@ -350,73 +348,86 @@ final class LiveCanvasView: NSView {
         headLayer.fillColor = NSColor.white.withAlphaComponent(0.95).cgColor
     }
 
-    /// Rivière loutre : un ruban d'eau qui ondule derrière le curseur, des
-    /// bulles qui remontent, et la loutre qui nage en tête.
-    func renderOtterRiver(trail: [TrailPoint], color: NSColor, size: Double, now: CFTimeInterval) {
+    /// Rivière : un ruban d'eau lisse qui suit exactement le geste — pas
+    /// d'ondulation —, plus long et plus doux que la météorite, avec un reflet
+    /// clair en son centre. Les ronds dans l'eau sont posés à part, voir
+    /// `spawnWaterRing`.
+    func renderRiver(trail: [TrailPoint], color: NSColor, size: Double) {
         haloLayer.isHidden = true
         headLayer.isHidden = true
-        trailGlowLayer.path = nil
-        guard trail.count >= 2, let head = trail.last?.point else {
+        guard trail.count >= 2 else {
+            trailGlowLayer.path = nil
             trailCoreLayer.path = nil
-            otterLayer.isHidden = true
+            sheenLayer.path = nil
             return
         }
-        let path = CGMutablePath()
-        let pts = trail.map(\.point)
-        for (i, p) in pts.enumerated() {
-            let prev = pts[max(0, i - 1)], next = pts[min(pts.count - 1, i + 1)]
-            let dx = next.x - prev.x, dy = next.y - prev.y
-            let len = max(0.001, hypot(dx, dy))
-            let nx = -dy / len, ny = dx / len
-            let age = now - trail[i].time
-            let wave = sin(CGFloat(age) * 18 + CGFloat(i) * 0.55) * 5 * CGFloat(size)
-            let q = CGPoint(x: p.x + nx * wave, y: p.y + ny * wave)
-            if i == 0 { path.move(to: q) } else { path.addLine(to: q) }
-        }
-        trailCoreLayer.path = path
-        trailCoreLayer.fillColor = nil
-        trailCoreLayer.strokeColor = color.withAlphaComponent(0.7).cgColor
-        trailCoreLayer.lineWidth = 6 * CGFloat(size)
-        trailCoreLayer.lineCap = .round
-        trailCoreLayer.lineJoin = .round
+        let points = Self.smoothed(trail.map(\.point))
+        let width = 7 * CGFloat(size)
+        trailGlowLayer.path = Self.taperedPath(points, maxWidth: width * 2.8)
+        trailGlowLayer.fillColor = color.withAlphaComponent(0.16).cgColor
+        trailCoreLayer.path = Self.taperedPath(points, maxWidth: width)
+        trailCoreLayer.fillColor = color.withAlphaComponent(0.78).cgColor
+        trailCoreLayer.strokeColor = nil
 
-        let font = 20 * CGFloat(size)
-        otterLayer.isHidden = false
-        otterLayer.fontSize = font
-        otterLayer.contentsScale = backingScale
-        otterLayer.frame = CGRect(x: head.x + 10, y: head.y - font - 6, width: font * 1.4, height: font * 1.3)
+        // Reflet : la moitié avant du ruban seulement, fine ligne blanche.
+        let sheen = CGMutablePath()
+        let front = Array(points.suffix(max(2, points.count / 2)))
+        sheen.addLines(between: front)
+        sheenLayer.path = sheen
+        sheenLayer.fillColor = nil
+        sheenLayer.strokeColor = NSColor.white.withAlphaComponent(0.45).cgColor
+        sheenLayer.lineWidth = max(1, width * 0.18)
+        sheenLayer.lineCap = .round
+        sheenLayer.lineJoin = .round
     }
 
-    /// Une bulle qui remonte et s'évanouit — entièrement animée par Core Animation.
-    func spawnBubble(at point: CGPoint, color: NSColor, size: Double) {
-        let r = CGFloat.random(in: 2...5) * CGFloat(size)
-        let bubble = CAShapeLayer()
-        bubble.path = CGPath(ellipseIn: CGRect(x: -r, y: -r, width: r * 2, height: r * 2), transform: nil)
-        bubble.fillColor = color.withAlphaComponent(0.25).cgColor
-        bubble.strokeColor = color.withAlphaComponent(0.85).cgColor
-        bubble.lineWidth = 1
-        bubble.position = CGPoint(x: point.x + .random(in: -8...8), y: point.y + .random(in: -8...8))
-        effectsLayer.addSublayer(bubble)
+    /// Rond dans l'eau : un anneau fin qui s'élargit lentement et s'efface.
+    /// Animé par Core Animation, sans travail de l'app après la pose.
+    func spawnWaterRing(at point: CGPoint, color: NSColor, size: Double) {
+        let ring = CAShapeLayer()
+        let r = 6 * CGFloat(size)
+        ring.path = CGPath(ellipseIn: CGRect(x: -r, y: -r, width: r * 2, height: r * 2), transform: nil)
+        ring.fillColor = nil
+        ring.strokeColor = color.withAlphaComponent(0.6).cgColor
+        ring.lineWidth = 1.2
+        ring.position = point
+        effectsLayer.insertSublayer(ring, below: trailGlowLayer)
 
-        let rise = CABasicAnimation(keyPath: "position")
-        rise.toValue = NSValue(point: NSPoint(x: bubble.position.x + .random(in: -12...12), y: bubble.position.y + .random(in: 18...34)))
-        let fadeOut = CABasicAnimation(keyPath: "opacity")
-        fadeOut.fromValue = 1
-        fadeOut.toValue = 0
         let grow = CABasicAnimation(keyPath: "transform.scale")
-        grow.fromValue = 0.6
-        grow.toValue = 1.3
+        grow.fromValue = 1
+        grow.toValue = 3.2
+        let fadeOut = CABasicAnimation(keyPath: "opacity")
+        fadeOut.fromValue = 0.8
+        fadeOut.toValue = 0
         let group = CAAnimationGroup()
-        group.animations = [rise, fadeOut, grow]
-        group.duration = 0.9
+        group.animations = [grow, fadeOut]
+        group.duration = 1.0
         group.timingFunction = CAMediaTimingFunction(name: .easeOut)
         group.isRemovedOnCompletion = false
         group.fillMode = .forwards
 
         CATransaction.begin()
-        CATransaction.setCompletionBlock { bubble.removeFromSuperlayer() }
-        bubble.add(group, forKey: "bubble")
+        CATransaction.setCompletionBlock { ring.removeFromSuperlayer() }
+        ring.add(group, forKey: "ring")
         CATransaction.commit()
+    }
+
+    /// Lissage de Chaikin (deux passes) : la trajectoire brute de la souris
+    /// est faite de segments ; lissée, la traînée coule au lieu de zigzaguer.
+    private static func smoothed(_ points: [CGPoint]) -> [CGPoint] {
+        guard points.count > 2 else { return points }
+        var current = points
+        for _ in 0..<2 {
+            var next: [CGPoint] = [current[0]]
+            for i in 0..<(current.count - 1) {
+                let a = current[i], b = current[i + 1]
+                next.append(CGPoint(x: a.x * 0.75 + b.x * 0.25, y: a.y * 0.75 + b.y * 0.25))
+                next.append(CGPoint(x: a.x * 0.25 + b.x * 0.75, y: a.y * 0.25 + b.y * 0.75))
+            }
+            next.append(current[current.count - 1])
+            current = next
+        }
+        return current
     }
 
     /// Onde au clic : un anneau qui s'ouvre et s'efface.

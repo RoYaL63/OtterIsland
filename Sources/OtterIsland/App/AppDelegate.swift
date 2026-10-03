@@ -53,6 +53,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] state in self?.showUpdateAvailability(state) }
             .store(in: &cancellables)
 
+        // Témoin du Live : un point rouge devant la loutre de la barre des
+        // menus, là où il ne recouvre rien.
+        controller.viewModel.live.$isActive
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] active in
+                self?.isLive = active
+                self?.refreshStatusTitle()
+            }
+            .store(in: &cancellables)
+
         if settings.autoCheckUpdates {
             updater.check()
         }
@@ -130,18 +141,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// orange sur la loutre et libellé qui nomme la version, plutôt qu'un
     /// résultat qui n'existe que si on pense à ouvrir le bon onglet.
     private func showUpdateAvailability(_ state: Updater.State) {
-        guard case .available(let release) = state else {
+        if case .available(let release) = state {
+            updateMenuItem?.title = "Mettre à jour vers \(release.version)…"
+            updateAvailable = true
+        } else {
             updateMenuItem?.title = "Rechercher les mises à jour…"
-            statusItem?.button?.attributedTitle = NSAttributedString(string: "🦦")
-            return
+            updateAvailable = false
         }
-        updateMenuItem?.title = "Mettre à jour vers \(release.version)…"
-        let badged = NSMutableAttributedString(string: "🦦")
-        badged.append(NSAttributedString(
-            string: " •",
-            attributes: [.foregroundColor: NSColor.systemOrange]
-        ))
-        statusItem?.button?.attributedTitle = badged
+        refreshStatusTitle()
+    }
+
+    private var isLive = false
+    private var updateAvailable = false
+
+    /// « ● 🦦 » pendant le Live, « 🦦 • » si une mise à jour attend.
+    private func refreshStatusTitle() {
+        let title = NSMutableAttributedString()
+        if isLive {
+            title.append(NSAttributedString(string: "● ", attributes: [.foregroundColor: NSColor.systemRed]))
+        }
+        title.append(NSAttributedString(string: "🦦"))
+        if updateAvailable {
+            title.append(NSAttributedString(string: " •", attributes: [.foregroundColor: NSColor.systemOrange]))
+        }
+        statusItem?.button?.attributedTitle = title
     }
 
     /// Les réglages ouvrent notre propre fenêtre (voir `SettingsWindowController`

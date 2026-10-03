@@ -81,11 +81,7 @@ struct NotchRootView: View {
     private var collapsedContent: some View {
         VStack {
             Spacer()
-            if viewModel.live.isActive {
-                LiveCollapsedBadge(live: viewModel.live)
-                    .frame(height: 16)
-                    .padding(.bottom, 3)
-            } else if viewModel.inbox.pending != nil {
+            if viewModel.inbox.pending != nil {
                 Circle()
                     .fill(Color.orange)
                     .frame(width: 6, height: 6)
@@ -115,6 +111,14 @@ struct NotchRootView: View {
                     ClaudeCodeCard(request: request) { approved in
                         viewModel.inbox.resolve(request, approved: approved)
                     }
+                } else if viewModel.live.isActive, viewModel.liveDetour != nil {
+                    HStack {
+                        OtterActionLink(title: "Barre Live", icon: "chevron.left", tint: Otter.textSecondary) {
+                            viewModel.liveDetour = nil
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    panel
                 } else if viewModel.live.isActive {
                     LiveToolbar(live: viewModel.live, style: viewModel.live.style)
                 } else {

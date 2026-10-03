@@ -45,12 +45,18 @@ struct LiveCustomizeView: View {
     @ObservedObject var live: LiveController
     @ObservedObject var style: LiveStyle
 
-    @State private var hexDraft = ""
-    @State private var hexError = false
-    @State private var effectHexDraft = ""
+    /// Ce que modifient la palette et le sélecteur.
+    enum ColorTarget: String, CaseIterable, Identifiable {
+        case stroke = "Trait"
+        case effect = "Effet du curseur"
+        var id: String { rawValue }
+    }
+
+    @State private var target: ColorTarget = .stroke
 
     var body: some View {
         Form {
+            colorSection
             strokeSection
             cursorSection
             spotlightSection
@@ -68,41 +74,58 @@ struct LiveCustomizeView: View {
         }
         .formStyle(.grouped)
         .frame(minWidth: 520, minHeight: 560)
-        .onAppear {
-            hexDraft = style.prefs.colorHex
-            effectHexDraft = style.prefs.cursorEffectHex
-        }
     }
 
     // MARK: Trait
 
-    private var strokeSection: some View {
-        Section("Trait") {
+    private var colorSection: some View {
+        Section("Couleurs") {
+            Picker("Modifier", selection: $target) {
+                ForEach(ColorTarget.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+
             VStack(alignment: .leading, spacing: 8) {
-                Text("Palette — les 5 premières couleurs apparaissent dans l'island")
+                Text(target == .stroke
+                     ? "Palette — les 5 premières couleurs apparaissent dans l'island. Clic droit pour copier le code ou retirer."
+                     : "Clique une couleur de la palette ou un préréglage pour l'effet du curseur.")
                     .font(.caption).foregroundStyle(.secondary)
                 LazyVGrid(columns: Array(repeating: GridItem(.fixed(30), spacing: 8), count: 8), alignment: .leading, spacing: 8) {
                     ForEach(style.prefs.palette, id: \.self) { hex in
                         swatch(hex)
                     }
                 }
+                if target == .effect {
+                    HStack(spacing: 6) {
+                        ForEach(Self.effectPresets) { preset in
+                            Button(preset.name) { style.prefs.cursorEffectHex = preset.hex }
+                                .controlSize(.small)
+                        }
+                    }
+                }
             }
 
-            HStack(spacing: 10) {
-                ColorPicker("Sélecteur", selection: colorBinding(\.colorHex), supportsOpacity: false)
-                Spacer()
-                TextField("#RRGGBB", text: $hexDraft)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.body.monospaced())
-                    .frame(width: 110)
-                    .onSubmit(applyHex)
-                Button("Ajouter à la palette", action: applyHex)
-            }
-            if hexError {
-                Text("Code hexa invalide : six chiffres de 0 à 9 ou lettres de A à F, par exemple #FF453A.")
-                    .font(.caption).foregroundStyle(.red)
-            }
+            LiveColorPicker(
+                hex: targetHex,
+                onChange: { setTargetHex($0) },
+                onAddToPalette: { style.addToPalette($0, select: target == .stroke) }
+            )
+            .padding(.vertical, 4)
+            Text("Les changements s'appliquent tout de suite, Live allumé ou non.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
 
+    private var targetHex: String {
+        target == .stroke ? style.prefs.colorHex : style.prefs.cursorEffectHex
+    }
+
+    private func setTargetHex(_ hex: String) {
+        if target == .stroke { style.prefs.colorHex = hex } else { style.prefs.cursorEffectHex = hex }
+    }
+
+    private var strokeSection: some View {
+        Section("Trait") {
             LabeledContent("Épaisseur") {
                 HStack {
                     Slider(value: binding(\.strokeWidth), in: 2...12, step: 1)
@@ -134,10 +157,9 @@ struct LiveCustomizeView: View {
     }
 
     private func swatch(_ hex: String) -> some View {
-        let selected = style.prefs.colorHex.uppercased() == hex.uppercased()
+        let selected = targetHex.uppercased() == hex.uppercased()
         return Button {
-            style.prefs.colorHex = hex
-            hexDraft = hex
+            setTargetHex(hex)
         } label: {
             Circle()
                 .fill(Color(hex: hex))
@@ -158,16 +180,6 @@ struct LiveCustomizeView: View {
         }
     }
 
-    private func applyHex() {
-        guard NSColor.normalizedHex(hexDraft) != nil else {
-            hexError = true
-            return
-        }
-        hexError = false
-        style.addToPalette(hexDraft)
-        hexDraft = style.prefs.colorHex
-    }
-
     // MARK: Curseur
 
     private var cursorSection: some View {
@@ -178,29 +190,13 @@ struct LiveCustomizeView: View {
             .pickerStyle(.segmented)
             Text(style.prefs.cursorEffect.detail)
                 .font(.caption).foregroundStyle(.secondary)
-
             if style.prefs.cursorEffect != .none {
-                HStack(spacing: 10) {
-                    ColorPicker("Couleur de l'effet", selection: colorBinding(\.cursorEffectHex), supportsOpacity: false)
+                HStack {
+                    Circle().fill(Color(hex: style.prefs.cursorEffectHex)).frame(width: 14, height: 14)
+                    Text("Couleur : \(style.prefs.cursorEffectHex)").font(.callout.monospaced())
                     Spacer()
-                    TextField("#RRGGBB", text: $effectHexDraft)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.body.monospaced())
-                        .frame(width: 110)
-                        .onSubmit {
-                            if let hex = NSColor.normalizedHex(effectHexDraft) { style.prefs.cursorEffectHex = hex }
-                            effectHexDraft = style.prefs.cursorEffectHex
-                        }
-                }
-                HStack(spacing: 6) {
-                    Text("Préréglages").font(.caption).foregroundStyle(.secondary)
-                    ForEach(Self.effectPresets) { preset in
-                        Button(preset.name) {
-                            style.prefs.cursorEffectHex = preset.hex
-                            effectHexDraft = preset.hex
-                        }
+                    Button("Changer la couleur") { target = .effect }
                         .controlSize(.small)
-                    }
                 }
                 LabeledContent("Taille") {
                     Slider(value: binding(\.cursorEffectSize), in: 0.6...2)
@@ -350,7 +346,7 @@ struct LiveCustomizeView: View {
                         .background(RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.08)))
                 }
             }
-            Text("En mode stylo : Échap efface tout et rend la souris, ⌘Z annule le dernier dessin, un clic sur un dessin l'efface.")
+            Text("En mode stylo : Échap efface tout et rend la souris, un clic sur un dessin l'efface. Le Live ne capture aucun raccourci des apps : ⌘Z, ⌘V ou le raccourci du presse-papier continuent de marcher.")
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -365,14 +361,4 @@ struct LiveCustomizeView: View {
         )
     }
 
-    private func colorBinding(_ keyPath: WritableKeyPath<LivePreferences, String>) -> Binding<Color> {
-        Binding(
-            get: { Color(hex: style.prefs[keyPath: keyPath]) },
-            set: { newValue in
-                let hex = NSColor(newValue).hexString
-                style.prefs[keyPath: keyPath] = hex
-                if keyPath == \LivePreferences.colorHex { hexDraft = hex } else { effectHexDraft = hex }
-            }
-        )
-    }
 }
