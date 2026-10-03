@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import Carbon.HIToolbox
 import SwiftUI
 
 /// Fenêtre « Personnaliser le Live ». L'island garde l'essentiel (outils,
@@ -391,7 +392,7 @@ struct LiveCustomizeView: View {
                 HStack {
                     Text(shortcut.title)
                     if live.failedShortcuts.contains(shortcut.id) {
-                        Text("déjà pris")
+                        Text("déjà pris (autre app ou autre raccourci)")
                             .font(.caption)
                             .foregroundStyle(.orange)
                     }
@@ -431,7 +432,10 @@ struct LiveCustomizeView: View {
             set: { newValue in
                 var combo = live.combo(for: id)
                 combo[keyPath: keyPath] = newValue
-                style.prefs.shortcuts[id] = combo
+                // Revenir à la combinaison d'origine efface la personnalisation.
+                let defaultCode = LiveController.shortcuts.first { $0.id == id }?.keyCode ?? -1
+                let isDefault = combo.keyCode == defaultCode && combo.modifiers == Int(controlKey | optionKey)
+                style.prefs.shortcuts[id] = isDefault ? nil : combo
             }
         )
     }

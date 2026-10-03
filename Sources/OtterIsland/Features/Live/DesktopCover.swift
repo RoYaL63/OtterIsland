@@ -34,7 +34,11 @@ final class DesktopCover {
             // cachées dessous (on ouvrirait un fichier invisible).
             window.ignoresMouseEvents = false
 
+            // Vue « hébergeuse » de calque : le calque nous appartient, on peut
+            // y poser l'image directement (un calque géré par AppKit pourrait
+            // l'écraser).
             let view = NSView(frame: NSRect(origin: .zero, size: screen.frame.size))
+            view.layer = CALayer()
             view.wantsLayer = true
             view.autoresizingMask = [.width, .height]
             if style.desktopCover == .wallpaper,
@@ -51,9 +55,11 @@ final class DesktopCover {
             windows.append(window)
         }
 
-        if style.hideOtherApps {
-            let me = NSRunningApplication.current.processIdentifier
-            let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let me = NSRunningApplication.current.processIdentifier
+        let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        // Live lancé depuis le panneau d'OtterIsland : on ne sait pas quelle
+        // app est présentée, on ne masque donc rien plutôt que de la cacher.
+        if style.hideOtherApps, front != me {
             for app in NSWorkspace.shared.runningApplications
             where app.activationPolicy == .regular && !app.isHidden
                 && app.processIdentifier != me && app.processIdentifier != front {

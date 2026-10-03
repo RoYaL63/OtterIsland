@@ -33,8 +33,14 @@ struct ShortcutRecorderView: View {
         symbols(for: UInt32(modifiers)) + (keyName(for: Int32(keyCode)) ?? "?")
     }
 
+    /// Publiée au début (objet `true`) et à la fin (`false`) d'un
+    /// enregistrement, pour que les raccourcis globaux s'effacent le temps de
+    /// la capture.
+    static let recordingDidChange = Notification.Name("OtterIsland.shortcutRecordingDidChange")
+
     private func startRecording() {
         isRecording = true
+        NotificationCenter.default.post(name: Self.recordingDidChange, object: true)
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             let carbonModifiers = Self.carbonModifiers(from: event.modifierFlags)
             // Sans modificateur, trop de risques de percuter la saisie normale : on ignore.
@@ -47,6 +53,9 @@ struct ShortcutRecorderView: View {
     }
 
     private func stopRecording() {
+        if isRecording {
+            NotificationCenter.default.post(name: Self.recordingDidChange, object: false)
+        }
         isRecording = false
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil

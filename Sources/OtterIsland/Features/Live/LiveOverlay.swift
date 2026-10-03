@@ -211,7 +211,8 @@ final class LiveCanvasView: NSView {
             layer.path = CGPath(roundedRect: Self.rect(start, point), cornerWidth: 6, cornerHeight: 6, transform: nil)
         case .ellipse:
             currentPoints = [start, point]
-            layer.path = CGPath(ellipseIn: Self.rect(start, point), transform: nil)
+            layer.path = CGPath(ellipseIn: Self.rect(start, point), transform: nil)        case .badge:
+            break // posées par placeBadge, jamais tracées
         }
     }
 

@@ -73,11 +73,29 @@ final class LiveController: ObservableObject {
         keysOn = style.prefs.showKeys
         installToggleHotKey()
 
+        // Pendant qu'on enregistre un raccourci dans le panneau, nos propres
+        // combinaisons sont suspendues : Carbon les avalerait avant
+        // l'enregistreur, et on déclencherait l'action au lieu de la capturer.
+        NotificationCenter.default.publisher(for: ShortcutRecorderView.recordingDidChange)
+            .sink { [weak self] note in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    if (note.object as? Bool) == true {
+                        self.toggleHotKey = nil
+                        self.liveHotKeys = []
+                    } else {
+                        self.reinstallHotKeys()
+                    }
+                }
+            }
+            .store(in: &cancellables)
+
         NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
             .sink { [weak self] _ in
                 MainActor.assumeIsolated {
                     guard let self, self.isActive else { return }
                     self.rebuildOverlays()
+                    if self.desktopHidden { self.desktop.show(style: self.style.prefs) }
                 }
             }
             .store(in: &cancellables)
@@ -174,6 +192,7 @@ final class LiveController: ObservableObject {
     }
 
     func undo() {
+        badgeEditor.cancel()
         let latest = overlays.compactMap { o in o.canvas.latestShape.map { (o.canvas, $0) } }
             .max { $0.1.createdAt < $1.1.createdAt }
         if let latest { latest.0.remove(latest.1) }
@@ -312,12 +331,15 @@ final class LiveController: ObservableObject {
         var failed: Set<String> = []
         var installed: [HotKey] = []
         liveHotKeys = []
+        var used: [LiveKeyCombo] = [combo(for: "live")]
         for shortcut in Self.shortcuts where shortcut.id != "live" && shortcut.id != "zoom" {
             let c = combo(for: shortcut.id)
-            guard c != clipboard else {
+            // Déjà pris par le presse-papier ou par un autre raccourci du Live.
+            guard c != clipboard, !used.contains(c) else {
                 failed.insert(shortcut.id)
                 continue
             }
+            used.append(c)
             let hotKey = HotKey(keyCode: UInt32(c.keyCode), modifiers: UInt32(c.modifiers)) { [weak self] in
                 MainActor.assumeIsolated { self?.perform(shortcut.id) }
             }
