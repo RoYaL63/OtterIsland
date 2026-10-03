@@ -44,13 +44,16 @@ final class LiveOverlayWindow: NSPanel {
 
 /// Un dessin posé à l'écran.
 final class LiveShape {
-    let layer: CAShapeLayer
+    let layer: CALayer
     let createdAt = Date()
     var fadeWork: DispatchWorkItem?
     /// Chemin « épaissi » pour savoir si un clic tombe dessus.
-    let hitPath: CGPath
+    var hitPath: CGPath
+    /// Pastille numérotée : son numéro, et l'étiquette éventuelle.
+    var badgeNumber: Int?
+    var label: String = ""
 
-    init(layer: CAShapeLayer, hitPath: CGPath) {
+    init(layer: CALayer, hitPath: CGPath) {
         self.layer = layer
         self.hitPath = hitPath
     }
@@ -208,7 +211,8 @@ final class LiveCanvasView: NSView {
             layer.path = CGPath(roundedRect: Self.rect(start, point), cornerWidth: 6, cornerHeight: 6, transform: nil)
         case .ellipse:
             currentPoints = [start, point]
-            layer.path = CGPath(ellipseIn: Self.rect(start, point), transform: nil)
+            layer.path = CGPath(ellipseIn: Self.rect(start, point), transform: nil)        case .badge:
+            break // posées par placeBadge, jamais tracées
         }
     }
 
@@ -307,6 +311,125 @@ final class LiveCanvasView: NSView {
 
     private static func rect(_ a: CGPoint, _ b: CGPoint) -> CGRect {
         CGRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(a.x - b.x), height: abs(a.y - b.y))
+    }
+
+    // MARK: - Pastilles
+
+    static let badgeRadius: CGFloat = 13
+
+    /// Pose une pastille numérotée centrée sur `point`. Elle reste jusqu'à
+    /// l'effacement, sauf si `fadeSeconds` > 0.
+    func placeBadge(at point: CGPoint, number: Int, color: NSColor, fadeSeconds: Double, onFade: @escaping (LiveShape) -> Void) -> LiveShape {
+        let r = Self.badgeRadius
+        let container = CALayer()
+        container.actions = Self.noActions
+        container.frame = CGRect(x: point.x - r, y: point.y - r, width: r * 2, height: r * 2)
+
+        let circle = CAShapeLayer()
+        circle.path = CGPath(ellipseIn: CGRect(x: 0, y: 0, width: r * 2, height: r * 2), transform: nil)
+        circle.fillColor = color.cgColor
+        circle.strokeColor = NSColor.white.withAlphaComponent(0.9).cgColor
+        circle.lineWidth = 2
+        circle.shadowColor = NSColor.black.cgColor
+        circle.shadowOpacity = 0.35
+        circle.shadowRadius = 4
+        circle.shadowOffset = CGSize(width: 0, height: -1)
+        circle.shadowPath = circle.path
+        container.addSublayer(circle)
+
+        let text = CATextLayer()
+        text.string = "\(number)"
+        text.font = NSFont.systemFont(ofSize: 13, weight: .bold)
+        text.fontSize = number >= 10 ? 11 : 13
+        text.alignmentMode = .center
+        text.foregroundColor = Self.contrastingText(for: color).cgColor
+        text.contentsScale = backingScale
+        let h = text.fontSize * 1.25
+        text.frame = CGRect(x: 0, y: r - h / 2 - 1, width: r * 2, height: h)
+        container.addSublayer(text)
+
+        drawingsLayer.addSublayer(container)
+        let shape = LiveShape(layer: container, hitPath: CGPath(ellipseIn: container.frame.insetBy(dx: -4, dy: -4), transform: nil))
+        shape.badgeNumber = number
+        shapes.append(shape)
+
+        // Apparition : un petit rebond, joué par Core Animation.
+        let pop = CASpringAnimation(keyPath: "transform.scale")
+        pop.fromValue = 0.4
+        pop.toValue = 1
+        pop.damping = 12
+        pop.initialVelocity = 8
+        pop.duration = pop.settlingDuration
+        container.add(pop, forKey: "pop")
+
+        if fadeSeconds > 0 {
+            let work = DispatchWorkItem { [weak self, weak shape] in
+                MainActor.assumeIsolated {
+                    guard let self, let shape else { return }
+                    self.remove(shape)
+                    onFade(shape)
+                }
+            }
+            shape.fadeWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + fadeSeconds, execute: work)
+        }
+        return shape
+    }
+
+    /// Étiquette à droite de la pastille : texte blanc sur une bulle sombre.
+    /// Une étiquette vide retire la bulle.
+    func setLabel(_ label: String, on shape: LiveShape) {
+        guard shape.badgeNumber != nil else { return }
+        shape.label = label
+        let r = Self.badgeRadius
+        shape.layer.sublayers?.filter { $0.name == "label" }.forEach { $0.removeFromSuperlayer() }
+        let center = CGPoint(x: shape.layer.frame.midX, y: shape.layer.frame.midY)
+        guard !label.isEmpty else {
+            shape.hitPath = CGPath(ellipseIn: shape.layer.frame.insetBy(dx: -4, dy: -4), transform: nil)
+            return
+        }
+        let font = NSFont.systemFont(ofSize: 14, weight: .semibold)
+        let width = ceil((label as NSString).size(withAttributes: [.font: font]).width) + 20
+        let height: CGFloat = 26
+
+        let bubble = CALayer()
+        bubble.name = "label"
+        bubble.actions = Self.noActions
+        bubble.frame = CGRect(x: r * 2 + 6, y: r - height / 2, width: width, height: height)
+        bubble.backgroundColor = NSColor(srgbRed: 0.06, green: 0.08, blue: 0.09, alpha: 0.88).cgColor
+        bubble.cornerRadius = height / 2
+        bubble.borderColor = NSColor.white.withAlphaComponent(0.18).cgColor
+        bubble.borderWidth = 1
+
+        let text = CATextLayer()
+        text.string = label
+        text.font = font
+        text.fontSize = 14
+        text.foregroundColor = NSColor.white.cgColor
+        text.alignmentMode = .center
+        text.contentsScale = backingScale
+        text.frame = CGRect(x: 0, y: (height - 18) / 2 - 1, width: width, height: 18)
+        bubble.addSublayer(text)
+        shape.layer.addSublayer(bubble)
+
+        let hit = CGMutablePath()
+        hit.addEllipse(in: CGRect(x: center.x - r - 4, y: center.y - r - 4, width: r * 2 + 8, height: r * 2 + 8))
+        hit.addRect(CGRect(x: shape.layer.frame.minX + bubble.frame.minX, y: shape.layer.frame.minY + bubble.frame.minY, width: width, height: height))
+        shape.hitPath = hit
+    }
+
+    /// Point d'ancrage de l'étiquette, en repère local du canevas.
+    func labelAnchor(for shape: LiveShape) -> CGPoint {
+        CGPoint(x: shape.layer.frame.maxX + 6, y: shape.layer.frame.midY)
+    }
+
+    var badges: [LiveShape] { shapes.filter { $0.badgeNumber != nil } }
+
+    /// Texte noir sur une pastille claire (jaune, blanc), blanc sinon.
+    private static func contrastingText(for color: NSColor) -> NSColor {
+        let c = color.usingColorSpace(.sRGB) ?? color
+        let luminance = 0.299 * c.redComponent + 0.587 * c.greenComponent + 0.114 * c.blueComponent
+        return luminance > 0.65 ? .black : .white
     }
 
     // MARK: - Effets de curseur

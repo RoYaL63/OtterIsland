@@ -60,7 +60,7 @@ struct LiveToolbar: View {
                     .background(Capsule().fill(Color.red.opacity(0.18)))
                 }
                 .buttonStyle(OtterPressStyle(scale: 0.95))
-                .help("Arrêter le Live (⌃⌥L)")
+                .help("Arrêter le Live (\(live.comboLabel(for: "live")))")
             }
 
             Spacer(minLength: 0)
@@ -68,34 +68,37 @@ struct LiveToolbar: View {
             HStack(spacing: 6) {
                 group {
                     ForEach(LiveTool.allCases) { tool in
-                        button(icon: tool.icon, title: tool.title, letter: tool.shortcutLetter, isOn: live.tool == tool, filled: true) {
+                        button(icon: tool.icon, title: tool.title, shortcut: tool.rawValue, isOn: live.tool == tool, filled: true) {
                             live.select(tool)
                         }
                     }
                 }
                 group {
-                    button(icon: effectIcon, title: "Effet de curseur : \(style.prefs.cursorEffect.title)", letter: "H", isOn: live.cursorEffectOn && style.prefs.cursorEffect != .none) {
+                    button(icon: effectIcon, title: "Effet de curseur : \(style.prefs.cursorEffect.title)", shortcut: "effect", isOn: live.cursorEffectOn && style.prefs.cursorEffect != .none) {
                         live.toggleCursorEffect()
                     }
-                    button(icon: "flashlight.on.fill", title: "Projecteur", letter: "B", isOn: live.spotlightOn) {
+                    button(icon: "flashlight.on.fill", title: "Projecteur", shortcut: "spotlight", isOn: live.spotlightOn) {
                         live.toggleSpotlight()
                     }
-                    button(icon: "keyboard", title: "Touches affichées", letter: "K", isOn: live.keysOn) {
+                    button(icon: "keyboard", title: "Touches affichées", shortcut: "keys", isOn: live.keysOn) {
                         live.toggleKeys()
                     }
-                    button(icon: "lock.shield", title: "Masquer clés et apps sensibles", letter: "M", isOn: live.maskingOn) {
+                    button(icon: "lock.shield", title: "Masquer clés et apps sensibles", shortcut: "mask", isOn: live.maskingOn) {
                         live.toggleMasking()
                     }
-                    button(icon: "plus.magnifyingglass", title: "Loupe macOS (⌥⌘8)", letter: nil, isOn: false) {
+                    button(icon: "menubar.dock.rectangle", title: "Cacher le bureau", shortcut: "desktop", isOn: live.desktopHidden) {
+                        live.toggleDesktop()
+                    }
+                    button(icon: "plus.magnifyingglass", title: "Loupe macOS", shortcut: "zoom", isOn: false) {
                         live.toggleSystemZoom()
                     }
                 }
                 group {
-                    button(icon: "arrow.uturn.backward", title: "Annuler le dernier dessin", letter: "Z", isOn: false) {
+                    button(icon: "arrow.uturn.backward", title: "Annuler le dernier dessin", shortcut: "undo", isOn: false) {
                         live.undo()
                     }
                     .disabled(!live.hasDrawings)
-                    button(icon: "trash", title: "Tout effacer", letter: "X", isOn: false) {
+                    button(icon: "trash", title: "Tout effacer", shortcut: "clear", isOn: false) {
                         live.clearAll()
                     }
                     .disabled(!live.hasDrawings)
@@ -107,18 +110,17 @@ struct LiveToolbar: View {
 
     private var hint: String {
         if live.tool != nil {
-            return "Mode \(live.tool?.title.lowercased() ?? "stylo") · clic sur un dessin pour l'effacer · esc tout effacer · ⌃⌥Z annuler"
+            if live.tool == .badge {
+                return "Pastille : clic pour poser, tape une étiquette puis ↩ — ou reclique ailleurs pour la pastille seule"
+            }
+            return "Mode \(live.tool?.title.lowercased() ?? "stylo") · clic sur un dessin pour l'effacer · esc tout effacer · \(live.comboLabel(for: "undo")) annuler"
         }
         let modifier = style.prefs.drawModifier
         let draw = modifier == .none ? "" : "Maintiens \(modifier.title.prefix(1)) et glisse pour dessiner · "
         if !live.failedShortcuts.isEmpty {
-            return draw + "Certains raccourcis ⌃⌥ sont pris par une autre app (barrés) · ⌃⌥L arrête le Live"
+            return draw + "Certains raccourcis sont pris par une autre app (barrés) · \(live.comboLabel(for: "live")) arrête le Live"
         }
-        return draw + "Raccourcis : ⌃⌥ + la lettre (⌃⌥B projecteur…) · ⌃⌥L arrête le Live"
-    }
-
-    private func shortcutFailed(_ letter: String) -> Bool {
-        LiveController.shortcuts.contains { $0.letter == letter && live.failedShortcuts.contains($0.id) }
+        return draw + "Raccourcis sous chaque bouton · \(live.comboLabel(for: "live")) arrête le Live"
     }
 
     private var effectIcon: String {
@@ -138,8 +140,10 @@ struct LiveToolbar: View {
             .background(Capsule().fill(Color.white.opacity(0.06)))
     }
 
-    private func button(icon: String, title: String, letter: String?, isOn: Bool, filled: Bool = false, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+    private func button(icon: String, title: String, shortcut: String?, isOn: Bool, filled: Bool = false, action: @escaping () -> Void) -> some View {
+        let label = shortcut.map { live.comboLabel(for: $0) }
+        let failed = shortcut.map { live.failedShortcuts.contains($0) } ?? false
+        return Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .semibold))
                 .padding(.top, 5)
@@ -151,20 +155,22 @@ struct LiveToolbar: View {
                     }
                 }
                 .overlay(alignment: .bottom) {
-                    if let letter {
+                    if let label {
                         // Combinaison complète : « B » seul laissait croire
                         // qu'il suffisait d'appuyer sur la lettre.
-                        Text("⌃⌥\(letter)")
+                        Text(label)
                             .font(.system(size: 6, weight: .bold, design: .rounded))
                             .foregroundStyle(isOn && filled ? Color.black.opacity(0.55) : Otter.textTertiary)
-                            .strikethrough(shortcutFailed(letter))
+                            .strikethrough(failed)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                             .padding(.bottom, 3)
                     }
                 }
                 .contentShape(Capsule())
         }
         .buttonStyle(OtterPressStyle(scale: 0.9))
-        .help(letter.map { shortcutFailed($0) ? "\(title) — ⌃⌥\($0) est déjà pris par une autre app" : "\(title) — ⌃⌥\($0)" } ?? title)
+        .help(label.map { failed ? "\(title) — \($0) est déjà pris par une autre app" : "\(title) — \($0)" } ?? title)
     }
 
     private func swatch(_ hex: String) -> some View {

@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Outils de dessin du mode Live.
 enum LiveTool: String, CaseIterable, Identifiable, Codable {
-    case pen, arrow, rectangle, ellipse, marker, laser
+    case pen, arrow, rectangle, ellipse, marker, laser, badge
 
     var id: String { rawValue }
 
@@ -15,6 +15,7 @@ enum LiveTool: String, CaseIterable, Identifiable, Codable {
         case .ellipse: return "Cercle"
         case .marker: return "Surligneur"
         case .laser: return "Laser"
+        case .badge: return "Pastille"
         }
     }
 
@@ -26,6 +27,7 @@ enum LiveTool: String, CaseIterable, Identifiable, Codable {
         case .ellipse: return "circle"
         case .marker: return "highlighter"
         case .laser: return "light.max"
+        case .badge: return "1.circle.fill"
         }
     }
 
@@ -38,6 +40,7 @@ enum LiveTool: String, CaseIterable, Identifiable, Codable {
         case .ellipse: return "O"
         case .marker: return "S"
         case .laser: return "T"
+        case .badge: return "N"
         }
     }
 }
@@ -100,6 +103,19 @@ enum LiveKeysPosition: String, CaseIterable, Identifiable, Codable {
     var title: String { self == .bottom ? "En bas" : "En haut" }
 }
 
+/// Ce qui recouvre le bureau pendant le Live.
+enum LiveDesktopCover: String, CaseIterable, Identifiable, Codable {
+    case wallpaper, solid
+    var id: String { rawValue }
+    var title: String { self == .wallpaper ? "Fond d'écran seul" : "Couleur unie" }
+}
+
+/// Raccourci personnalisé, au format Carbon (celui de `HotKey`).
+struct LiveKeyCombo: Codable, Equatable {
+    var keyCode: Int
+    var modifiers: Int
+}
+
 /// Préférences du mode Live, enregistrées d'un bloc en JSON dans UserDefaults.
 /// Un seul objet plutôt que quinze clés : le panneau de personnalisation les
 /// modifie toutes, et elles voyagent ensemble.
@@ -136,6 +152,20 @@ struct LivePreferences: Codable, Equatable {
 
     var drawModifier: LiveDrawModifier = .control
 
+    /// Cache les icônes du bureau derrière le fond d'écran (ou une couleur).
+    var hideDesktop: Bool = true
+    var desktopCover: LiveDesktopCover = .wallpaper
+    var desktopColorHex: String = "#1C1C1E"
+    /// Masque aussi les autres apps (comme ⌥⌘H), réaffichées à la fin.
+    var hideOtherApps: Bool = false
+
+    /// Les pastilles numérotées restent jusqu'à l'effacement, au lieu de
+    /// s'estomper comme les dessins : elles balisent un parcours.
+    var badgesPersist: Bool = true
+
+    /// Raccourcis modifiés par l'utilisateur, par identifiant. Absent = défaut.
+    var shortcuts: [String: LiveKeyCombo] = [:]
+
     init() {}
 
     /// Décodage tolérant : une clé absente (réglage ajouté dans une version
@@ -164,6 +194,12 @@ struct LivePreferences: Codable, Equatable {
         maskedBundleIDs = (try? c.decode([String].self, forKey: .maskedBundleIDs)) ?? d.maskedBundleIDs
         focusDuringLive = (try? c.decode(Bool.self, forKey: .focusDuringLive)) ?? d.focusDuringLive
         drawModifier = (try? c.decode(LiveDrawModifier.self, forKey: .drawModifier)) ?? d.drawModifier
+        hideDesktop = (try? c.decode(Bool.self, forKey: .hideDesktop)) ?? d.hideDesktop
+        desktopCover = (try? c.decode(LiveDesktopCover.self, forKey: .desktopCover)) ?? d.desktopCover
+        desktopColorHex = (try? c.decode(String.self, forKey: .desktopColorHex)) ?? d.desktopColorHex
+        hideOtherApps = (try? c.decode(Bool.self, forKey: .hideOtherApps)) ?? d.hideOtherApps
+        badgesPersist = (try? c.decode(Bool.self, forKey: .badgesPersist)) ?? d.badgesPersist
+        shortcuts = (try? c.decode([String: LiveKeyCombo].self, forKey: .shortcuts)) ?? d.shortcuts
     }
 }
 
