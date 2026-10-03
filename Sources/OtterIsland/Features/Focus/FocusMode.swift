@@ -31,6 +31,24 @@ enum FocusMode {
         }
     }
 
+    /// Version bloquante, pour la fermeture de l'app : `trigger` lance le
+    /// raccourci en arrière-plan, et le processus serait mort avant qu'il
+    /// démarre. Plafonné à 3 s pour ne jamais retenir la fermeture.
+    static func runAndWait(_ shortcutName: String) {
+        let name = shortcutName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, isSupported else { return }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = ["run", name]
+        process.standardOutput = Pipe()
+        process.standardError = Pipe()
+        guard (try? process.run()) != nil else { return }
+        let deadline = Date().addingTimeInterval(3)
+        while process.isRunning, Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+    }
+
     /// Noms des raccourcis de l'utilisateur, pour le menu des réglages. Appel
     /// synchrone : la liste est courte et n'est lue qu'à l'ouverture du panneau.
     static func availableShortcuts() -> [String] {
