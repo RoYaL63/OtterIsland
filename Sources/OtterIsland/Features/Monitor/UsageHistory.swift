@@ -182,7 +182,7 @@ final class UsageHistory: ObservableObject {
         }
     }
 
-    /// « Airtable - Base CRM - Google Chrome - Augustin » → « Airtable - Base CRM ».
+    /// « Airtable - Base CRM - Google Chrome - Camille » → « Airtable - Base CRM ».
     static func cleanTitle(_ raw: String, browser: String) -> String {
         var title = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         for separator in [" - ", " — ", " – "] {
