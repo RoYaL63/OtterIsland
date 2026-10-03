@@ -19,6 +19,22 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 
 ---
 
+## Communauté et soutien
+
+🦦 **Rejoignez-moi sur la [communauté Cube](https://ressources.cube.fr/l/j4nb7bn)** pour échanger ou co-construire des apps.
+
+💛 **Soutenez-moi en utilisant mes liens de parrainage :**
+
+- [Hostinger](https://hostinger.fr?REFERRALCODE=5QYMAILLEWXJ)
+- [Lovable](https://lovable.dev/invite/265ZPB4)
+- [Dreamflow](https://dreamflow.app/?grsf=augustin-0dlzrd)
+- [Wispr Flow](https://wisprflow.ai/r?AUGUSTIN29)
+- [Comet (Perplexity)](https://www.perplexity.ai/browser/invite-ga)
+- [École Cube](https://ressources.cube.fr/l/myd27c7)
+- [Proton](https://pr.tn/ref/6YCJEFG7)
+
+---
+
 ## Sommaire
 
 - [Installer](#installer)
@@ -30,6 +46,7 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 - [Confidentialité : clés, comptes, données personnelles](#confidentialité--clés-comptes-données-personnelles)
 - [Mettre à jour · désinstaller](#mettre-à-jour--désinstaller)
 - [Compiler, forker, contribuer](#compiler-forker-contribuer)
+- [Communauté et soutien](#communauté-et-soutien)
 
 ---
 
