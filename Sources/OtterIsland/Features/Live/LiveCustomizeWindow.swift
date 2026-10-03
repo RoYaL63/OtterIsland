@@ -108,7 +108,7 @@ struct LiveCustomizeView: View {
             LiveColorPicker(
                 hex: targetHex,
                 onChange: { setTargetHex($0) },
-                onAddToPalette: { style.addToPalette($0); if target == .effect { style.prefs.cursorEffectHex = $0 } }
+                onAddToPalette: { style.addToPalette($0, select: target == .stroke) }
             )
             .padding(.vertical, 4)
             Text("Les changements s'appliquent tout de suite, Live allumé ou non.")

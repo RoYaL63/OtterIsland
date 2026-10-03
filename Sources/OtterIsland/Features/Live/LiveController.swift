@@ -36,7 +36,12 @@ final class LiveController: ObservableObject {
     private let scanQueue = DispatchQueue(label: "otterisland.live.secrets", qos: .userInitiated)
     private var scanInFlight = false
     private var scanTick = 0
-    private var secretRects: [CGRect] = []
+    /// Secrets du champ actif (remplacés à chaque scan) et de la fenêtre
+    /// entière (remplacés seulement par les scans complets) : les deux
+    /// restent affichés, sinon une clé trouvée dans la page réapparaissait
+    /// une demi-seconde sur deux.
+    private var focusedSecretRects: [CGRect] = []
+    private var deepSecretRects: [CGRect] = []
     /// Dernières préférences vues, pour ne réagir qu'aux changements utiles.
     private var lastPrefs: LivePreferences
     private var toggleHotKey: HotKey?
@@ -109,7 +114,8 @@ final class LiveController: ObservableObject {
         monitors.forEach { NSEvent.removeMonitor($0) }
         monitors = []
         liveHotKeys = []
-        secretRects = []
+        focusedSecretRects = []
+        deepSecretRects = []
         maskTimer?.invalidate(); maskTimer = nil
         modifierTimer?.invalidate(); modifierTimer = nil
         trailTimer?.invalidate(); trailTimer = nil
@@ -399,6 +405,12 @@ final class LiveController: ObservableObject {
         if let keys = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
             MainActor.assumeIsolated { self?.keyPressed(event) }
         }) { monitors.append(keys) }
+        // Quand OtterIsland est au premier plan (panneau Personnaliser), les
+        // frappes ne passent pas par le moniteur global.
+        if let localKeys = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
+            MainActor.assumeIsolated { self?.keyPressed(event) }
+            return event
+        }) { monitors.append(localKeys) }
     }
 
     private func globalClick(_ event: NSEvent) {
@@ -410,7 +422,8 @@ final class LiveController: ObservableObject {
     private func keyPressed(_ event: NSEvent) {
         // Échap observé (pas intercepté) : l'app au premier plan le reçoit
         // aussi, mais le mode stylo s'arrête et les dessins s'effacent.
-        if Int(event.keyCode) == kVK_Escape, tool != nil, event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty {
+        if Int(event.keyCode) == kVK_Escape, tool != nil,
+           event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
             escape()
         }
         guard keysOn, let labels = KeystrokeHUD.labels(for: event) else { return }
@@ -519,6 +532,8 @@ final class LiveController: ObservableObject {
         let needed = isActive && maskingOn && (p.maskSecrets || p.maskApps)
         if !needed {
             maskTimer?.invalidate(); maskTimer = nil
+            focusedSecretRects = []
+            deepSecretRects = []
             overlays.forEach { $0.canvas.renderMasks([]) }
             return
         }
@@ -537,7 +552,8 @@ final class LiveController: ObservableObject {
         if p.maskSecrets {
             startSecretScan()
         } else {
-            secretRects = []
+            focusedSecretRects = []
+            deepSecretRects = []
         }
         renderAllMasks()
     }
@@ -557,7 +573,13 @@ final class LiveController: ObservableObject {
                     guard let self else { return }
                     self.scanInFlight = false
                     guard self.isActive, self.maskingOn, self.style.prefs.maskSecrets else { return }
-                    self.secretRects = rects
+                    if deep {
+                        // Le scan complet couvre aussi le champ actif.
+                        self.deepSecretRects = rects
+                        self.focusedSecretRects = []
+                    } else {
+                        self.focusedSecretRects = rects
+                    }
                     self.renderAllMasks()
                 }
             }
@@ -570,7 +592,7 @@ final class LiveController: ObservableObject {
         if p.maskApps {
             masks += AppMasker.windowRects(for: Set(p.maskedBundleIDs)).map { ($0, LiveCanvasView.MaskKind.app) }
         }
-        masks += secretRects.map { ($0, LiveCanvasView.MaskKind.secret) }
+        masks += (focusedSecretRects + deepSecretRects).map { ($0, LiveCanvasView.MaskKind.secret) }
         for overlay in overlays {
             let local = masks.compactMap { rect, kind -> (CGRect, LiveCanvasView.MaskKind)? in
                 let clipped = rect.intersection(overlay.frame)

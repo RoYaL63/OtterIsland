@@ -55,8 +55,10 @@ enum SecretScanner {
     ///   - deep: parcourir aussi toute la fenêtre active.
     static func visibleSecretRects(primaryHeight: CGFloat, deep: Bool) -> [CGRect] {
         guard AXIsProcessTrusted() else { return [] }
+        // Pas de délai réglé sur l'élément système : il deviendrait le défaut
+        // de TOUTE l'app (collage, verrouillage clavier…). Les délais courts
+        // sont posés sur chaque élément interrogé.
         let system = AXUIElementCreateSystemWide()
-        AXUIElementSetMessagingTimeout(system, 0.25)
 
         guard let app = element(system, kAXFocusedApplicationAttribute) else { return [] }
         AXUIElementSetMessagingTimeout(app, 0.25)

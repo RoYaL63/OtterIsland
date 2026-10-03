@@ -153,6 +153,10 @@ final class NotchViewModel: ObservableObject {
         live.objectWillChange
             .sink { [weak self] in self?.objectWillChange.send() }
             .store(in: &cancellables)
+        live.$isActive
+            .removeDuplicates()
+            .sink { [weak self] _ in self?.liveDetour = nil }
+            .store(in: &cancellables)
 
         // La pression mémoire pilote l'humeur (loutre essoufflée en full RAM).
         memory.$pressure
