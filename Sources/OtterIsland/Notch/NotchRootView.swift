@@ -10,8 +10,8 @@ struct NotchRootView: View {
     private var notchWidth: CGFloat { viewModel.metrics?.notchSize.width ?? 200 }
     private var notchHeight: CGFloat { viewModel.metrics?.notchSize.height ?? 32 }
 
-    private var currentWidth: CGFloat { viewModel.isExpanded ? viewModel.expandedSize.width : notchWidth }
-    private var currentHeight: CGFloat { viewModel.isExpanded ? viewModel.expandedSize.height : notchHeight }
+    private var currentWidth: CGFloat { viewModel.isExpanded ? viewModel.expandedSize.width : viewModel.collapsedSize.width }
+    private var currentHeight: CGFloat { viewModel.isExpanded ? viewModel.expandedSize.height : viewModel.collapsedSize.height }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -81,7 +81,11 @@ struct NotchRootView: View {
     private var collapsedContent: some View {
         VStack {
             Spacer()
-            if viewModel.inbox.pending != nil {
+            if viewModel.live.isActive {
+                LiveCollapsedBadge(live: viewModel.live)
+                    .frame(height: 16)
+                    .padding(.bottom, 3)
+            } else if viewModel.inbox.pending != nil {
                 Circle()
                     .fill(Color.orange)
                     .frame(width: 6, height: 6)
@@ -110,8 +114,11 @@ struct NotchRootView: View {
                     ClaudeCodeCard(request: request) { approved in
                         viewModel.inbox.resolve(request, approved: approved)
                     }
+                } else if viewModel.live.isActive {
+                    LiveToolbar(live: viewModel.live, style: viewModel.live.style)
                 } else {
                     HStack {
+                        liveButton
                         Spacer(minLength: 0)
                         NotchTabBar(selection: $viewModel.selectedTab)
                     }
@@ -129,6 +136,25 @@ struct NotchRootView: View {
         .padding(.top, notchHeight + 8)
         .padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    /// Lance le mode présentateur. À gauche de la barre d'onglets, à part :
+    /// c'est une action, pas un onglet.
+    private var liveButton: some View {
+        Button {
+            viewModel.live.start()
+        } label: {
+            HStack(spacing: 4) {
+                Circle().fill(Color.red).frame(width: 6, height: 6)
+                Text("Live").font(.system(size: 10.5, weight: .semibold))
+            }
+            .foregroundStyle(Otter.textPrimary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(Color.white.opacity(0.08)))
+        }
+        .buttonStyle(OtterPressStyle(scale: 0.93))
+        .help("Mode présentateur : dessin, effets de curseur, touches, masquage (⌃⌥L)")
     }
 
     @ViewBuilder

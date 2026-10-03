@@ -80,6 +80,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let menu = NSMenu()
         menu.addItem(withTitle: "Presse-papier…", action: #selector(openClipboardWindow), keyEquivalent: "")
+        menu.addItem(withTitle: "Démarrer / arrêter le Live (⌃⌥L)", action: #selector(toggleLive), keyEquivalent: "")
+        menu.addItem(withTitle: "Personnaliser le Live…", action: #selector(customizeLive), keyEquivalent: "")
         menu.addItem(withTitle: "À propos d'OtterIsland…", action: #selector(openAbout), keyEquivalent: "")
         updateMenuItem = menu.addItem(
             withTitle: "Rechercher les mises à jour…",
@@ -155,12 +157,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         clipboardWindow?.show()
     }
 
+    @objc private func toggleLive() {
+        notchController?.viewModel.live.toggle()
+    }
+
+    @objc private func customizeLive() {
+        notchController?.viewModel.live.openCustomization()
+    }
+
     @objc private func screenParametersChanged() {
         notchController?.showOnActiveScreen()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         notchController?.viewModel.usageHistory.save()
+        // Rendre la Concentration et la souris dans l'état où on les a trouvées.
+        notchController?.viewModel.live.stop()
         NotificationCenter.default.removeObserver(self)
     }
 }

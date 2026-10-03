@@ -26,11 +26,30 @@ final class NotchViewModel: ObservableObject {
     /// mini calendrier à 6 semaines commande), tuile du bas 38, écarts 17,
     /// chrome haut/bas 52. Soit 269 : les 7 pt restants sont la marge.
     var expandedSize: CGSize {
+        // En Live, l'île ne montre que la barre d'outils : plus large, bien
+        // moins haute, pour couvrir le moins possible de l'écran partagé.
+        if live.isActive {
+            return CGSize(width: 500, height: notchHeight + 112)
+        }
         let dropOffset = settings.dropOffset(for: currentScreenID ?? "")
         return CGSize(width: 420, height: 276 + CGFloat(dropOffset))
     }
 
+    /// Taille repliée. En Live, un « menton » sous l'encoche porte le témoin
+    /// ● LIVE et l'outil actif.
+    var collapsedSize: CGSize {
+        let notch = metrics?.notchSize ?? CGSize(width: 200, height: 32)
+        if live.isActive {
+            return CGSize(width: notch.width + 56, height: notch.height + 20)
+        }
+        return notch
+    }
+
+    private var notchHeight: CGFloat { metrics?.notchSize.height ?? 32 }
+
     let settings: OtterSettings
+    /// Mode présentateur.
+    let live: LiveController
     let battery = BatteryMonitor()
     let inbox = ClaudeCodeInbox()
     let nowPlaying = AppleScriptNowPlaying()
@@ -73,6 +92,7 @@ final class NotchViewModel: ObservableObject {
 
     init(settings: OtterSettings) {
         self.settings = settings
+        self.live = LiveController(settings: settings)
         self.pomodoro = PomodoroTimer(settings: settings)
         wirePomodoro()
         if settings.claudeCodeInboxEnabled {
@@ -124,6 +144,12 @@ final class NotchViewModel: ObservableObject {
         // « Verrouillage impossible » restait figée et son bouton Fermer
         // semblait mort).
         keyboardLocker.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        // L'île change de taille et de contenu avec le Live : elle doit
+        // l'entendre à travers le view model.
+        live.objectWillChange
             .sink { [weak self] in self?.objectWillChange.send() }
             .store(in: &cancellables)
 
