@@ -338,6 +338,11 @@ struct LiveCustomizeView: View {
             ForEach(LiveController.shortcuts) { shortcut in
                 HStack {
                     Text(shortcut.title)
+                    if live.failedShortcuts.contains(shortcut.id) {
+                        Text("déjà pris par une autre app")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
                     Spacer()
                     Text(shortcut.id == "zoom" ? "⌥⌘8" : "⌃⌥\(shortcut.letter)")
                         .font(.body.monospaced())

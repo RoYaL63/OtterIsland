@@ -24,6 +24,10 @@ final class LiveController: ObservableObject {
     @Published private(set) var hasDrawings = false
     /// Le raccourci global ⌃⌥L a-t-il pu être enregistré ?
     @Published private(set) var toggleHotKeyFailed = false
+    /// Raccourcis ⌃⌥ que macOS a refusés : la combinaison est déjà prise par
+    /// une autre app (gestionnaire de fenêtres, lanceur…). Affichés comme tels
+    /// dans la barre et le panneau, au lieu d'échouer en silence.
+    @Published private(set) var failedShortcuts: Set<String> = []
 
     let style: LiveStyle
     let keystrokes = KeystrokeHUD()
@@ -122,6 +126,8 @@ final class LiveController: ObservableObject {
         modifierTimer?.invalidate(); modifierTimer = nil
         trailTimer?.invalidate(); trailTimer = nil
         trail = []
+        trailCanvas = nil
+        lastMove = nil
         keystrokes.hide()
         hasDrawings = false
         spotlightOn = false
@@ -256,13 +262,20 @@ final class LiveController: ObservableObject {
         // combinaison ⌃⌥, le Live renonce à la sienne.
         let clipboardTaken = settings.clipboardHotKeyModifiers == Int(controlKey | optionKey)
             ? settings.clipboardHotKeyCode : -1
-        liveHotKeys = Self.shortcuts.filter {
-            $0.id != "live" && $0.id != "zoom" && $0.keyCode != clipboardTaken
-        }.map { shortcut in
-            HotKey(keyCode: UInt32(shortcut.keyCode), modifiers: Self.liveModifiers) { [weak self] in
+        var failed: Set<String> = []
+        var installed: [HotKey] = []
+        for shortcut in Self.shortcuts where shortcut.id != "live" && shortcut.id != "zoom" {
+            guard shortcut.keyCode != clipboardTaken else {
+                failed.insert(shortcut.id)
+                continue
+            }
+            let hotKey = HotKey(keyCode: UInt32(shortcut.keyCode), modifiers: Self.liveModifiers) { [weak self] in
                 MainActor.assumeIsolated { self?.perform(shortcut.id) }
             }
+            if hotKey.isRegistered { installed.append(hotKey) } else { failed.insert(shortcut.id) }
         }
+        liveHotKeys = installed
+        failedShortcuts = failed
     }
 
     func perform(_ id: String) {

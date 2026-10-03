@@ -129,6 +129,7 @@ final class LiveCanvasView: NSView {
     private static let noActions: [String: CAAction] = [
         "position": NSNull(), "bounds": NSNull(), "path": NSNull(), "opacity": NSNull(),
         "hidden": NSNull(), "fillColor": NSNull(), "strokeColor": NSNull(), "contents": NSNull(),
+        "emitterPosition": NSNull(), "birthRate": NSNull(), "emitterCells": NSNull(),
     ]
 
     override func layout() {
@@ -322,6 +323,7 @@ final class LiveCanvasView: NSView {
         headLayer.isHidden = true
         sparkEmitter.birthRate = 0
         lastDotPoint = nil
+        dotDistance = 0
     }
 
     /// Anneau fin : un cercle de 1,5 pt autour de la pointe, sans remplissage.
@@ -553,7 +555,9 @@ final class LiveCanvasView: NSView {
         group.beginTime = CACurrentMediaTime() + delay
         group.timingFunction = CAMediaTimingFunction(name: .easeOut)
         group.isRemovedOnCompletion = false
-        group.fillMode = .both
+        // `.forwards` et non `.both` : un anneau retardé (double-clic) doit
+        // rester invisible pendant son délai au lieu d'apparaître figé.
+        group.fillMode = .forwards
 
         CATransaction.begin()
         CATransaction.setCompletionBlock { layer.removeFromSuperlayer() }
