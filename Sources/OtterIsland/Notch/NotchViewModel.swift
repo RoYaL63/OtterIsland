@@ -14,6 +14,9 @@ final class NotchViewModel: ObservableObject {
     /// Dernier événement ponctuel joué par la loutre (coquillage, etc.).
     @Published var otterEvent: OtterEventToken?
     @Published var selectedTab: NotchTab = .home
+    /// Pendant le Live, un onglet affiché « par-dessus » la barre d'outils —
+    /// le presse-papier ouvert par son raccourci. Effacé à la fermeture.
+    @Published var liveDetour: NotchTab?
 
     /// Taille de la carte étendue. Partagée entre la vue (frame de l'île) et le
     /// contrôleur (zone de survol pour le suivi souris) : les deux DOIVENT voir
@@ -28,21 +31,19 @@ final class NotchViewModel: ObservableObject {
     var expandedSize: CGSize {
         // En Live, l'île ne montre que la barre d'outils : plus large, bien
         // moins haute, pour couvrir le moins possible de l'écran partagé.
-        if live.isActive {
+        if live.isActive && liveDetour == nil {
             return CGSize(width: 520, height: notchHeight + 112)
         }
         let dropOffset = settings.dropOffset(for: currentScreenID ?? "")
         return CGSize(width: 420, height: 276 + CGFloat(dropOffset))
     }
 
-    /// Taille repliée. En Live, un « menton » sous l'encoche porte le témoin
-    /// ● LIVE et l'outil actif.
+    /// Taille repliée : l'encoche, Live ou non. Le témoin ● LIVE vit dans la
+    /// barre des menus (sur la loutre) : un « menton » sous l'encoche
+    /// recouvrait le haut des onglets de Chrome, et viser un onglet ouvrait
+    /// la barre du Live à la place.
     var collapsedSize: CGSize {
-        let notch = metrics?.notchSize ?? CGSize(width: 200, height: 32)
-        if live.isActive {
-            return CGSize(width: notch.width + 56, height: notch.height + 20)
-        }
-        return notch
+        metrics?.notchSize ?? CGSize(width: 200, height: 32)
     }
 
     private var notchHeight: CGFloat { metrics?.notchSize.height ?? 32 }
@@ -442,11 +443,15 @@ final class NotchViewModel: ObservableObject {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             isExpanded = expanded
         }
+        if !expanded { liveDetour = nil }
     }
 
     /// Ouvre le presse-papier dans l'encoche (appelé par le raccourci global).
     func openClipboard() {
         selectedTab = .clipboard
+        // En Live, le presse-papier passe devant la barre d'outils : son
+        // raccourci doit marcher partout, présentation comprise.
+        if live.isActive { liveDetour = .clipboard }
         setExpanded(true)
     }
 

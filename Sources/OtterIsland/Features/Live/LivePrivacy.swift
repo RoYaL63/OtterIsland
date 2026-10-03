@@ -1,20 +1,29 @@
 import AppKit
 import ApplicationServices
 
-/// Repère les secrets VISIBLES dans le champ de texte actif (éditeur, terminal,
-/// notes…) et renvoie leur position à l'écran pour les recouvrir.
+/// Repère les secrets VISIBLES à l'écran (clés API, jetons, mots de passe en
+/// clair) et renvoie leur position pour les recouvrir.
 ///
 /// Passe par l'Accessibilité, pas par une lecture d'image : on demande à l'app
-/// le texte affiché et la position de chaque caractère. C'est précis et peu
-/// coûteux — une poignée d'appels deux fois par seconde — mais ça ne voit que
-/// ce que l'app expose. Les apps natives le font bien ; Chrome et les apps
-/// Electron, partiellement. D'où le masquage par application, complémentaire.
+/// le texte affiché et sa position. Deux passes :
+/// - le champ actif (celui où l'on tape), à chaque relevé — c'est là qu'une
+///   clé apparaît pendant qu'on la colle ;
+/// - toute la fenêtre active, une fois sur deux — une clé affichée dans une
+///   page (tableau de bord OpenAI, fichier .env ouvert…).
+///
+/// Chrome, Edge, Brave, Arc et les apps Electron ne publient le contenu de
+/// leurs pages qu'à la demande : on le leur demande (`AXManualAccessibility`),
+/// une fois par processus. Sans ça, une clé tapée sur platform.openai.com
+/// restait invisible pour le scanner.
+///
+/// Tout tourne sur une file d'arrière-plan : une page lourde ou une app figée
+/// ne bloque jamais l'île ni le dessin.
 enum SecretScanner {
 
     /// Motifs de clés connues. Le groupe 1, quand il existe, est la seule
     /// partie à masquer (la valeur, pas le nom de la variable).
     private static let patterns: [NSRegularExpression] = [
-        #"sk-(?:proj-|ant-)?[A-Za-z0-9_\-]{20,}"#,             // OpenAI, Anthropic
+        #"sk-(?:proj-|ant-|svcacct-|admin-)?[A-Za-z0-9_\-]{16,}"#, // OpenAI, Anthropic
         #"(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9]{16,}"#,       // Stripe
         #"gh[pousr]_[A-Za-z0-9]{30,}"#,                         // GitHub
         #"github_pat_[A-Za-z0-9_]{40,}"#,
@@ -30,38 +39,54 @@ enum SecretScanner {
         #"(?i)(?:password|passwd|pwd|secret|token|api[_\-]?key|access[_\-]?key|private[_\-]?key)["']?\s*[:=]\s*["']?([^\s"',;]{6,})"#,
     ].compactMap { try? NSRegularExpression(pattern: $0) }
 
-    /// Rectangles écran (repère AppKit) des secrets visibles dans l'élément actif.
-    static func visibleSecretRects() -> [CGRect] {
+    /// Rôles qui portent du texte lisible.
+    private static let textRoles: Set<String> = [
+        "AXStaticText", "AXTextField", "AXTextArea", "AXComboBox", "AXSearchField",
+    ]
+
+    /// Processus à qui l'on a déjà demandé d'exposer leurs pages web. Lu et
+    /// écrit uniquement depuis la file de scan (série).
+    private static var webAccessibilityEnabled: Set<pid_t> = []
+
+    /// Rectangles écran (repère AppKit) des secrets visibles.
+    /// - Parameters:
+    ///   - primaryHeight: hauteur de l'écran principal, pour convertir le repère
+    ///     « haut-gauche » de l'Accessibilité (lue sur le thread principal).
+    ///   - deep: parcourir aussi toute la fenêtre active.
+    static func visibleSecretRects(primaryHeight: CGFloat, deep: Bool) -> [CGRect] {
         guard AXIsProcessTrusted() else { return [] }
         let system = AXUIElementCreateSystemWide()
-        // Une app figée ne doit pas figer l'île : 0,2 s au lieu des ~6 s par
-        // défaut de l'Accessibilité, sur le thread principal.
-        AXUIElementSetMessagingTimeout(system, 0.2)
-        var focusedRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(system, kAXFocusedUIElementAttribute as CFString, &focusedRef) == .success,
-              let focusedRef, CFGetTypeID(focusedRef) == AXUIElementGetTypeID()
-        else { return [] }
-        let element = focusedRef as! AXUIElement
-        AXUIElementSetMessagingTimeout(element, 0.2)
+        AXUIElementSetMessagingTimeout(system, 0.25)
 
+        guard let app = element(system, kAXFocusedApplicationAttribute) else { return [] }
+        AXUIElementSetMessagingTimeout(app, 0.25)
+        var pid: pid_t = 0
+        AXUIElementGetPid(app, &pid)
+        if pid > 0, !webAccessibilityEnabled.contains(pid) {
+            webAccessibilityEnabled.insert(pid)
+            // Chromium et Electron : publie l'arbre des pages web. Sans effet
+            // (et sans erreur gênante) sur les autres apps.
+            AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+        }
+
+        var rects: [CGRect] = []
+        if let focused = element(app, kAXFocusedUIElementAttribute) {
+            AXUIElementSetMessagingTimeout(focused, 0.25)
+            rects += scanFocused(focused, primaryHeight: primaryHeight)
+        }
+        if deep, let window = element(app, kAXFocusedWindowAttribute) {
+            rects += scanTree(window, primaryHeight: primaryHeight)
+        }
+        return Array(rects.prefix(60))
+    }
+
+    // MARK: Champ actif
+
+    private static func scanFocused(_ element: AXUIElement, primaryHeight: CGFloat) -> [CGRect] {
         // Un vrai champ mot de passe affiche déjà des points : rien à faire.
         if stringAttribute(element, kAXRoleAttribute) == "AXSecureTextField" { return [] }
-
         guard let visible = visibleText(of: element), !visible.text.isEmpty else { return [] }
-        let text = visible.text, offset = visible.offset
-        let ns = text as NSString
-        var rects: [CGRect] = []
-        for regex in patterns {
-            for match in regex.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
-                let range = match.numberOfRanges > 1 && match.range(at: 1).location != NSNotFound
-                    ? match.range(at: 1) : match.range
-                if let rect = bounds(of: CFRange(location: range.location + offset, length: range.length), in: element) {
-                    rects.append(rect.insetBy(dx: -3, dy: -2))
-                }
-                if rects.count >= 40 { return rects }
-            }
-        }
-        return rects
+        return rects(in: visible.text, offset: visible.offset, element: element, primaryHeight: primaryHeight, fallbackToFrame: true)
     }
 
     /// Le texte À L'ÉCRAN seulement : un terminal garde des milliers de lignes
@@ -74,25 +99,81 @@ enum SecretScanner {
             AXValueGetValue(rangeRef as! AXValue, .cfRange, &range)
         } else if let count = intAttribute(element, kAXNumberOfCharactersAttribute), count <= 20_000 {
             range = CFRange(location: 0, length: count)
-        } else {
-            return nil
         }
-        guard range.length > 0, range.length <= 60_000 else { return nil }
-
-        guard let param = AXValueCreate(.cfRange, &range) else { return nil }
-        var stringRef: CFTypeRef?
-        if AXUIElementCopyParameterizedAttributeValue(element, kAXStringForRangeParameterizedAttribute as CFString, param, &stringRef) == .success,
-           let string = stringRef as? String {
-            return (string, range.location)
+        if range.length > 0, range.length <= 60_000, let param = AXValueCreate(.cfRange, &range) {
+            var stringRef: CFTypeRef?
+            if AXUIElementCopyParameterizedAttributeValue(element, kAXStringForRangeParameterizedAttribute as CFString, param, &stringRef) == .success,
+               let string = stringRef as? String {
+                return (string, range.location)
+            }
         }
-        // Repli : la valeur complète, découpée à la plage visible.
+        // Repli : la valeur complète (champs web, qui n'exposent pas toujours
+        // la plage visible), découpée à 20 000 caractères.
         guard let value = stringAttribute(element, kAXValueAttribute) else { return nil }
         let ns = value as NSString
-        let safe = NSIntersectionRange(NSRange(location: range.location, length: range.length), NSRange(location: 0, length: ns.length))
+        let length = min(ns.length, 20_000)
+        let start = range.length > 0 ? min(range.location, ns.length) : 0
+        let safe = NSRange(location: start, length: min(length, ns.length - start))
         return (ns.substring(with: safe), safe.location)
     }
 
-    private static func bounds(of range: CFRange, in element: AXUIElement) -> CGRect? {
+    // MARK: Fenêtre active
+
+    /// Parcours en largeur, plafonné : une page web peut compter des milliers
+    /// d'éléments. Un seul aller-retour par élément (rôle, valeur, enfants).
+    private static func scanTree(_ root: AXUIElement, primaryHeight: CGFloat) -> [CGRect] {
+        var queue: [AXUIElement] = [root]
+        var visited = 0
+        var rects: [CGRect] = []
+        let attributes = [kAXRoleAttribute, kAXValueAttribute, kAXChildrenAttribute] as CFArray
+
+        while !queue.isEmpty, visited < 500, rects.count < 40 {
+            let node = queue.removeFirst()
+            visited += 1
+            AXUIElementSetMessagingTimeout(node, 0.1)
+            var valuesRef: CFArray?
+            guard AXUIElementCopyMultipleAttributeValues(node, attributes, AXCopyMultipleAttributeOptions(rawValue: 0), &valuesRef) == .success,
+                  let values = valuesRef as? [AnyObject], values.count == 3
+            else { continue }
+
+            let role = values[0] as? String ?? ""
+            if role == "AXSecureTextField" { continue }
+            if textRoles.contains(role), let text = values[1] as? String, text.count >= 12 {
+                let clipped = String(text.prefix(4000))
+                rects += self.rects(in: clipped, offset: 0, element: node, primaryHeight: primaryHeight, fallbackToFrame: true)
+            }
+            if let children = values[2] as? [AXUIElement] {
+                queue.append(contentsOf: children.prefix(200))
+            }
+        }
+        return rects
+    }
+
+    // MARK: Correspondances
+
+    private static func rects(in text: String, offset: Int, element: AXUIElement, primaryHeight: CGFloat, fallbackToFrame: Bool) -> [CGRect] {
+        let ns = text as NSString
+        var out: [CGRect] = []
+        var usedFrame = false
+        for regex in patterns {
+            for match in regex.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+                let range = match.numberOfRanges > 1 && match.range(at: 1).location != NSNotFound
+                    ? match.range(at: 1) : match.range
+                if let rect = bounds(of: CFRange(location: range.location + offset, length: range.length), in: element, primaryHeight: primaryHeight) {
+                    out.append(rect.insetBy(dx: -3, dy: -2))
+                } else if fallbackToFrame, !usedFrame, let frame = frame(of: element, primaryHeight: primaryHeight) {
+                    // L'app ne sait pas situer un caractère : on couvre tout
+                    // l'élément. Moins élégant, mais rien ne fuit.
+                    usedFrame = true
+                    out.append(frame.insetBy(dx: -2, dy: -2))
+                }
+                if out.count >= 20 { return out }
+            }
+        }
+        return out
+    }
+
+    private static func bounds(of range: CFRange, in element: AXUIElement, primaryHeight: CGFloat) -> CGRect? {
         var r = range
         guard let param = AXValueCreate(.cfRange, &r) else { return nil }
         var boundsRef: CFTypeRef?
@@ -101,7 +182,31 @@ enum SecretScanner {
         else { return nil }
         var rect = CGRect.zero
         guard AXValueGetValue(boundsRef as! AXValue, .cgRect, &rect), rect.width > 0, rect.height > 0 else { return nil }
-        return ScreenGeometry.cocoaRect(fromTopLeft: rect)
+        return ScreenGeometry.cocoaRect(fromTopLeft: rect, primaryHeight: primaryHeight)
+    }
+
+    private static func frame(of element: AXUIElement, primaryHeight: CGFloat) -> CGRect? {
+        var posRef: CFTypeRef?, sizeRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &posRef) == .success,
+              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeRef) == .success,
+              let posRef, let sizeRef,
+              CFGetTypeID(posRef) == AXValueGetTypeID(), CFGetTypeID(sizeRef) == AXValueGetTypeID()
+        else { return nil }
+        var origin = CGPoint.zero, size = CGSize.zero
+        AXValueGetValue(posRef as! AXValue, .cgPoint, &origin)
+        AXValueGetValue(sizeRef as! AXValue, .cgSize, &size)
+        guard size.width > 0, size.height > 0, size.width < 4000, size.height < 600 else { return nil }
+        return ScreenGeometry.cocoaRect(fromTopLeft: CGRect(origin: origin, size: size), primaryHeight: primaryHeight)
+    }
+
+    // MARK: Attributs
+
+    private static func element(_ parent: AXUIElement, _ name: String) -> AXUIElement? {
+        var ref: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(parent, name as CFString, &ref) == .success,
+              let ref, CFGetTypeID(ref) == AXUIElementGetTypeID()
+        else { return nil }
+        return (ref as! AXUIElement)
     }
 
     private static func stringAttribute(_ element: AXUIElement, _ name: String) -> String? {
@@ -122,6 +227,7 @@ enum SecretScanner {
 /// (CGWindowList) : pas besoin de l'autorisation d'enregistrement d'écran.
 enum AppMasker {
 
+    @MainActor
     static func windowRects(for bundleIDs: Set<String>) -> [CGRect] {
         guard !bundleIDs.isEmpty else { return [] }
         let pids = Set(NSWorkspace.shared.runningApplications
@@ -149,8 +255,15 @@ enum AppMasker {
 /// Conversions entre le repère « haut-gauche » (CGWindowList, Accessibilité)
 /// et le repère AppKit « bas-gauche », tous deux ancrés sur l'écran principal.
 enum ScreenGeometry {
+    @MainActor
     static func cocoaRect(fromTopLeft rect: CGRect) -> CGRect {
-        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
-        return CGRect(x: rect.minX, y: primaryHeight - rect.maxY, width: rect.width, height: rect.height)
+        cocoaRect(fromTopLeft: rect, primaryHeight: primaryHeight)
     }
+
+    static func cocoaRect(fromTopLeft rect: CGRect, primaryHeight: CGFloat) -> CGRect {
+        CGRect(x: rect.minX, y: primaryHeight - rect.maxY, width: rect.width, height: rect.height)
+    }
+
+    @MainActor
+    static var primaryHeight: CGFloat { NSScreen.screens.first?.frame.height ?? 0 }
 }

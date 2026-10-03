@@ -44,6 +44,8 @@ enum LiveTool: String, CaseIterable, Identifiable, Codable {
 
 /// Effet qui accompagne le curseur pendant le Live.
 enum LiveCursorEffect: String, CaseIterable, Identifiable, Codable {
+    // `otterRiver` garde son nom brut : c'est lui qui est enregistré dans les
+    // préférences des versions précédentes.
     case none, halo, meteor, otterRiver
 
     var id: String { rawValue }
@@ -53,7 +55,7 @@ enum LiveCursorEffect: String, CaseIterable, Identifiable, Codable {
         case .none: return "Aucun"
         case .halo: return "Halo"
         case .meteor: return "Météorite"
-        case .otterRiver: return "Rivière loutre"
+        case .otterRiver: return "Rivière"
         }
     }
 
@@ -62,7 +64,7 @@ enum LiveCursorEffect: String, CaseIterable, Identifiable, Codable {
         case .none: return "Le curseur reste tel quel."
         case .halo: return "Un anneau lumineux suit le curseur."
         case .meteor: return "Une traînée de feu qui s'allonge avec la vitesse du geste."
-        case .otterRiver: return "Un ruban d'eau ondulant, des bulles et une petite loutre."
+        case .otterRiver: return "Un ruban d'eau lisse qui suit le geste, avec des ronds dans l'eau."
         }
     }
 }

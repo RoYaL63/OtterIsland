@@ -9,43 +9,14 @@ struct LiveToolbar: View {
     @ObservedObject var style: LiveStyle
 
     var body: some View {
+        // Infos et personnalisation en haut, boutons-raccourcis sur le bord
+        // bas : la rangée d'outils est celle qu'on vise sans regarder, elle
+        // garde une place fixe au bord de l'île.
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                group {
-                    ForEach(LiveTool.allCases) { tool in
-                        button(icon: tool.icon, title: tool.title, letter: tool.shortcutLetter, isOn: live.tool == tool, filled: true) {
-                            live.select(tool)
-                        }
-                    }
-                }
-                group {
-                    button(icon: effectIcon, title: "Effet de curseur : \(style.prefs.cursorEffect.title)", letter: "H", isOn: live.cursorEffectOn && style.prefs.cursorEffect != .none) {
-                        live.toggleCursorEffect()
-                    }
-                    button(icon: "flashlight.on.fill", title: "Projecteur", letter: "B", isOn: live.spotlightOn) {
-                        live.toggleSpotlight()
-                    }
-                    button(icon: "keyboard", title: "Touches affichées", letter: "K", isOn: live.keysOn) {
-                        live.toggleKeys()
-                    }
-                    button(icon: "lock.shield", title: "Masquer clés et apps sensibles", letter: "M", isOn: live.maskingOn) {
-                        live.toggleMasking()
-                    }
-                    button(icon: "plus.magnifyingglass", title: "Loupe macOS (⌥⌘8)", letter: nil, isOn: false) {
-                        live.toggleSystemZoom()
-                    }
-                }
-                group {
-                    button(icon: "arrow.uturn.backward", title: "Annuler le dernier dessin", letter: "Z", isOn: false) {
-                        live.undo()
-                    }
-                    .disabled(!live.hasDrawings)
-                    button(icon: "trash", title: "Tout effacer", letter: "X", isOn: false) {
-                        live.clearAll()
-                    }
-                    .disabled(!live.hasDrawings)
-                }
-            }
+            Text(hint)
+                .font(.otterMicro)
+                .foregroundStyle(Otter.textTertiary)
+                .lineLimit(1)
 
             HStack(spacing: 8) {
                 HStack(spacing: 6) {
@@ -92,16 +63,51 @@ struct LiveToolbar: View {
                 .help("Arrêter le Live (⌃⌥L)")
             }
 
-            Text(hint)
-                .font(.otterMicro)
-                .foregroundStyle(Otter.textTertiary)
-                .lineLimit(1)
+            Spacer(minLength: 0)
+
+            HStack(spacing: 6) {
+                group {
+                    ForEach(LiveTool.allCases) { tool in
+                        button(icon: tool.icon, title: tool.title, letter: tool.shortcutLetter, isOn: live.tool == tool, filled: true) {
+                            live.select(tool)
+                        }
+                    }
+                }
+                group {
+                    button(icon: effectIcon, title: "Effet de curseur : \(style.prefs.cursorEffect.title)", letter: "H", isOn: live.cursorEffectOn && style.prefs.cursorEffect != .none) {
+                        live.toggleCursorEffect()
+                    }
+                    button(icon: "flashlight.on.fill", title: "Projecteur", letter: "B", isOn: live.spotlightOn) {
+                        live.toggleSpotlight()
+                    }
+                    button(icon: "keyboard", title: "Touches affichées", letter: "K", isOn: live.keysOn) {
+                        live.toggleKeys()
+                    }
+                    button(icon: "lock.shield", title: "Masquer clés et apps sensibles", letter: "M", isOn: live.maskingOn) {
+                        live.toggleMasking()
+                    }
+                    button(icon: "plus.magnifyingglass", title: "Loupe macOS (⌥⌘8)", letter: nil, isOn: false) {
+                        live.toggleSystemZoom()
+                    }
+                }
+                group {
+                    button(icon: "arrow.uturn.backward", title: "Annuler le dernier dessin", letter: "Z", isOn: false) {
+                        live.undo()
+                    }
+                    .disabled(!live.hasDrawings)
+                    button(icon: "trash", title: "Tout effacer", letter: "X", isOn: false) {
+                        live.clearAll()
+                    }
+                    .disabled(!live.hasDrawings)
+                }
+            }
         }
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     private var hint: String {
         if live.tool != nil {
-            return "Mode \(live.tool?.title.lowercased() ?? "stylo") · clic sur un dessin pour l'effacer · esc tout effacer · ⌘Z annuler"
+            return "Mode \(live.tool?.title.lowercased() ?? "stylo") · clic sur un dessin pour l'effacer · esc tout effacer · ⌃⌥Z annuler"
         }
         let modifier = style.prefs.drawModifier
         let draw = modifier == .none ? "" : "Maintiens \(modifier.title.prefix(1)) et glisse pour dessiner · "
@@ -163,45 +169,5 @@ struct LiveToolbar: View {
         }
         .buttonStyle(OtterPressStyle(scale: 0.88))
         .help(hex)
-    }
-}
-
-/// Island repliée pendant le Live : un « menton » sous l'encoche, avec le point
-/// rouge et l'outil actif. Le nub de l'encoche ne déborde jamais sur la barre
-/// des menus ; c'est sous elle que le témoin prend sa place.
-struct LiveCollapsedBadge: View {
-    @ObservedObject var live: LiveController
-
-    var body: some View {
-        HStack(spacing: 6) {
-            HStack(spacing: 4) {
-                LivePulseDot()
-                Text("LIVE")
-                    .font(.system(size: 9, weight: .heavy, design: .rounded))
-                    .tracking(0.8)
-                    .foregroundStyle(Color(red: 1, green: 0.85, blue: 0.84))
-            }
-            Spacer(minLength: 4)
-            if let tool = live.tool {
-                HStack(spacing: 3) {
-                    Image(systemName: tool.icon).font(.system(size: 9, weight: .semibold))
-                    Text(tool.title).font(.system(size: 9, weight: .semibold))
-                }
-                .foregroundStyle(Otter.accent)
-            }
-        }
-        .padding(.horizontal, 12)
-    }
-}
-
-/// Point rouge du témoin. Pas d'animation en boucle : une pulsation
-/// SwiftUI « repeatForever » redessinerait l'island 60 fois par seconde
-/// pendant toute la présentation. Une lueur fixe se voit aussi bien.
-struct LivePulseDot: View {
-    var body: some View {
-        Circle()
-            .fill(Color.red)
-            .frame(width: 6, height: 6)
-            .shadow(color: Color.red.opacity(0.9), radius: 3)
     }
 }
