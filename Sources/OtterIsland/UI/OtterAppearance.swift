@@ -90,6 +90,11 @@ final class OtterAppearance: ObservableObject {
         static let glassOpacity = 0.60
         static let readability = 1.0
         static let material = Material.liquid
+        static let cornerRadius = 28.0
+        static let shadow = 0.45
+        static let rim = 1.0
+        static let tileIntensity = 1.0
+        static let accentGradient = true
     }
 
     @Published var style: Style { didSet { defaults.set(style.rawValue, forKey: Keys.style) } }
@@ -101,6 +106,20 @@ final class OtterAppearance: ObservableObject {
     /// Multiplicateur du voile de lisibilité sous le texte (1 = d'origine).
     @Published var readability: Double { didSet { defaults.set(readability, forKey: Keys.readability) } }
     @Published var material: Material { didSet { defaults.set(material.rawValue, forKey: Keys.material) } }
+
+    // Réglages avancés (style Personnalisé)
+    /// Arrondi des coins bas de l'île ouverte.
+    @Published var cornerRadius: Double { didSet { defaults.set(cornerRadius, forKey: Keys.cornerRadius) } }
+    /// Opacité de l'ombre portée sous l'île ouverte.
+    @Published var shadow: Double { didSet { defaults.set(shadow, forKey: Keys.shadow) } }
+    /// Intensité du liseré lumineux sur la tranche du verre.
+    @Published var rim: Double { didSet { defaults.set(rim, forKey: Keys.rim) } }
+    /// Multiplicateur du remplissage des tuiles et pastilles posées sur le verre.
+    @Published var tileIntensity: Double { didSet { defaults.set(tileIntensity, forKey: Keys.tileIntensity) } }
+    /// Accent en dégradé (reflet) ou en aplat.
+    @Published var accentGradient: Bool { didSet { defaults.set(accentGradient, forKey: Keys.accentGradient) } }
+    /// Préférence d'affichage : la page montre-t-elle les réglages avancés ?
+    @Published var showAdvanced: Bool { didSet { defaults.set(showAdvanced, forKey: Keys.showAdvanced) } }
 
     /// Incrémenté (avec un léger délai) après tout changement. L'île s'en sert
     /// comme identité pour se reconstruire : sans ça, une vue qui lit
@@ -121,6 +140,12 @@ final class OtterAppearance: ObservableObject {
         glassOpacity = opacity
         self.readability = readability
         self.material = material
+        cornerRadius = defaults.object(forKey: Keys.cornerRadius) as? Double ?? Default.cornerRadius
+        shadow = defaults.object(forKey: Keys.shadow) as? Double ?? Default.shadow
+        rim = defaults.object(forKey: Keys.rim) as? Double ?? Default.rim
+        tileIntensity = defaults.object(forKey: Keys.tileIntensity) as? Double ?? Default.tileIntensity
+        accentGradient = defaults.object(forKey: Keys.accentGradient) as? Bool ?? Default.accentGradient
+        showAdvanced = defaults.bool(forKey: Keys.showAdvanced)
         if let saved = Style(rawValue: defaults.string(forKey: Keys.style) ?? "") {
             style = saved
         } else {
@@ -138,6 +163,11 @@ final class OtterAppearance: ObservableObject {
             $glassOpacity.map { _ in () }.eraseToAnyPublisher(),
             $readability.map { _ in () }.eraseToAnyPublisher(),
             $material.map { _ in () }.eraseToAnyPublisher(),
+            $cornerRadius.map { _ in () }.eraseToAnyPublisher(),
+            $shadow.map { _ in () }.eraseToAnyPublisher(),
+            $rim.map { _ in () }.eraseToAnyPublisher(),
+            $tileIntensity.map { _ in () }.eraseToAnyPublisher(),
+            $accentGradient.map { _ in () }.eraseToAnyPublisher(),
         ]
         Publishers.MergeMany(changes)
             .dropFirst(changes.count) // valeurs initiales
@@ -153,6 +183,15 @@ final class OtterAppearance: ObservableObject {
         glassOpacity = Default.glassOpacity
         readability = Default.readability
         material = Default.material
+        resetAdvanced()
+    }
+
+    func resetAdvanced() {
+        cornerRadius = Default.cornerRadius
+        shadow = Default.shadow
+        rim = Default.rim
+        tileIntensity = Default.tileIntensity
+        accentGradient = Default.accentGradient
     }
 
     // MARK: Valeurs effectives (selon le style)
@@ -214,8 +253,22 @@ final class OtterAppearance: ObservableObject {
         }
     }
 
+    // Avancés : effectifs en style Personnalisé seulement, valeurs d'origine sinon.
+    private var custom: Bool { style == .custom }
+    var effectiveCornerRadius: Double { custom ? cornerRadius : Default.cornerRadius }
+    var effectiveShadow: Double { custom ? shadow : Default.shadow }
+    var effectiveRim: Double { custom ? rim : Default.rim }
+    var effectiveTileIntensity: Double { custom ? tileIntensity : Default.tileIntensity }
+    var effectiveAccentGradient: Bool { custom ? accentGradient : Default.accentGradient }
+
     private enum Keys {
         static let style = "appearanceStyle"
+        static let cornerRadius = "appearanceCornerRadius"
+        static let shadow = "appearanceShadow"
+        static let rim = "appearanceRim"
+        static let tileIntensity = "appearanceTileIntensity"
+        static let accentGradient = "appearanceAccentGradient"
+        static let showAdvanced = "appearanceShowAdvanced"
         static let accent = "appearanceAccentHex"
         static let tint = "appearanceTintHex"
         static let opacity = "appearanceGlassOpacity"

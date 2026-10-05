@@ -1,16 +1,26 @@
 import SwiftUI
 
-/// Page « Apparence » : accent, teinte et opacité du verre, matériau,
-/// contraste. Un aperçu de l'île en tête suit chaque réglage en direct.
+/// Page « Apparence ».
+///
+/// Deux niveaux pour ne perdre personne : par défaut, un style en un clic
+/// (OtterIsland, Système, Personnalisé) puis, en Personnalisé, l'essentiel —
+/// couleur d'accent et fond. L'interrupteur « Réglages avancés » déplie le
+/// reste : opacité, contraste, arrondi, ombre, reflets, tuiles. Un aperçu de
+/// l'île en tête suit chaque réglage en direct.
 struct AppearanceSettingsView: View {
     @ObservedObject private var appearance = OtterAppearance.shared
+    /// Roues des couleurs dépliées.
+    @State private var showAccentWheel = false
+    @State private var showTintWheel = false
 
     var body: some View {
         Form {
             Section {
                 IslandPreview()
-                    .frame(height: 118)
+                    .frame(height: 128)
                     .listRowInsets(EdgeInsets())
+            } footer: {
+                caption("Aperçu de l'île ouverte sur un fond d'écran coloré : il suit chaque réglage en direct.")
             }
 
             Section {
@@ -18,67 +28,155 @@ struct AppearanceSettingsView: View {
                     ForEach(OtterAppearance.Style.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
+            } header: {
+                Text("Style")
             } footer: {
                 caption(appearance.style.detail)
             }
 
             if appearance.style == .custom {
-                customSections
+                accentSection
+                backgroundSection
+
+                Section {
+                    Toggle(isOn: $appearance.showAdvanced) {
+                        Text("Réglages avancés")
+                        Text("Opacité, contraste, arrondi, ombre, reflets du verre, intensité des tuiles. Tout se remet d'origine d'un clic.")
+                    }
+                }
+
+                if appearance.showAdvanced {
+                    glassSection
+                    shapeSection
+                    Section {
+                        Button("Remettre les réglages avancés d'origine") { appearance.resetAdvanced() }
+                    }
+                }
             }
 
             Section {
                 Button("Revenir à l'apparence d'origine") { appearance.reset() }
+            } footer: {
+                caption("Style OtterIsland, accent aqua, verre sombre : l'apparence de la première installation.")
             }
         }
         .formStyle(.grouped)
     }
 
-    /// Réglages fins, seulement en style Personnalisé.
-    @ViewBuilder
-    private var customSections: some View {
-            Section {
-                swatches(OtterAppearance.accentPresets, selection: $appearance.accentHex)
-                ColorPicker("Couleur personnalisée", selection: accentBinding, supportsOpacity: false)
-            } header: {
-                Text("Couleur d'accentuation")
-            } footer: {
-                caption("Onglet actif, liens, interrupteurs de l'île. « Couleur du système » suit Réglages Système › Apparence.")
-            }
+    // MARK: Sections
 
-            Section {
-                Picker("Matériau", selection: $appearance.material) {
-                    ForEach(OtterAppearance.Material.allCases) { Text($0.title).tag($0) }
+    private var accentSection: some View {
+        Section {
+            swatches(OtterAppearance.accentPresets, selection: $appearance.accentHex)
+            DisclosureGroup("Roue des couleurs", isExpanded: $showAccentWheel) {
+                ColorWheelPicker(hex: appearance.accentHex == OtterAppearance.systemAccentToken
+                                    ? NSColor(appearance.accent).hexString : appearance.accentHex) {
+                    appearance.accentHex = $0
                 }
-                .pickerStyle(.segmented)
-                swatches(OtterAppearance.tintPresets, selection: $appearance.tintHex)
-                ColorPicker("Teinte personnalisée", selection: tintBinding, supportsOpacity: false)
-                slider("Opacité de la teinte", value: $appearance.glassOpacity, in: 0.2...0.95)
-                    .disabled(appearance.material == .solid)
-                slider("Contraste du texte", value: $appearance.readability, in: 0...2)
-            } header: {
-                Text("Fond de l'île")
-            } footer: {
-                caption("Liquid Glass laisse vivre le fond d'écran ; Verre dépoli le floute davantage ; Opaque n'en montre rien, pour l'harmonie la plus sobre. Plus d'opacité = un verre plus sombre et plus calme. Le flou du Liquid Glass est fixé par macOS : pour plus de flou, choisis Verre dépoli.")
+                .padding(.vertical, 6)
             }
+        } header: {
+            Text("Couleur d'accentuation")
+        } footer: {
+            caption("Utilisée pour l'onglet actif, les jauges, les liens et les boutons principaux. « Couleur du système » reprend celle de Réglages Système › Apparence et la suit si tu la changes. Pour une harmonie sobre, essaie Graphite ou Blanc.")
+        }
+    }
+
+    private var backgroundSection: some View {
+        Section {
+            Picker("Matériau", selection: $appearance.material) {
+                ForEach(OtterAppearance.Material.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            caption(materialDetail)
+            swatches(OtterAppearance.tintPresets, selection: $appearance.tintHex)
+            DisclosureGroup("Roue des couleurs", isExpanded: $showTintWheel) {
+                ColorWheelPicker(hex: appearance.tintHex) { appearance.tintHex = $0 }
+                    .padding(.vertical, 6)
+            }
+        } header: {
+            Text("Fond de l'île")
+        } footer: {
+            caption("La teinte colore le verre de l'île. Le noir garde le texte blanc parfaitement lisible ; une teinte très claire le rendrait difficile à lire.")
+        }
+    }
+
+    private var glassSection: some View {
+        Section {
+            slider("Opacité de la teinte", value: $appearance.glassOpacity, in: 0.2...0.95,
+                   format: percent, default: OtterAppearance.Default.glassOpacity,
+                   detail: "Plus haut : verre plus sombre et plus calme. Plus bas : le fond d'écran transparaît davantage. Sans effet en Opaque.")
+                .disabled(appearance.material == .solid)
+            slider("Contraste du texte", value: $appearance.readability, in: 0...2,
+                   format: percent, default: OtterAppearance.Default.readability,
+                   detail: "Voile sombre posé sous le texte. Monte-le si le texte se perd sur un fond d'écran clair ; baisse-le pour un verre plus pur.")
+            slider("Intensité des tuiles", value: $appearance.tileIntensity, in: 0...2.5,
+                   format: percent, default: OtterAppearance.Default.tileIntensity,
+                   detail: "Fond des modules posés sur le verre (indicateurs, calendrier, lecteur). À 0, les modules disparaissent et le contenu flotte sur le verre.")
+        } header: {
+            Text("Verre")
+        }
+    }
+
+    private var shapeSection: some View {
+        Section {
+            slider("Arrondi des coins", value: $appearance.cornerRadius, in: 12...40,
+                   format: { "\(Int($0.rounded())) pt" }, default: OtterAppearance.Default.cornerRadius,
+                   detail: "Coins du bas de l'île ouverte. Petit : plus net, façon fenêtre. Grand : plus doux, façon goutte d'eau.")
+            slider("Ombre portée", value: $appearance.shadow, in: 0...0.8,
+                   format: percent, default: OtterAppearance.Default.shadow,
+                   detail: "Décolle l'île du bureau. À 0, elle se pose à plat sur l'écran.")
+            slider("Reflet sur le bord", value: $appearance.rim, in: 0...1.5,
+                   format: percent, default: OtterAppearance.Default.rim,
+                   detail: "Liseré lumineux sur la tranche du verre : c'est lui qui donne l'effet de verre épais. À 0, un bord net et mat.")
+            Toggle(isOn: $appearance.accentGradient) {
+                Text("Accent en dégradé")
+                Text("Un léger dégradé fait briller l'onglet actif ; décoché, un aplat de couleur, plus sobre.")
+            }
+        } header: {
+            Text("Forme et profondeur")
+        }
+    }
+
+    private var materialDetail: String {
+        switch appearance.material {
+        case .liquid: return "Liquid Glass : le verre de macOS, le fond d'écran vit à travers. Son flou est fixé par macOS."
+        case .frosted: return "Verre dépoli : flou marqué, plus calme, le fond d'écran ne se devine plus qu'en couleurs."
+        case .solid: return "Opaque : la teinte seule, sans transparence ni reflet du bureau. Le plus sobre."
+        }
     }
 
     // MARK: Pièces
 
-    private var accentBinding: Binding<Color> {
-        Binding(
-            get: { appearance.accent },
-            set: { appearance.accentHex = NSColor($0).hexString }
-        )
+    private var percent: (Double) -> String { { "\(Int(($0 * 100).rounded())) %" } }
+
+    /// Réglette : titre et valeur, curseur, explication, retour à la valeur d'origine.
+    private func slider(_ title: String, value: Binding<Double>, in range: ClosedRange<Double>,
+                        format: @escaping (Double) -> String, default defaultValue: Double,
+                        detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(title)
+                Spacer()
+                Text(format(value.wrappedValue))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                if abs(value.wrappedValue - defaultValue) > 0.001 {
+                    Button {
+                        value.wrappedValue = defaultValue
+                    } label: {
+                        Image(systemName: "arrow.uturn.backward.circle")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Revenir à \(format(defaultValue))")
+                }
+            }
+            Slider(value: value, in: range)
+            caption(detail)
+        }
     }
 
-    private var tintBinding: Binding<Color> {
-        Binding(
-            get: { appearance.tint },
-            set: { appearance.tintHex = NSColor($0).hexString }
-        )
-    }
-
-    /// Rangée de pastilles de couleur, la sélection cerclée.
+    /// Rangée de pastilles de couleur, la sélection cerclée, le nom au survol.
     private func swatches(_ presets: [(name: String, hex: String)], selection: Binding<String>) -> some View {
         HStack(spacing: 8) {
             ForEach(presets, id: \.hex) { preset in
@@ -106,13 +204,6 @@ struct AppearanceSettingsView: View {
             : Color(hex: hex, fallback: .gray)
     }
 
-    private func slider(_ title: String, value: Binding<Double>, in range: ClosedRange<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("\(title) : \(Int((value.wrappedValue * 100).rounded())) %")
-            Slider(value: value, in: range)
-        }
-    }
-
     private func caption(_ text: String) -> some View {
         Text(text)
             .font(.caption)
@@ -122,7 +213,7 @@ struct AppearanceSettingsView: View {
 }
 
 /// Miniature de l'île ouverte sur un faux fond d'écran : verre, onglet actif,
-/// texte. Observe l'apparence, donc suit les curseurs en direct.
+/// module, texte. Observe l'apparence, donc suit les réglages en direct.
 private struct IslandPreview: View {
     @ObservedObject private var appearance = OtterAppearance.shared
 
@@ -135,8 +226,12 @@ private struct IslandPreview: View {
                 endPoint: .bottomTrailing
             )
             ZStack(alignment: .topLeading) {
-                NotchGlassBackground(topWidth: 90, topHeight: 14, bottomRadius: 20, isExpanded: true)
-                VStack(alignment: .leading, spacing: 8) {
+                NotchGlassBackground(
+                    topWidth: 90, topHeight: 14,
+                    bottomRadius: CGFloat(appearance.effectiveCornerRadius) * 0.75,
+                    isExpanded: true
+                )
+                VStack(alignment: .leading, spacing: 7) {
                     HStack(spacing: 4) {
                         Circle().fill(Color.red).frame(width: 5, height: 5)
                         Text("Live").font(.system(size: 9.5, weight: .semibold))
@@ -151,15 +246,22 @@ private struct IslandPreview: View {
                                 }
                         }
                     }
-                    Text("Banlieusards").font(.system(size: 11, weight: .semibold))
-                    Capsule().fill(Otter.chipFill).frame(height: 3)
-                        .overlay(alignment: .leading) { Capsule().fill(Otter.accent).frame(width: 90, height: 3) }
+                    // Un module, pour juger l'intensité des tuiles.
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Banlieusards").font(.system(size: 11, weight: .semibold))
+                        Text("Kery James").font(.system(size: 9.5)).foregroundStyle(Otter.textSecondary)
+                        Capsule().fill(Otter.chipFill).frame(height: 3)
+                            .overlay(alignment: .leading) { Capsule().fill(Otter.accent).frame(width: 90, height: 3) }
+                    }
+                    .padding(7)
+                    .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Otter.tileFill))
                 }
                 .foregroundStyle(Otter.textPrimary)
                 .padding(.horizontal, 12)
                 .padding(.top, 20)
             }
-            .frame(width: 260, height: 96)
+            .frame(width: 270, height: 112)
+            .shadow(color: .black.opacity(appearance.effectiveShadow), radius: 8, y: 4)
         }
         .clipped()
     }

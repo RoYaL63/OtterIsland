@@ -30,7 +30,10 @@ enum Otter {
     /// Dégradé de marque. Un aplat de couleur reste plat ; un dégradé attrape la
     /// lumière comme le fait un contrôle actif du système.
     static var accentGradient: LinearGradient {
-        LinearGradient(colors: [accent, accentDeep], startPoint: .top, endPoint: .bottom)
+        LinearGradient(
+            colors: OtterAppearance.shared.effectiveAccentGradient ? [accent, accentDeep] : [accent, accent],
+            startPoint: .top, endPoint: .bottom
+        )
     }
 
     /// Quelque chose demande une action de l'utilisateur (permission manquante,
@@ -88,15 +91,15 @@ enum Otter {
     static var glassTint: Color { OtterAppearance.shared.glassTint }
 
     /// Remplissage d'une tuile posée sur le verre (module du Centre de contrôle).
-    static var tileFill: Color { ink(0.07) }
+    static var tileFill: Color { ink(0.07 * OtterAppearance.shared.effectiveTileIntensity) }
     /// La même, survolée ou active.
-    static var tileFillActive: Color { ink(0.13) }
+    static var tileFillActive: Color { ink(0.13 * OtterAppearance.shared.effectiveTileIntensity) }
 
     /// Filet de séparation. À n'utiliser que DANS une tuile ; entre deux sujets,
     /// c'est l'écart entre les tuiles qui sépare, pas un trait.
     static var separator: Color { ink(0.12) }
     /// Remplissage des pastilles et boutons posés sur le verre.
-    static var chipFill: Color { ink(0.11) }
+    static var chipFill: Color { ink(0.11 * OtterAppearance.shared.effectiveTileIntensity) }
     /// Liseré des mêmes pastilles.
     static var chipStroke: Color { ink(0.16) }
 

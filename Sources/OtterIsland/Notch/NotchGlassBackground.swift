@@ -61,6 +61,6 @@ struct NotchGlassBackground: View {
                     .overlay(shape.fill(scrim))
             }
         }
-        .overlay(SpecularRim(shape: shape, strength: isExpanded ? 1 : 0))
+        .overlay(SpecularRim(shape: shape, strength: isExpanded ? appearance.effectiveRim : 0))
     }
 }
