@@ -78,15 +78,30 @@ struct NotchRootView: View {
     }
 
     // Encoche au repos : noire, avec un signal discret si Claude Code attend.
+    // Sur un écran sans encoche, c'est un onglet 🦦 qu'on survole ou clique.
+    @ViewBuilder
     private var collapsedContent: some View {
-        VStack {
-            Spacer()
-            if viewModel.inbox.pending != nil {
-                Circle()
-                    .fill(Color.orange)
-                    .frame(width: 6, height: 6)
-                    .padding(.bottom, 2)
-                    .transition(.scale)
+        if viewModel.metrics?.hasRealNotch == false {
+            Text("🦦")
+                .font(.system(size: max(11, notchHeight * 0.55)))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(alignment: .topTrailing) {
+                    if viewModel.inbox.pending != nil {
+                        Circle().fill(Color.orange).frame(width: 6, height: 6).padding(3)
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture { viewModel.setExpanded(true) }
+        } else {
+            VStack {
+                Spacer()
+                if viewModel.inbox.pending != nil {
+                    Circle()
+                        .fill(Color.orange)
+                        .frame(width: 6, height: 6)
+                        .padding(.bottom, 2)
+                        .transition(.scale)
+                }
             }
         }
     }

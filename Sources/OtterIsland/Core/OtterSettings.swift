@@ -157,6 +157,17 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(perScreenDropOffset, forKey: Keys.perScreenDropOffset) }
     }
 
+    /// Sur quel écran vit l'île (voir `IslandScreenMode`).
+    @Published var islandScreenMode: IslandScreenMode {
+        didSet { defaults.set(islandScreenMode.rawValue, forKey: Keys.islandScreenMode) }
+    }
+
+    /// Écran choisi en mode `.fixed` (`ScreenIdentifier.stableID`). Vide =
+    /// l'écran du MacBook, ou à défaut celui sous le pointeur.
+    @Published var islandFixedScreenID: String {
+        didSet { defaults.set(islandFixedScreenID, forKey: Keys.islandFixedScreenID) }
+    }
+
     init() {
         defaults.register(defaults: [
             Keys.otterEnabled: false,
@@ -183,6 +194,8 @@ final class OtterSettings: ObservableObject {
             Keys.pomodoroFocusOff: "",
             Keys.pomodoroPauseMusic: false,
             Keys.pomodoroChime: true,
+            Keys.islandScreenMode: IslandScreenMode.fixed.rawValue,
+            Keys.islandFixedScreenID: "",
         ])
         otterEnabled = defaults.bool(forKey: Keys.otterEnabled)
         showBattery = defaults.bool(forKey: Keys.showBattery)
@@ -210,6 +223,8 @@ final class OtterSettings: ObservableObject {
         pomodoroFocusShortcutOff = defaults.string(forKey: Keys.pomodoroFocusOff) ?? ""
         pomodoroPauseMusic = defaults.bool(forKey: Keys.pomodoroPauseMusic)
         pomodoroChime = defaults.bool(forKey: Keys.pomodoroChime)
+        islandScreenMode = IslandScreenMode(rawValue: defaults.string(forKey: Keys.islandScreenMode) ?? "") ?? .fixed
+        islandFixedScreenID = defaults.string(forKey: Keys.islandFixedScreenID) ?? ""
     }
 
     /// Largeur pour un écran donné : son réglage propre s'il existe, sinon la valeur par défaut.
@@ -257,5 +272,7 @@ final class OtterSettings: ObservableObject {
         static let pomodoroFocusOff = "pomodoroFocusShortcutOff"
         static let pomodoroPauseMusic = "pomodoroPauseMusic"
         static let pomodoroChime = "pomodoroChime"
+        static let islandScreenMode = "islandScreenMode"
+        static let islandFixedScreenID = "islandFixedScreenID"
     }
 }

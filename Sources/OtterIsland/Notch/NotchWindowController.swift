@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 
 /// Crée le panneau, l'héberge une vue SwiftUI et le recale à chaque changement d'écran.
 @MainActor
@@ -45,6 +46,10 @@ final class NotchWindowController {
     /// carte étendue. Sinon une ouverture programmatique (raccourci presse-papier,
     /// verrouillage nettoyage) serait repliée au tick suivant, souris ailleurs.
     private var hoverArmed = false
+    /// Onglets 🦦 des écrans sans encoche où l'île n'est pas (mode « Tous les
+    /// écrans »), par identifiant d'écran.
+    private var handleWindows: [String: IslandHandleWindow] = [:]
+    private var cancellables = Set<AnyCancellable>()
 
     init(settings: OtterSettings) {
         self.settings = settings
@@ -58,6 +63,16 @@ final class NotchWindowController {
         if settings.clipboardEnabled {
             installClipboardHotKey(viewModel: viewModel)
         }
+        // Changer d'écran dans les réglages déplace l'île tout de suite. Le
+        // `receive(on:)` laisse passer le didSet : @Published émet AVANT.
+        Publishers.Merge(
+            settings.$islandScreenMode.map { _ in () },
+            settings.$islandFixedScreenID.map { _ in () }
+        )
+        .dropFirst(2)
+        .receive(on: RunLoop.main)
+        .sink { [weak self] in self?.showOnActiveScreen() }
+        .store(in: &cancellables)
     }
 
     private func installClipboardHotKey(viewModel: NotchViewModel) {
@@ -74,7 +89,13 @@ final class NotchWindowController {
     }
 
     func showOnActiveScreen() {
-        guard let screen = NotchMetrics.activeScreen() else { return }
+        guard let screen = NotchMetrics.targetScreen(settings: settings) else { return }
+        place(on: screen)
+        startMouseTracking()
+    }
+
+    /// Pose l'île (repliée) sur un écran et remet à jour les onglets 🦦.
+    private func place(on screen: NSScreen) {
         let screenID = ScreenIdentifier.stableID(for: screen)
         let metrics = NotchMetrics.current(
             for: screen,
@@ -88,7 +109,34 @@ final class NotchWindowController {
         win.setFrame(rect, display: true)
         win.orderFrontRegardless()
         window = win
-        startMouseTracking()
+        hoverTicks = 0
+        refreshHandles()
+    }
+
+    /// Mode « Tous les écrans » : un onglet 🦦 sur chaque écran sans encoche,
+    /// sauf celui qui porte déjà l'île. Les autres modes n'en affichent aucun.
+    private func refreshHandles() {
+        var wanted: [String: NSRect] = [:]
+        if settings.islandScreenMode == .everyScreen {
+            for screen in NSScreen.screens {
+                let id = ScreenIdentifier.stableID(for: screen)
+                guard id != viewModel.currentScreenID else { continue }
+                let metrics = NotchMetrics.current(for: screen)
+                guard !metrics.hasRealNotch else { continue }
+                wanted[id] = metrics.notchRect
+            }
+        }
+        for (id, win) in handleWindows where wanted[id] == nil {
+            win.orderOut(nil)
+            handleWindows[id] = nil
+        }
+        for (id, rect) in wanted {
+            if let win = handleWindows[id], win.frame == rect { continue }
+            handleWindows[id]?.orderOut(nil)
+            let win = IslandHandleWindow(frame: rect)
+            win.orderFrontRegardless()
+            handleWindows[id] = win
+        }
     }
 
     // MARK: Suivi souris / clic-à-travers
@@ -146,6 +194,16 @@ final class NotchWindowController {
         // supérieure ouverte). Plus d'élargissement latéral : la zone colle
         // désormais à l'encoche physique, elle ne déborde plus sur les onglets
         // du navigateur qui vivent juste à côté.
+        // Modes « pointeur » et « tous les écrans » : repliée, l'île rejoint
+        // l'écran où se trouve le pointeur. Jamais dépliée : elle ne doit pas
+        // s'enfuir pendant qu'on s'en sert.
+        if settings.islandScreenMode != .fixed,
+           let screen = NotchMetrics.screenUnderPointer(),
+           ScreenIdentifier.stableID(for: screen) != viewModel.currentScreenID {
+            place(on: screen)
+            return
+        }
+
         let notch = metrics.notchRect
         let live = viewModel.live.isActive
         let hotZone = NSRect(
@@ -160,7 +218,10 @@ final class NotchWindowController {
             return
         }
 
-        setIgnoresMouse(true, on: window)
+        // Sur un écran sans encoche, l'onglet 🦦 se clique : la fenêtre accepte
+        // la souris tant que le pointeur est dessus (il ne masque rien d'autre,
+        // la zone fait 44 pt). Sur l'encoche physique, rien à cliquer.
+        setIgnoresMouse(metrics.hasRealNotch, on: window)
         guard settings.hoverToOpen || live, hasExitedSinceClose else { return }
 
         // Le critère n'est pas « depuis combien de temps le pointeur est dans la

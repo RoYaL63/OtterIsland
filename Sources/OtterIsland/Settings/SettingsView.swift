@@ -175,7 +175,29 @@ struct SettingsView: View {
     private var notch: some View {
         Form {
             Section {
-                Picker("Écran", selection: $selectedScreenID) {
+                Picker("Afficher l'île sur", selection: $settings.islandScreenMode) {
+                    ForEach(IslandScreenMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.radioGroup)
+                if settings.islandScreenMode == .fixed {
+                    Picker("Écran", selection: $settings.islandFixedScreenID) {
+                        Text("Écran du MacBook (par défaut)").tag("")
+                        ForEach(NSScreen.screens, id: \.self) { screen in
+                            Text(ScreenIdentifier.label(for: screen))
+                                .tag(ScreenIdentifier.stableID(for: screen))
+                        }
+                    }
+                }
+            } header: {
+                Text("Écran de l'île")
+            } footer: {
+                caption(settings.islandScreenMode.detail + " Sur un écran sans encoche, l'île se replie en un onglet 🦦 au milieu de la barre des menus : survole-le ou clique-le pour l'ouvrir.")
+            }
+
+            Section {
+                Picker("Écran à régler", selection: $selectedScreenID) {
                     ForEach(NSScreen.screens, id: \.self) { screen in
                         Text(ScreenIdentifier.label(for: screen))
                             .tag(ScreenIdentifier.stableID(for: screen))
@@ -189,8 +211,10 @@ struct SettingsView: View {
                     Text("Débordement carte étendue : \(Int(settings.dropOffset(for: selectedScreenID))) pt")
                     Slider(value: dropBinding, in: 0...80, step: 1)
                 }
+            } header: {
+                Text("Taille de l'île")
             } footer: {
-                caption("Choisis l'écran dont tu ajustes la taille de l'île : ce menu ne déplace PAS l'île. Elle s'affiche toujours sur l'écran intégré du MacBook quand il est allumé, et sur l'écran sous le pointeur sinon (capot fermé, Mac de bureau). Redémarre l'affichage après un changement de largeur.")
+                caption("Ajuste la taille de l'île écran par écran ; pour choisir OÙ elle s'affiche, c'est la section du dessus. La largeur ne concerne que les écrans à encoche. Redémarre l'affichage après un changement de largeur.")
             }
         }
         .formStyle(.grouped)

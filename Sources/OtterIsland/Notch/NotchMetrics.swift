@@ -18,42 +18,64 @@ struct NotchMetrics {
         )
     }
 
+    /// Largeur de l'onglet 🦦 qui remplace l'encoche sur un écran qui n'en a pas.
+    static let handleWidth: CGFloat = 44
+
     static func current(for screen: NSScreen, widthOffset: CGFloat = 0) -> NotchMetrics {
         let frame = screen.frame
         let topInset = screen.safeAreaInsets.top
-
-        var width: CGFloat = 200 // secours pour un Mac sans encoche
-        var hasReal = false
 
         // Sur un Mac à encoche, les zones auxiliaires bordent le notch.
         if let left = screen.auxiliaryTopLeftArea,
            let right = screen.auxiliaryTopRightArea {
             let computed = frame.width - left.width - right.width
             if computed > 0 {
-                width = computed
-                hasReal = true
+                return NotchMetrics(
+                    screen: screen,
+                    screenFrame: frame,
+                    notchSize: CGSize(
+                        width: max(120, computed + widthOffset),
+                        height: topInset > 0 ? topInset : 32
+                    ),
+                    hasRealNotch: true
+                )
             }
         }
 
-        let height: CGFloat = topInset > 0 ? topInset : 32
-        let finalWidth = max(120, width + widthOffset)
-
+        // Pas d'encoche : plutôt qu'un faux bloc noir de 200 pt qui masquait le
+        // milieu de la barre de menus, un petit onglet 🦦 de la hauteur de la
+        // barre. Il sert de poignée : survol ou clic ouvrent l'île.
+        let menuBar = frame.maxY - screen.visibleFrame.maxY
         return NotchMetrics(
             screen: screen,
             screenFrame: frame,
-            notchSize: CGSize(width: finalWidth, height: height),
-            hasRealNotch: hasReal
+            notchSize: CGSize(width: handleWidth, height: menuBar >= 20 ? menuBar : 24),
+            hasRealNotch: false
         )
     }
 
-    /// Écran sur lequel poser l'encoche : toujours l'écran intégré du MacBook s'il existe,
-    /// pour ne jamais suivre un écran externe branché. Sur un Mac de bureau sans écran
-    /// intégré, on retombe sur l'écran sous le curseur.
-    static func activeScreen() -> NSScreen? {
-        if let builtIn = NSScreen.screens.first(where: ScreenIdentifier.isBuiltIn) {
-            return builtIn
-        }
+    /// Écran du MacBook s'il existe, sinon celui sous le pointeur.
+    static func defaultScreen() -> NSScreen? {
+        NSScreen.screens.first(where: ScreenIdentifier.isBuiltIn) ?? screenUnderPointer()
+    }
+
+    static func screenUnderPointer() -> NSScreen? {
         let mouse = NSEvent.mouseLocation
-        return NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
+        return NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
+    }
+
+    /// Écran où poser l'île selon le réglage.
+    @MainActor
+    static func targetScreen(settings: OtterSettings) -> NSScreen? {
+        switch settings.islandScreenMode {
+        case .fixed:
+            let id = settings.islandFixedScreenID
+            // Écran choisi débranché : on retombe sur l'écran par défaut, et on
+            // y revient tout seul quand il est rebranché.
+            return NSScreen.screens.first { !id.isEmpty && ScreenIdentifier.stableID(for: $0) == id }
+                ?? defaultScreen()
+        case .pointer, .everyScreen:
+            return screenUnderPointer()
+        }
     }
 }
