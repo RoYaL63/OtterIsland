@@ -1,8 +1,38 @@
 import SwiftUI
 
-/// Onglet affiché à l'ouverture des réglages.
-enum SettingsTab: Hashable {
-    case general, notch, focus, update, about
+/// Page des réglages, dans l'ordre du sommaire.
+enum SettingsTab: Hashable, CaseIterable, Identifiable {
+    case general, notch, clipboard, screenshots, monitor, permissions, focus, update, about
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .general: return "Général"
+        case .notch: return "Encoche et écrans"
+        case .clipboard: return "Presse-papier"
+        case .screenshots: return "Captures d'écran"
+        case .monitor: return "Moniteur"
+        case .permissions: return "Autorisations"
+        case .focus: return "Concentration"
+        case .update: return "Mise à jour"
+        case .about: return "À propos"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .general: return "gearshape"
+        case .notch: return "macbook"
+        case .clipboard: return "doc.on.clipboard"
+        case .screenshots: return "camera.viewfinder"
+        case .monitor: return "gauge.with.dots.needle.33percent"
+        case .permissions: return "lock.shield"
+        case .focus: return "moon.fill"
+        case .update: return "arrow.down.circle"
+        case .about: return "info.circle"
+        }
+    }
 }
 
 /// Qui commande l'onglet ouvert. Vit en dehors de la vue, dans l'AppDelegate :
@@ -30,27 +60,49 @@ struct SettingsView: View {
         return ScreenIdentifier.stableID(for: screen)
     }()
 
+    /// Sommaire à gauche, page à droite, comme les Réglages Système. Les
+    /// onglets en haut ne tenaient plus dans la largeur : macOS en cachait la
+    /// moitié derrière un bouton « » ».
     var body: some View {
-        TabView(selection: $router.tab) {
-            general
-                .tabItem { Label("Général", systemImage: "gearshape") }
-                .tag(SettingsTab.general)
-            notch
-                .tabItem { Label("Encoche", systemImage: "macbook") }
-                .tag(SettingsTab.notch)
-            FocusSettingsView()
-                .tabItem { Label("Concentration", systemImage: "moon.fill") }
-                .tag(SettingsTab.focus)
-            UpdateSettingsView(updater: updater)
-                .tabItem { Label("Mise à jour", systemImage: "arrow.down.circle") }
-                .tag(SettingsTab.update)
-            about
-                .tabItem { Label("À propos", systemImage: "info.circle") }
-                .tag(SettingsTab.about)
+        HStack(spacing: 0) {
+            List(selection: tabSelection) {
+                ForEach(SettingsTab.allCases) { tab in
+                    Label(tab.title, systemImage: tab.icon)
+                        .tag(tab)
+                }
+            }
+            .listStyle(.sidebar)
+            .frame(width: 190)
+
+            Divider()
+
+            page(router.tab)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        // Formulaires groupés et défilants : rien ne déborde, et la fenêtre
-        // peut s'agrandir si l'utilisateur le souhaite.
-        .frame(minWidth: 560, idealWidth: 560, minHeight: 460, idealHeight: 620)
+        .frame(minWidth: 680, idealWidth: 720, minHeight: 460, idealHeight: 560)
+    }
+
+    /// `List` veut une sélection optionnelle ; le routeur, lui, a toujours une page.
+    private var tabSelection: Binding<SettingsTab?> {
+        Binding(
+            get: { router.tab },
+            set: { if let tab = $0 { router.tab = tab } }
+        )
+    }
+
+    @ViewBuilder
+    private func page(_ tab: SettingsTab) -> some View {
+        switch tab {
+        case .general: general
+        case .notch: notch
+        case .clipboard: clipboard
+        case .screenshots: screenshots
+        case .monitor: monitor
+        case .permissions: permissions
+        case .focus: FocusSettingsView()
+        case .update: UpdateSettingsView(updater: updater)
+        case .about: about
+        }
     }
 
     private var general: some View {
@@ -97,7 +149,13 @@ struct SettingsView: View {
                        isOn: $settings.claudeCodeInboxEnabled)
             }
 
-            Section("Presse-papier") {
+        }
+        .formStyle(.grouped)
+    }
+
+    private var clipboard: some View {
+        Form {
+            Section {
                 Toggle("Presse-papier (raccourci global)", isOn: $settings.clipboardEnabled)
                 LabeledContent("Raccourci d'ouverture") {
                     ShortcutRecorderView(
@@ -114,8 +172,14 @@ struct SettingsView: View {
                 }
             }
 
-            // Diagnostic permissions : l'endroit où comprendre pourquoi le
-            // verrouillage clavier ou le collage auto ne répond pas.
+        }
+        .formStyle(.grouped)
+    }
+
+    // Diagnostic permissions : l'endroit où comprendre pourquoi le
+    // verrouillage clavier ou le collage auto ne répond pas.
+    private var permissions: some View {
+        Form {
             Section {
                 LabeledContent("Emplacement") {
                     if AppInstall.needsRelocation {
@@ -139,13 +203,17 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(CGPreflightListenEventAccess() ? .green : .red)
                 }
-            } header: {
-                Text("Autorisations")
             } footer: {
                 caption("Une permission cochée n'est lue qu'au prochain lancement de l'app. Après une mise à jour (signature ad-hoc), macOS peut la re-décocher : − puis + dans le panneau correspondant.")
             }
 
-            Section("Captures d'écran") {
+        }
+        .formStyle(.grouped)
+    }
+
+    private var screenshots: some View {
+        Form {
+            Section {
                 Toggle("Notification des captures d'écran (en bas à droite)", isOn: $settings.screenshotPreviewEnabled)
                 toggle("Copier la capture dans le presse-papier",
                        "⌘⇧4 puis ⌘V directement : `screencapture` n'écrit que sur le disque, OtterIsland met la capture dans le presse-papier. Redémarre OtterIsland après changement de l'aperçu.",
@@ -159,12 +227,16 @@ struct SettingsView: View {
                         color: floatingThumbnail ? .orange : .secondary)
             }
 
+        }
+        .formStyle(.grouped)
+    }
+
+    private var monitor: some View {
+        Form {
             Section {
                 Toggle("Suivre ce qui ralentit le Mac au fil des jours", isOn: $settings.monitorHistoryEnabled)
                 Toggle("Noter les pages web lors des emballements", isOn: $settings.monitorRecordPageTitles)
                     .disabled(!settings.monitorHistoryEnabled)
-            } header: {
-                Text("Moniteur")
             } footer: {
                 caption("Un relevé par minute, gardé 14 jours, uniquement sur ce Mac. Alimente l'onglet Historique et le diagnostic du Moniteur.")
             }
