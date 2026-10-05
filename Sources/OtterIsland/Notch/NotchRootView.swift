@@ -37,6 +37,12 @@ struct NotchRootView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(.easeOut(duration: 0.2), value: viewModel.hud)
         .id(appearance.revision)
+        // Onglet affiché masqué depuis les réglages : on retombe sur le premier visible.
+        .onChange(of: settings.hiddenTabs) { _, _ in
+            if !settings.visibleTabs.contains(viewModel.selectedTab), let first = settings.visibleTabs.first {
+                viewModel.selectedTab = first
+            }
+        }
     }
 
     private var island: some View {
@@ -200,7 +206,7 @@ struct NotchRootView: View {
                 onOpenAgenda: { viewModel.selectedTab = .agenda }
             )
         case .music:
-            MusicPanel(provider: viewModel.nowPlaying)
+            MusicPanel(provider: viewModel.nowPlaying, volume: viewModel.volume)
         case .agenda:
             AgendaPanel(calendar: viewModel.calendar)
         case .shelf:

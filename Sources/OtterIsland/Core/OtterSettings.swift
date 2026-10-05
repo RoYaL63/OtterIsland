@@ -185,6 +185,78 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(mirrorFill, forKey: Keys.mirrorFill) }
     }
 
+    // MARK: Fonctionnalités (Réglages › Fonctionnalités)
+
+    /// Ordre des onglets de l'île (`NotchTab.rawValue`). Un onglet absent de
+    /// la liste (ajouté dans une version future) se range à la fin.
+    @Published var tabOrder: [String] {
+        didSet { defaults.set(tabOrder, forKey: Keys.tabOrder) }
+    }
+
+    /// Onglets masqués de la barre de l'île.
+    @Published var hiddenTabs: [String] {
+        didSet { defaults.set(hiddenTabs, forKey: Keys.hiddenTabs) }
+    }
+
+    /// Bulle de volume dans l'encoche. Doublon de celle de macOS : on peut la couper.
+    @Published var volumeHUDEnabled: Bool {
+        didSet { defaults.set(volumeHUDEnabled, forKey: Keys.volumeHUD) }
+    }
+
+    /// Onglet Musique : son coupé / curseur de volume.
+    @Published var musicShowVolume: Bool {
+        didSet { defaults.set(musicShowVolume, forKey: Keys.musicShowVolume) }
+    }
+
+    /// Onglet Musique : bouton pour ouvrir Spotify ou Musique.
+    @Published var musicShowOpenApp: Bool {
+        didSet { defaults.set(musicShowOpenApp, forKey: Keys.musicShowOpenApp) }
+    }
+
+    /// Éléments de l'accueil masqués (`HomeItem.rawValue`).
+    @Published var hiddenHomeItems: [String] {
+        didSet { defaults.set(hiddenHomeItems, forKey: Keys.hiddenHomeItems) }
+    }
+
+    /// Onglets visibles, dans l'ordre choisi. Jamais vide : si tout est
+    /// masqué, l'accueil reste, sinon l'île n'aurait plus rien à montrer.
+    var visibleTabs: [NotchTab] {
+        let ordered = tabOrder.compactMap(NotchTab.init(rawValue:))
+        let all = ordered + NotchTab.allCases.filter { !ordered.contains($0) }
+        let visible = all.filter { !hiddenTabs.contains($0.rawValue) }
+        return visible.isEmpty ? [.home] : visible
+    }
+
+    /// Tous les onglets dans l'ordre choisi, masqués compris (pour les réglages).
+    var orderedTabs: [NotchTab] {
+        let ordered = tabOrder.compactMap(NotchTab.init(rawValue:))
+        return ordered + NotchTab.allCases.filter { !ordered.contains($0) }
+    }
+
+    func isTabVisible(_ tab: NotchTab) -> Bool { !hiddenTabs.contains(tab.rawValue) }
+
+    func setTab(_ tab: NotchTab, visible: Bool) {
+        hiddenTabs.removeAll { $0 == tab.rawValue }
+        if !visible { hiddenTabs.append(tab.rawValue) }
+    }
+
+    /// Déplace un onglet d'un cran (-1 = vers la gauche, +1 = vers la droite).
+    func moveTab(_ tab: NotchTab, by offset: Int) {
+        var order = orderedTabs
+        guard let index = order.firstIndex(of: tab) else { return }
+        let target = index + offset
+        guard order.indices.contains(target) else { return }
+        order.swapAt(index, target)
+        tabOrder = order.map(\.rawValue)
+    }
+
+    func isHomeItemVisible(_ item: HomeItem) -> Bool { !hiddenHomeItems.contains(item.rawValue) }
+
+    func setHomeItem(_ item: HomeItem, visible: Bool) {
+        hiddenHomeItems.removeAll { $0 == item.rawValue }
+        if !visible { hiddenHomeItems.append(item.rawValue) }
+    }
+
     init() {
         defaults.register(defaults: [
             Keys.otterEnabled: false,
@@ -216,6 +288,9 @@ final class OtterSettings: ObservableObject {
             Keys.mirrorCameraID: "",
             Keys.mirrorFlipped: true,
             Keys.mirrorFill: false,
+            Keys.volumeHUD: true,
+            Keys.musicShowVolume: true,
+            Keys.musicShowOpenApp: true,
         ])
         otterEnabled = defaults.bool(forKey: Keys.otterEnabled)
         showBattery = defaults.bool(forKey: Keys.showBattery)
@@ -248,6 +323,12 @@ final class OtterSettings: ObservableObject {
         mirrorCameraID = defaults.string(forKey: Keys.mirrorCameraID) ?? ""
         mirrorFlipped = defaults.bool(forKey: Keys.mirrorFlipped)
         mirrorFill = defaults.bool(forKey: Keys.mirrorFill)
+        tabOrder = defaults.stringArray(forKey: Keys.tabOrder) ?? NotchTab.allCases.map(\.rawValue)
+        hiddenTabs = defaults.stringArray(forKey: Keys.hiddenTabs) ?? []
+        volumeHUDEnabled = defaults.bool(forKey: Keys.volumeHUD)
+        musicShowVolume = defaults.bool(forKey: Keys.musicShowVolume)
+        musicShowOpenApp = defaults.bool(forKey: Keys.musicShowOpenApp)
+        hiddenHomeItems = defaults.stringArray(forKey: Keys.hiddenHomeItems) ?? []
     }
 
     /// Largeur pour un écran donné : son réglage propre s'il existe, sinon la valeur par défaut.
@@ -300,5 +381,11 @@ final class OtterSettings: ObservableObject {
         static let mirrorCameraID = "mirrorCameraID"
         static let mirrorFlipped = "mirrorFlipped"
         static let mirrorFill = "mirrorFill"
+        static let tabOrder = "tabOrder"
+        static let hiddenTabs = "hiddenTabs"
+        static let volumeHUD = "volumeHUDEnabled"
+        static let musicShowVolume = "musicShowVolume"
+        static let musicShowOpenApp = "musicShowOpenApp"
+        static let hiddenHomeItems = "hiddenHomeItems"
     }
 }

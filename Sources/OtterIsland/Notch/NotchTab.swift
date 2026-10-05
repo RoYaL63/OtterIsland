@@ -46,3 +46,36 @@ enum NotchTab: String, CaseIterable, Identifiable {
         }
     }
 }
+
+/// Éléments de l'accueil qu'on peut afficher ou masquer
+/// (Réglages › Fonctionnalités). La batterie garde son réglage historique,
+/// `showBattery`.
+enum HomeItem: String, CaseIterable, Identifiable {
+    case memory, nextEvent, pomodoro, calendar, music, cleanup, mirror
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .memory: return "Mémoire (RAM)"
+        case .nextEvent: return "Prochain rendez-vous"
+        case .pomodoro: return "Pomodoro"
+        case .calendar: return "Mini calendrier"
+        case .music: return "Lecture en cours"
+        case .cleanup: return "Bouton Nettoyage du clavier"
+        case .mirror: return "Bouton Miroir"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .memory: return "memorychip"
+        case .nextEvent: return "calendar.badge.clock"
+        case .pomodoro: return "timer"
+        case .calendar: return "calendar"
+        case .music: return "music.note"
+        case .cleanup: return "sparkles"
+        case .mirror: return "camera.fill"
+        }
+    }
+}
