@@ -55,6 +55,9 @@ private func card<Panel: View>(tab: NotchTab, @ViewBuilder panel: () -> Panel) -
             startPoint: .topLeading, endPoint: .bottomTrailing
         )
     )
+    // La barre d'onglets et l'accueil lisent les réglages (onglets visibles,
+    // éléments affichés) : valeurs par défaut.
+    .environmentObject(OtterSettings())
 }
 
 @MainActor

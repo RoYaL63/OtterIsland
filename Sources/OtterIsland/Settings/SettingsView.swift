@@ -2,13 +2,14 @@ import SwiftUI
 
 /// Page des réglages, dans l'ordre du sommaire.
 enum SettingsTab: Hashable, CaseIterable, Identifiable {
-    case general, appearance, notch, clipboard, screenshots, monitor, permissions, focus, update, about
+    case general, features, appearance, notch, clipboard, screenshots, monitor, permissions, focus, update, about
 
     var id: Self { self }
 
     var title: String {
         switch self {
         case .general: return "Général"
+        case .features: return "Fonctionnalités"
         case .appearance: return "Apparence"
         case .notch: return "Encoche et écrans"
         case .clipboard: return "Presse-papier"
@@ -24,6 +25,7 @@ enum SettingsTab: Hashable, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .general: return "gearshape"
+        case .features: return "switch.2"
         case .appearance: return "paintpalette"
         case .notch: return "macbook"
         case .clipboard: return "doc.on.clipboard"
@@ -96,12 +98,13 @@ struct SettingsView: View {
     private func page(_ tab: SettingsTab) -> some View {
         switch tab {
         case .general: general
+        case .features: FeaturesSettingsView()
         case .appearance: AppearanceSettingsView()
         case .notch: notch
         case .clipboard: clipboard
         case .screenshots: screenshots
         case .monitor: monitor
-        case .permissions: permissions
+        case .permissions: PermissionsSettingsView()
         case .focus: FocusSettingsView()
         case .update: UpdateSettingsView(updater: updater)
         case .about: about
@@ -139,18 +142,6 @@ struct SettingsView: View {
                        isOn: $settings.gestureControl)
             }
 
-            Section("Dans l'île") {
-                toggle("Loutre de compagnie",
-                       "Une petite loutre animée dans la rangée des onglets, qui réagit à ce qui se passe sur ton Mac.",
-                       isOn: $settings.otterEnabled)
-                Toggle("Afficher la batterie", isOn: $settings.showBattery)
-                toggle("Suivi musique (la loutre nage)",
-                       "Lit l'état de Spotify / Apple Music. macOS demandera l'autorisation Automatisation.",
-                       isOn: $settings.musicFollow)
-                toggle("Inbox Claude Code",
-                       "L'inbox surveille ~/.otterisland/inbox pour les demandes d'action.",
-                       isOn: $settings.claudeCodeInboxEnabled)
-            }
 
         }
         .formStyle(.grouped)
@@ -173,41 +164,6 @@ struct SettingsView: View {
                 Button("Autoriser l'Accessibilité (collage auto)") {
                     Paster.ensureAccessibility()
                 }
-            }
-
-        }
-        .formStyle(.grouped)
-    }
-
-    // Diagnostic permissions : l'endroit où comprendre pourquoi le
-    // verrouillage clavier ou le collage auto ne répond pas.
-    private var permissions: some View {
-        Form {
-            Section {
-                LabeledContent("Emplacement") {
-                    if AppInstall.needsRelocation {
-                        Button("Hors /Applications — installer et relancer") {
-                            AppInstall.installInApplications()
-                        }
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.red)
-                        .help("Lancée depuis \(AppInstall.humanLocation), les permissions ne s'appliquent jamais (App Translocation).")
-                    } else {
-                        Text("✓ /Applications").font(.caption).foregroundStyle(.green)
-                    }
-                }
-                LabeledContent("Accessibilité (collage auto)") {
-                    Text(Paster.hasAccessibility ? "✓ accordée" : "✗ manquante")
-                        .font(.caption)
-                        .foregroundStyle(Paster.hasAccessibility ? .green : .red)
-                }
-                LabeledContent("Surveillance des saisies (verrouillage)") {
-                    Text(CGPreflightListenEventAccess() ? "✓ accordée" : "✗ manquante")
-                        .font(.caption)
-                        .foregroundStyle(CGPreflightListenEventAccess() ? .green : .red)
-                }
-            } footer: {
-                caption("Une permission cochée n'est lue qu'au prochain lancement de l'app. Après une mise à jour (signature ad-hoc), macOS peut la re-décocher : − puis + dans le panneau correspondant.")
             }
 
         }

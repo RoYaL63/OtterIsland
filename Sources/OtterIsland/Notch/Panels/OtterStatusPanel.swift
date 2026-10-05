@@ -32,42 +32,71 @@ struct OtterStatusPanel: View {
     /// Clic sur un jour du mini calendrier : bascule sur l'onglet Agenda,
     /// déjà positionné sur ce jour.
     let onOpenAgenda: () -> Void
+    /// Éléments affichés : Réglages › Fonctionnalités › Accueil.
+    @EnvironmentObject private var settings: OtterSettings
+
+    private func shows(_ item: HomeItem) -> Bool { settings.isHomeItemVisible(item) }
+
+    /// La colonne d'indicateurs a-t-elle au moins une ligne à montrer ?
+    private var hasStats: Bool {
+        shows(.memory) || showBattery || shows(.pomodoro)
+            || (shows(.nextEvent) && calendar.events.first != nil)
+    }
+
+    private var hasBottomRow: Bool {
+        shows(.music) || shows(.cleanup) || shows(.mirror)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // fixedSize vertical : la rangée prend la hauteur du plus grand des
             // deux modules (le calendrier), et l'autre s'étire pour l'égaler —
             // deux tuiles côte à côte de hauteurs différentes se lisent comme
-            // un défaut d'alignement.
-            HStack(alignment: .top, spacing: 8) {
-                OtterTile {
-                    statsColumn
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            // un défaut d'alignement. Un module masqué laisse toute la largeur
+            // à l'autre.
+            if hasStats || shows(.calendar) {
+                HStack(alignment: .top, spacing: 8) {
+                    if hasStats {
+                        OtterTile {
+                            statsColumn
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        }
+                    }
+                    if shows(.calendar) {
+                        OtterTile {
+                            MiniCalendarView(calendar: calendar, onPickDay: onOpenAgenda)
+                                .frame(maxWidth: hasStats ? nil : .infinity, maxHeight: .infinity, alignment: .top)
+                        }
+                    }
                 }
-                OtterTile {
-                    MiniCalendarView(calendar: calendar, onPickDay: onOpenAgenda)
-                        .frame(maxHeight: .infinity, alignment: .top)
-                }
+                .fixedSize(horizontal: false, vertical: true)
             }
-            .fixedSize(horizontal: false, vertical: true)
 
             Spacer(minLength: 0)
 
-            OtterTile(verticalPadding: 6) {
-                HStack(alignment: .center, spacing: 8) {
-                    musicRow
-                    Spacer(minLength: 6)
-                    OtterIconButton(
-                        icon: "sparkles",
-                        tint: Otter.accent,
-                        help: "Verrouiller le clavier pour nettoyer",
-                        action: onToggleCleanup
-                    )
-                    OtterIconButton(
-                        icon: "camera.fill",
-                        help: "Mode miroir (caméra)",
-                        action: onOpenMirror
-                    )
+            if hasBottomRow {
+                OtterTile(verticalPadding: 6) {
+                    HStack(alignment: .center, spacing: 8) {
+                        if shows(.music) {
+                            musicRow
+                        }
+                        Spacer(minLength: 6)
+                        if shows(.cleanup) {
+                            OtterIconButton(
+                                icon: "sparkles",
+                                tint: Otter.accent,
+                                help: "Verrouiller le clavier pour nettoyer",
+                                action: onToggleCleanup
+                            )
+                        }
+                        if shows(.mirror) {
+                            OtterIconButton(
+                                icon: "camera.fill",
+                                help: "Mode miroir (caméra)",
+                                action: onOpenMirror
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -78,14 +107,18 @@ struct OtterStatusPanel: View {
 
     private var statsColumn: some View {
         VStack(alignment: .leading, spacing: 7) {
-            memoryRow
+            if shows(.memory) {
+                memoryRow
+            }
             if showBattery {
                 batteryRow
             }
-            if let event = calendar.events.first {
+            if shows(.nextEvent), let event = calendar.events.first {
                 nextEventRow(event)
             }
-            pomodoroControl
+            if shows(.pomodoro) {
+                pomodoroControl
+            }
         }
     }
 

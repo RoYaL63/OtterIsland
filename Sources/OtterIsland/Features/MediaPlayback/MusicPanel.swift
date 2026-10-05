@@ -4,6 +4,9 @@ import AppKit
 /// Panneau Musique : pochette, morceau, barre de progression et contrôles.
 struct MusicPanel: View {
     @ObservedObject var provider: AppleScriptNowPlaying
+    @ObservedObject var volume: VolumeMonitor
+    /// Options affichées : Réglages › Fonctionnalités › Musique.
+    @EnvironmentObject private var settings: OtterSettings
 
     /// Un seul module, comme la tuile « En lecture » du Centre de contrôle :
     /// pochette, morceau, position, transport. Le contenu était posé à nu sur
@@ -24,10 +27,16 @@ struct MusicPanel: View {
                         }
                     }
                     scrubber(track)
-                    HStack {
-                        Spacer(minLength: 0)
+                    // Une seule rangée : volume à gauche, transport au centre,
+                    // l'app à droite. Une rangée de plus ne tenait pas dans la
+                    // hauteur de la carte.
+                    ZStack {
                         MediaControlsView(provider: provider)
-                        Spacer(minLength: 0)
+                        HStack {
+                            if settings.musicShowVolume { volumeControl }
+                            Spacer(minLength: 0)
+                            if settings.musicShowOpenApp { openAppButton }
+                        }
                     }
                 } else {
                     OtterEmptyState(
@@ -35,11 +44,78 @@ struct MusicPanel: View {
                         title: "Rien en lecture",
                         subtitle: "Lance Spotify ou Apple Music, la loutre se met à nager."
                     )
+                    if settings.musicShowOpenApp {
+                        launchButtons
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    // MARK: Volume et app
+
+    /// Son coupé / rétabli, et volume de la sortie du Mac.
+    private var volumeControl: some View {
+        HStack(spacing: 4) {
+            Button {
+                volume.toggleMute()
+            } label: {
+                Image(systemName: volumeIcon)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(volume.isMuted ? Otter.warning : Otter.textSecondary)
+                    .frame(width: 20, height: 20)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!volume.canMute)
+            .help(volume.isMuted ? "Rétablir le son" : "Couper le son")
+            Slider(
+                value: Binding(get: { Double(volume.volume) }, set: { volume.setVolume(Float($0)) }),
+                in: 0...1
+            )
+            .controlSize(.mini)
+            .tint(Otter.accent)
+            .frame(width: 70)
+            .help("Volume du Mac")
+        }
+    }
+
+    private var volumeIcon: String {
+        if volume.isMuted || volume.volume == 0 { return "speaker.slash.fill" }
+        if volume.volume < 0.34 { return "speaker.wave.1.fill" }
+        if volume.volume < 0.67 { return "speaker.wave.2.fill" }
+        return "speaker.wave.3.fill"
+    }
+
+    /// Ouvre l'app qui joue (Spotify en priorité, sinon Musique).
+    private var openAppButton: some View {
+        let app = MusicApps.running ?? MusicApps.installed.first
+        return Button {
+            if let app { MusicApps.open(app) }
+        } label: {
+            Image(systemName: "arrow.up.forward.app")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Otter.textSecondary)
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(app == nil)
+        .help(app.map { "Ouvrir \($0.name)" } ?? "Ni Spotify ni Musique ne sont installés")
+    }
+
+    /// Rien ne joue : de quoi lancer un lecteur sans quitter l'île.
+    private var launchButtons: some View {
+        HStack(spacing: 8) {
+            ForEach(MusicApps.installed, id: \.bundleID) { app in
+                OtterActionLink(title: "Ouvrir \(app.name)", icon: "arrow.up.forward.app", tint: Otter.accent) {
+                    MusicApps.open(app)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     /// macOS refuse l'Automatisation vers Spotify/Music tant qu'elle n'est pas
@@ -116,5 +192,33 @@ struct MusicPanel: View {
         guard seconds.isFinite, seconds >= 0 else { return "0:00" }
         let total = Int(seconds)
         return String(format: "%d:%02d", total / 60, total % 60)
+    }
+}
+
+/// Lecteurs pilotés par l'île, et de quoi les ouvrir.
+enum MusicApps {
+    struct App {
+        let name: String
+        let bundleID: String
+    }
+
+    static let all = [
+        App(name: "Spotify", bundleID: "com.spotify.client"),
+        App(name: "Musique", bundleID: "com.apple.Music"),
+    ]
+
+    static var installed: [App] {
+        all.filter { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0.bundleID) != nil }
+    }
+
+    /// Le lecteur ouvert, Spotify d'abord (même priorité que la lecture).
+    static var running: App? {
+        let ids = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
+        return all.first { ids.contains($0.bundleID) }
+    }
+
+    static func open(_ app: App) {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: app.bundleID) else { return }
+        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
     }
 }

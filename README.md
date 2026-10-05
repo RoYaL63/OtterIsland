@@ -82,7 +82,8 @@ Le code est sous licence MIT : forks, idées et retours bienvenus, ici ou dans l
 - **Au survol**, l'encoche s'ouvre en carte : accueil (batterie, mémoire, prochain rendez-vous, Pomodoro), presse-papier, captures, moniteur, musique, agenda, étagère, miroir.
 - **Pas d'ouverture intempestive** : il faut que le pointeur s'**arrête** sur l'encoche (délai réglable). Traverser la zone pour cliquer un onglet de navigateur n'ouvre rien.
 - **Molette** au-dessus de l'encoche pour ouvrir ou fermer.
-- **HUD de volume** dans l'encoche.
+- **HUD de volume** dans l'encoche (désactivable : macOS affiche déjà le sien).
+- **Tout se règle** dans Réglages › Fonctionnalités : onglets affichés et leur ordre, éléments de l'accueil (Pomodoro, RAM, calendrier…), options de l'onglet Musique.
 - **Plusieurs écrans** : dans **Réglages › Encoche**, choisis où vit l'île — un écran fixe (celui du MacBook par défaut), l'écran sous le pointeur, ou tous les écrans. Sur un écran sans encoche, elle se replie en un petit onglet 🦦 au milieu de la barre des menus : survole-le ou clique-le pour l'ouvrir.
 - **Loutre de compagnie** en option : voir [ci-dessous](#la-loutre-de-compagnie).
 - Design Liquid Glass, réglages fins de taille et de position par écran. **Apparence** (Réglages › Apparence) : style OtterIsland, style **Système** qui suit le mode clair / sombre, le Liquid Glass transparent / teinté et la couleur du thème de macOS, ou Personnalisé : couleur d'accentuation (dont celle du système), teinte et opacité du verre, Liquid Glass / verre dépoli / opaque, contraste du texte — avec aperçu en direct.
@@ -154,7 +155,7 @@ Un bouton de l'accueil **verrouille tout le clavier** le temps de le nettoyer : 
 ### Agenda, musique, étagère, miroir, Pomodoro
 
 - **Agenda** : évènements des prochaines 24 h et rappels, à cocher depuis l'île.
-- **Musique** : titre, pochette, progression et contrôles pour **Spotify** et **Apple Music**.
+- **Musique** : titre, pochette, progression et contrôles pour **Spotify** et **Apple Music**, volume et coupure du son, bouton pour ouvrir le lecteur (ou le lancer quand rien ne joue).
 - **Étagère** : glisse des fichiers sur l'encoche pour les garder sous la main, envoi **AirDrop**.
 - **Miroir** : la caméra, pour vérifier sa tête avant une visio. Choix de la caméra (intégrée, USB, iPhone), image en miroir ou telle que les autres te verront, cadrage plein ou complet. **Fond et effets…** ouvre le miroir en grand avec les effets vidéo de macOS — arrière-plan, mode Portrait, Lumière studio, Cadre centré — pour te préparer.
 - **Pomodoro** avec mode Concentration, pause de la musique et carillon.
@@ -167,7 +168,7 @@ Quand [Claude Code](https://claude.com/claude-code) demande une validation, la d
 
 ## Autorisations macOS
 
-OtterIsland ne demande une autorisation **qu'au moment où une fonction en a besoin**. Toutes sont facultatives : sans elles, la fonction concernée est simplement indisponible.
+OtterIsland ne demande une autorisation **qu'au moment où une fonction en a besoin**. Toutes sont facultatives : sans elles, la fonction concernée est simplement indisponible. La page **Réglages › Autorisations** montre l'état de chacune et ouvre directement le bon panneau des Réglages Système.
 
 | Autorisation | Pourquoi | Fonctions concernées | Où l'activer |
 |---|---|---|---|

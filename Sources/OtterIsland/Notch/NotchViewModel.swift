@@ -261,7 +261,9 @@ final class NotchViewModel: ObservableObject {
         volume.$volume
             .dropFirst()
             .sink { [weak self] value in
-                self?.showHUD(HUDState(kind: .volume, value: Double(value)))
+                // Désactivable : macOS affiche déjà la sienne.
+                guard let self, self.settings.volumeHUDEnabled else { return }
+                self.showHUD(HUDState(kind: .volume, value: Double(value)))
             }
             .store(in: &cancellables)
     }

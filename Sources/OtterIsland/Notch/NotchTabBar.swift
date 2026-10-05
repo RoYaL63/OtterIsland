@@ -13,13 +13,15 @@ import SwiftUI
 /// qui attrape la lumière a l'air posée SUR le verre.
 struct NotchTabBar: View {
     @Binding var selection: NotchTab
+    /// Onglets affichés et leur ordre : Réglages › Fonctionnalités.
+    @EnvironmentObject private var settings: OtterSettings
 
     @Namespace private var indicator
     @State private var hovered: NotchTab?
 
     var body: some View {
         HStack(spacing: 2) {
-            ForEach(NotchTab.allCases) { tab in
+            ForEach(settings.visibleTabs) { tab in
                 Button {
                     withAnimation(Otter.selectionMotion) {
                         selection = tab
