@@ -34,9 +34,12 @@ struct FeaturesSettingsView: View {
             }
 
             Section("Musique") {
-                toggle("Volume et coupure du son",
-                       "Curseur de volume du Mac et bouton pour couper le son, à gauche des commandes de lecture.",
-                       isOn: $settings.musicShowVolume)
+                toggle("Bouton couper le son",
+                       "Coupe ou rétablit le son du Mac en un clic, à gauche des commandes de lecture.",
+                       isOn: $settings.musicShowMuteButton)
+                toggle("Curseur de volume",
+                       "Règle le volume du Mac depuis l'onglet, à côté du bouton couper le son.",
+                       isOn: $settings.musicShowVolumeSlider)
                 toggle("Bouton pour ouvrir l'app",
                        "Ouvre Spotify ou Musique depuis l'onglet ; quand rien ne joue, propose de les lancer.",
                        isOn: $settings.musicShowOpenApp)

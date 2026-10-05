@@ -33,7 +33,7 @@ struct MusicPanel: View {
                     ZStack {
                         MediaControlsView(provider: provider)
                         HStack {
-                            if settings.musicShowVolume { volumeControl }
+                            if settings.musicShowMuteButton || settings.musicShowVolumeSlider { volumeControl }
                             Spacer(minLength: 0)
                             if settings.musicShowOpenApp { openAppButton }
                         }
@@ -56,30 +56,43 @@ struct MusicPanel: View {
 
     // MARK: Volume et app
 
-    /// Son coupé / rétabli, et volume de la sortie du Mac.
+    /// Son coupé / rétabli, et volume de la sortie du Mac. Chacun s'affiche
+    /// selon son propre réglage.
     private var volumeControl: some View {
         HStack(spacing: 4) {
-            Button {
-                volume.toggleMute()
-            } label: {
-                Image(systemName: volumeIcon)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(volume.isMuted ? Otter.warning : Otter.textSecondary)
-                    .frame(width: 20, height: 20)
-                    .contentShape(Rectangle())
+            if settings.musicShowMuteButton {
+                muteButton
             }
-            .buttonStyle(.plain)
-            .disabled(!volume.canMute)
-            .help(volume.isMuted ? "Rétablir le son" : "Couper le son")
-            Slider(
-                value: Binding(get: { Double(volume.volume) }, set: { volume.setVolume(Float($0)) }),
-                in: 0...1
-            )
-            .controlSize(.mini)
-            .tint(Otter.accent)
-            .frame(width: 70)
-            .help("Volume du Mac")
+            if settings.musicShowVolumeSlider {
+                volumeSlider
+            }
         }
+    }
+
+    private var muteButton: some View {
+        Button {
+            volume.toggleMute()
+        } label: {
+            Image(systemName: volumeIcon)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(volume.isMuted ? Otter.warning : Otter.textSecondary)
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!volume.canMute)
+        .help(volume.isMuted ? "Rétablir le son" : "Couper le son")
+    }
+
+    private var volumeSlider: some View {
+        Slider(
+            value: Binding(get: { Double(volume.volume) }, set: { volume.setVolume(Float($0)) }),
+            in: 0...1
+        )
+        .controlSize(.mini)
+        .tint(Otter.accent)
+        .frame(width: 70)
+        .help("Volume du Mac")
     }
 
     private var volumeIcon: String {
