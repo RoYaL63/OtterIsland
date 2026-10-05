@@ -95,10 +95,19 @@ final class NotchViewModel: ObservableObject {
         self.settings = settings
         self.live = LiveController(settings: settings)
         self.pomodoro = PomodoroTimer(settings: settings)
+        self.aiUsage = AIUsageMonitor(settings: settings)
         wirePomodoro()
-        if settings.claudeCodeInboxEnabled {
+        // L'inbox reçoit aussi les notifications des assistants suivis : on la
+        // démarre dès qu'un assistant est activé, sans attendre un relancement.
+        if settings.claudeCodeInboxEnabled || !settings.enabledAssistants.isEmpty {
             inbox.start()
         }
+        Publishers.CombineLatest(settings.$aiClaudeCodeEnabled, settings.$aiCodexEnabled)
+            .dropFirst()
+            .filter { $0 || $1 }
+            .sink { [weak self] _, _ in self?.inbox.start() }
+            .store(in: &cancellables)
+        aiUsage.start()
         if settings.musicFollow {
             nowPlaying.start()
         }
@@ -191,6 +200,15 @@ final class NotchViewModel: ObservableObject {
     func openMirrorWindow(withEffects: Bool) {
         setExpanded(false)
         mirrorWindow.show(withEffects: withEffects)
+    }
+
+    /// Tokens et sessions des assistants IA suivis (onglet IA).
+    let aiUsage: AIUsageMonitor
+
+    /// Ouvre une page des réglages (la fenêtre appartient à l'AppDelegate).
+    func openSettings(_ tab: SettingsTab) {
+        setExpanded(false)
+        NotificationCenter.default.post(name: .otterOpenSettings, object: tab)
     }
 
     /// Ouvre le moniteur détaillé. La carte de l'encoche reste lisible d'un

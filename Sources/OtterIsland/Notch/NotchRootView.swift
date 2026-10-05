@@ -128,9 +128,11 @@ struct NotchRootView: View {
                     }
                 } else if let request = viewModel.inbox.pending {
                     // Une demande Claude Code passe devant tout le reste.
-                    ClaudeCodeCard(request: request) { approved in
+                    ClaudeCodeCard(request: request, onDecision: { approved in
                         viewModel.inbox.resolve(request, approved: approved)
-                    }
+                    }, onDismiss: {
+                        viewModel.inbox.dismiss(request)
+                    })
                 } else if viewModel.live.isActive, viewModel.liveDetour != nil {
                     HStack {
                         OtterActionLink(title: "Barre Live", icon: "chevron.left", tint: Otter.textSecondary) {
@@ -224,6 +226,8 @@ struct NotchRootView: View {
                 showBattery: settings.showBattery,
                 onOpenWindow: { viewModel.openMonitorWindow() }
             )
+        case .ai:
+            AIPanel(monitor: viewModel.aiUsage, onOpenSettings: { viewModel.openSettings(.ai) })
         case .mirror:
             MirrorPanel { withEffects in viewModel.openMirrorWindow(withEffects: withEffects) }
         case .screenshots:

@@ -224,12 +224,36 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(hiddenHomeItems, forKey: Keys.hiddenHomeItems) }
     }
 
+    // MARK: Assistants IA (Réglages › Assistants IA)
+
+    /// Surveiller Claude Code : tokens et session en cours.
+    @Published var aiClaudeCodeEnabled: Bool {
+        didSet { defaults.set(aiClaudeCodeEnabled, forKey: Keys.aiClaudeCode) }
+    }
+
+    /// Surveiller Codex : tokens et session en cours.
+    @Published var aiCodexEnabled: Bool {
+        didSet { defaults.set(aiCodexEnabled, forKey: Keys.aiCodex) }
+    }
+
+    var enabledAssistants: [AIAssistant] {
+        AIAssistant.allCases.filter {
+            switch $0 {
+            case .claudeCode: return aiClaudeCodeEnabled
+            case .codex: return aiCodexEnabled
+            }
+        }
+    }
+
     /// Onglets visibles, dans l'ordre choisi. Jamais vide : si tout est
     /// masqué, l'accueil reste, sinon l'île n'aurait plus rien à montrer.
     var visibleTabs: [NotchTab] {
         let ordered = tabOrder.compactMap(NotchTab.init(rawValue:))
         let all = ordered + NotchTab.allCases.filter { !ordered.contains($0) }
-        let visible = all.filter { !hiddenTabs.contains($0.rawValue) }
+        // L'onglet IA n'a rien à montrer tant qu'aucun assistant n'est suivi.
+        let visible = all.filter {
+            !hiddenTabs.contains($0.rawValue) && ($0 != .ai || !enabledAssistants.isEmpty)
+        }
         return visible.isEmpty ? [.home] : visible
     }
 
@@ -297,6 +321,8 @@ final class OtterSettings: ObservableObject {
             Keys.volumeHUD: true,
             Keys.musicShowVolume: true,
             Keys.musicShowMute: true,
+            Keys.aiClaudeCode: false,
+            Keys.aiCodex: false,
             Keys.musicShowOpenApp: true,
         ])
         otterEnabled = defaults.bool(forKey: Keys.otterEnabled)
@@ -337,6 +363,8 @@ final class OtterSettings: ObservableObject {
         musicShowMuteButton = defaults.bool(forKey: Keys.musicShowMute)
         musicShowOpenApp = defaults.bool(forKey: Keys.musicShowOpenApp)
         hiddenHomeItems = defaults.stringArray(forKey: Keys.hiddenHomeItems) ?? []
+        aiClaudeCodeEnabled = defaults.bool(forKey: Keys.aiClaudeCode)
+        aiCodexEnabled = defaults.bool(forKey: Keys.aiCodex)
     }
 
     /// Largeur pour un écran donné : son réglage propre s'il existe, sinon la valeur par défaut.
@@ -396,5 +424,7 @@ final class OtterSettings: ObservableObject {
         static let musicShowMute = "musicShowMuteButton"
         static let musicShowOpenApp = "musicShowOpenApp"
         static let hiddenHomeItems = "hiddenHomeItems"
+        static let aiClaudeCode = "aiClaudeCodeEnabled"
+        static let aiCodex = "aiCodexEnabled"
     }
 }
