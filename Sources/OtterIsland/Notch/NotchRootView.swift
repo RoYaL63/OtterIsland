@@ -50,12 +50,12 @@ struct NotchRootView: View {
             NotchGlassBackground(
                 topWidth: viewModel.metrics?.hasRealNotch == true ? notchWidth : nil,
                 topHeight: notchHeight,
-                bottomRadius: viewModel.isExpanded ? 28 : 10,
+                bottomRadius: viewModel.isExpanded ? CGFloat(appearance.effectiveCornerRadius) : 10,
                 isExpanded: viewModel.isExpanded
             )
             // L'ombre décolle la carte du bureau : sans elle, un verre clair se
             // confond avec le fond d'écran au lieu de flotter au-dessus.
-            .shadow(color: .black.opacity(viewModel.isExpanded ? 0.45 : 0), radius: 18, y: 9)
+            .shadow(color: .black.opacity(viewModel.isExpanded ? appearance.effectiveShadow : 0), radius: 18, y: 9)
 
             if viewModel.isExpanded {
                 // Le contenu émerge du verre : fondu + très légère dilatation
