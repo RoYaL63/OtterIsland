@@ -6,6 +6,8 @@ import Combine
 @MainActor
 final class ClaudeCodeInbox: ObservableObject {
     @Published private(set) var pending: ActionRequest?
+    /// Fichier de la demande affichée, pour la retirer sans dépendre de son id.
+    private var pendingFile: URL?
 
     /// Émis à chaque décision (true = approuvé) pour que la loutre réagisse.
     let decisions = PassthroughSubject<Bool, Never>()
@@ -23,7 +25,12 @@ final class ClaudeCodeInbox: ObservableObject {
         outboxURL = root.appendingPathComponent("outbox", isDirectory: true)
     }
 
+    private var isRunning = false
+
+    /// Idempotent : on peut l'appeler à chaque activation d'un assistant.
     func start() {
+        guard !isRunning else { return }
+        isRunning = true
         createDirectoriesIfNeeded()
         scan() // récupère ce qui est déjà là au démarrage
         watch()
@@ -67,12 +74,32 @@ final class ClaudeCodeInbox: ObservableObject {
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
 
         for file in requests {
-            guard let data = try? Data(contentsOf: file),
-                  let request = try? JSONDecoder.iso.decode(ActionRequest.self, from: data)
-            else { continue }
+            guard let data = try? Data(contentsOf: file) else { continue }
+            let request = (try? JSONDecoder.iso.decode(ActionRequest.self, from: data))
+                ?? ActionRequest.fromAssistantMessage(data, id: file.deletingPathExtension().lastPathComponent)
+            guard let request else { continue }
+            // Notification d'assistant restée là pendant une absence : passée
+            // une heure, elle ne veut plus rien dire.
+            if request.isNotice, let date = Self.modificationDate(file), Date().timeIntervalSince(date) > 3600 {
+                try? FileManager.default.removeItem(at: file)
+                continue
+            }
             pending = request
+            pendingFile = file
             break
         }
+    }
+
+    private static func modificationDate(_ url: URL) -> Date? {
+        (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+    }
+
+    /// Notification lue : on la retire, sans réponse à écrire.
+    func dismiss(_ request: ActionRequest) {
+        if let pendingFile { try? FileManager.default.removeItem(at: pendingFile) }
+        pending = nil
+        pendingFile = nil
+        scan()
     }
 
     /// Écrit la réponse, supprime la demande de l'inbox, libère l'encoche.
@@ -93,6 +120,7 @@ final class ClaudeCodeInbox: ObservableObject {
             }
         }
         pending = nil
+        pendingFile = nil
         decisions.send(approved)
         scan() // enchaîne sur la suivante s'il y en a
     }

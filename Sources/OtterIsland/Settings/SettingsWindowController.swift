@@ -61,3 +61,8 @@ final class SettingsWindowController {
         return win
     }
 }
+
+extension Notification.Name {
+    /// Ouvre les réglages sur la page passée en `object` (`SettingsTab`).
+    static let otterOpenSettings = Notification.Name("OtterIslandOpenSettings")
+}

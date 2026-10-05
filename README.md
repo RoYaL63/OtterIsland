@@ -43,7 +43,7 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 - [Fonctionnalités](#fonctionnalités)
   - [L'île](#lîle) · [La loutre de compagnie](#la-loutre-de-compagnie) · [Presse-papier](#presse-papier) · [Captures d'écran](#captures-décran) · [Moniteur](#moniteur)
   - [Live — mode présentateur](#live--mode-présentateur) · [Nettoyage du clavier](#nettoyage-du-clavier)
-  - [Agenda, musique, étagère, miroir, Pomodoro](#agenda-musique-étagère-miroir-pomodoro) · [Inbox Claude Code](#inbox-claude-code)
+  - [Agenda, musique, étagère, miroir, Pomodoro](#agenda-musique-étagère-miroir-pomodoro) · [Assistants IA](#assistants-ia--claude-code-et-codex)
 - [Autorisations macOS](#autorisations-macos)
 - [Confidentialité : clés, comptes, données personnelles](#confidentialité--clés-comptes-données-personnelles)
 - [Mettre à jour · désinstaller](#mettre-à-jour--désinstaller)
@@ -160,11 +160,16 @@ Un bouton de l'accueil **verrouille tout le clavier** le temps de le nettoyer : 
 - **Miroir** : la caméra, pour vérifier sa tête avant une visio. Choix de la caméra (intégrée, USB, iPhone), image en miroir ou telle que les autres te verront, cadrage plein ou complet. **Fond et effets…** ouvre le miroir en grand avec les effets vidéo de macOS — arrière-plan, mode Portrait, Lumière studio, Cadre centré — pour te préparer.
 - **Pomodoro** avec mode Concentration, pause de la musique et carillon.
 
-### Inbox Claude Code
+### Assistants IA : Claude Code et Codex
 
-Quand [Claude Code](https://claude.com/claude-code) demande une validation, la demande apparaît dans l'île : tu approuves ou refuses sans quitter ce que tu fais. Simple échange de fichiers JSON dans `~/.otterisland/`, sans réseau. Mise en place : [docs/CLAUDE_CODE.md](docs/CLAUDE_CODE.md).
+Dans **Réglages › Assistants IA**, choisis les assistants à suivre :
 
----
+- **Tokens** de la journée et de la session en cours, projet actif : un onglet **Assistants IA** apparaît dans l'île. Lu dans les journaux de session sur ce Mac (`~/.claude/projects`, `~/.codex/sessions`), rien n'est envoyé nulle part.
+- **Demandes dans l'île** : « Claude veut utiliser Bash », « Claude attend ta réponse », « Codex a terminé » s'affichent dans l'île et la loutre lève la tête. Pour Claude Code, un clic sur **Brancher** ajoute le hook nécessaire (avec copie de sauvegarde de `~/.claude/settings.json`) ; pour Codex, une ligne à coller dans `~/.codex/config.toml`.
+
+Le suivi de Codex est écrit d'après sa documentation, sans avoir pu l'essayer. L'app ChatGPT ne laisse rien de lisible sur le Mac : elle ne peut pas être suivie.
+
+Pour tes propres scripts, l'**inbox par dossier** reste disponible : voir [docs/CLAUDE_CODE.md](docs/CLAUDE_CODE.md).
 
 ## Autorisations macOS
 

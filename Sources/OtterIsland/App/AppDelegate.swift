@@ -69,6 +69,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // Repositionner quand l'agencement d'écran change (résolution, écran externe).
+        // Une page des réglages demandée depuis l'île (« Choisir les assistants »…).
+        NotificationCenter.default.addObserver(
+            forName: .otterOpenSettings, object: nil, queue: .main
+        ) { [weak self] note in
+            guard let tab = note.object as? SettingsTab else { return }
+            MainActor.assumeIsolated { self?.settingsWindow.show(tab: tab) }
+        }
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screenParametersChanged),

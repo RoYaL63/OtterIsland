@@ -1,5 +1,9 @@
 # Intégration Claude Code
 
+> **Le plus simple** : Réglages › Assistants IA › Claude Code › **Brancher**. OtterIsland ajoute lui-même un hook `Notification` qui relaie « Claude a besoin de ta permission » / « Claude attend ta réponse » dans l'île (script `~/.otterisland/claude-notify.sh`, copie de sauvegarde de `~/.claude/settings.json`). Rien à écrire.
+>
+> La suite de ce document décrit l'**inbox par dossier**, pour brancher tes propres scripts avec Approuver / Refuser.
+
 OtterIsland surveille un dossier et affiche les demandes d'action dans l'encoche. Ta décision (approuver / refuser) repart dans un dossier de sortie. Aucun réseau, aucune permission spéciale.
 
 ## Dossiers
