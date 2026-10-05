@@ -37,7 +37,11 @@ final class OtterScene: SKScene {
 
     override func didMove(to view: SKView) {
         setupOtter()
-        applyMood(.idle)
+        // L'humeur ACTUELLE, pas `.idle` : la vue SwiftUI pousse l'humeur à
+        // son apparition, AVANT que la scène soit présentée. Repartir de
+        // `.idle` ici l'écrasait — et comme elle ne « changeait » plus, la
+        // loutre restait au repos tant que l'île était ouverte, musique ou pas.
+        applyMood(mood)
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -109,8 +113,18 @@ final class OtterScene: SKScene {
         case .curious:
             hop()
             startSparkle()
-        case .happy, .playful:
+            loop(every: 2.2) { $0.hop() }
+        case .happy:
             wiggle()
+            loop(every: 2.6) { $0.wiggle() }
+        case .playful:
+            wiggle()
+            // Elle alterne saut et frétillement : on ouvre l'île, elle joue.
+            var flip = false
+            loop(every: 1.8) { scene in
+                flip.toggle()
+                if flip { scene.hop() } else { scene.wiggle() }
+            }
         case .swimming:
             startSwim()
         case .worried:
@@ -128,8 +142,33 @@ final class OtterScene: SKScene {
         case .night:
             startNight()
         case .idle:
-            break
+            // Au repos, elle regarde de temps en temps autour d'elle : sans ça
+            // elle ne faisait que respirer, et passait pour figée.
+            loop(every: 4.5) { $0.lookAround() }
         }
+    }
+
+    /// Animation de signature rejouée en boucle tant que l'humeur dure.
+    /// Effacée par `clearEffects` au changement d'humeur.
+    private func loop(every interval: TimeInterval, _ body: @escaping (OtterScene) -> Void) {
+        let tick = SKAction.run { [weak self] in
+            guard let self else { return }
+            body(self)
+        }
+        let wait = SKAction.wait(forDuration: interval, withRange: interval * 0.3)
+        run(.repeatForever(.sequence([wait, tick])), withKey: "signature")
+    }
+
+    /// Petit coup d'œil d'un côté puis de l'autre.
+    private func lookAround() {
+        guard let otter else { return }
+        otter.run(.sequence([
+            .rotate(toAngle: 0.12, duration: 0.25),
+            .wait(forDuration: 0.4),
+            .rotate(toAngle: -0.12, duration: 0.35),
+            .wait(forDuration: 0.4),
+            .rotate(toAngle: 0, duration: 0.25),
+        ]), withKey: "look")
     }
 
     /// Texture courante : pose de nage dédiée si musique, sinon l'expression.
@@ -391,7 +430,7 @@ final class OtterScene: SKScene {
     // MARK: Effets (nodes nommés "fx")
 
     private func clearEffects() {
-        for key in ["zzz", "sparkle", "bubbles", "drops", "cleanmarks", "notes", "sweat", "clock"] {
+        for key in ["zzz", "sparkle", "bubbles", "drops", "cleanmarks", "notes", "sweat", "clock", "signature"] {
             removeAction(forKey: key)
         }
         otter?.removeAction(forKey: "swim")
@@ -399,6 +438,7 @@ final class OtterScene: SKScene {
         otter?.removeAction(forKey: "clean")
         otter?.removeAction(forKey: "jitter")
         otter?.removeAction(forKey: "lean")
+        otter?.removeAction(forKey: "look")
         otter?.zRotation = 0
         enumerateChildNodes(withName: "fx") { node, _ in node.removeFromParent() }
         // Les effets accrochés AU CORPS (casque de concentration) ne sont pas
