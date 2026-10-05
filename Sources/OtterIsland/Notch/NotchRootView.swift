@@ -155,7 +155,7 @@ struct NotchRootView: View {
                         }
                         liveButton
                         Spacer(minLength: 0)
-                        NotchTabBar(selection: $viewModel.selectedTab)
+                        NotchTabBar(selection: $viewModel.selectedTab, maxSlots: tabSlots)
                     }
                     panel
                 }
@@ -173,6 +173,17 @@ struct NotchRootView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
+    /// Cases d'onglets qui tiennent dans la rangée du haut, après la loutre et
+    /// le bouton Live. Au-delà, la barre pagine avec une flèche ›, plutôt que
+    /// d'écraser le bouton Live (il passait sur deux lignes, « Li / ve »).
+    private var tabSlots: Int {
+        let content = viewModel.expandedSize.width - 32          // marges de la carte
+        let otter: CGFloat = settings.otterEnabled ? OtterSceneHolder.side + 8 : 0
+        let live: CGFloat = 54 + 8                                 // bouton Live + écart
+        let available = content - otter - live - 8 - NotchTabBar.railPadding
+        return max(3, Int(available / NotchTabBar.slotWidth))
+    }
+
     /// Lance le mode présentateur. À gauche de la barre d'onglets, à part :
     /// c'est une action, pas un onglet.
     private var liveButton: some View {
@@ -187,6 +198,8 @@ struct NotchRootView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .background(Capsule().fill(Otter.ink(0.08)))
+            // Jamais sur deux lignes, quelle que soit la place laissée.
+            .fixedSize()
         }
         .buttonStyle(OtterPressStyle(scale: 0.93))
         .help("Mode présentateur : dessin, effets de curseur, touches, masquage (⌃⌥L)")
@@ -205,7 +218,9 @@ struct NotchRootView: View {
                 showBattery: settings.showBattery,
                 onToggleCleanup: { viewModel.toggleCleanup() },
                 onOpenMirror: { viewModel.selectedTab = .mirror },
-                onOpenAgenda: { viewModel.selectedTab = .agenda }
+                onOpenAgenda: { viewModel.selectedTab = .agenda },
+                onShowAllShortcuts: { viewModel.selectedTab = .shortcuts },
+                onAddShortcuts: { viewModel.openSettings(.shortcuts) }
             )
         case .music:
             MusicPanel(provider: viewModel.nowPlaying, volume: viewModel.volume)

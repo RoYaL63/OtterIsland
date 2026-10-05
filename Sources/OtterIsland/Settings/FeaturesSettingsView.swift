@@ -15,7 +15,7 @@ struct FeaturesSettingsView: View {
             } header: {
                 Text("Onglets de l'île")
             } footer: {
-                caption("Décoche un onglet pour le retirer de la barre ; les flèches le déplacent. Le presse-papier (⌥V) et l'étagère (fichier glissé sur l'encoche) restent accessibles même masqués. L'onglet Assistants IA n'apparaît que si un assistant est suivi (Réglages › Assistants IA).")
+                caption("Décoche un onglet pour le retirer de la barre ; les flèches le déplacent. Le presse-papier (⌥V) et l'étagère (fichier glissé sur l'encoche) restent accessibles même masqués. L'onglet Assistants IA n'apparaît que si un assistant est suivi, l'onglet Raccourcis que s'il est activé (Réglages › Raccourcis et barre). S'il y a plus d'onglets que de place, une flèche › affiche la suite.")
             }
 
             Section {

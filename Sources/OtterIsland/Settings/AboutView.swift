@@ -34,7 +34,7 @@ struct AboutView: View {
                     row("music.note", "Musique", "Spotify / Apple Music : titre, contrôles, la loutre nage en rythme.")
                     row("memorychip", "Système", "RAM (pression colorée), batterie et temps restant.")
                     row("moon.fill", "Concentration (Pomodoro)", "Session de travail puis pause, durées réglables. Une session met le Mac en Concentration, peut couper la musique, et la coupe à la fin ou dès que tu mets en pause. macOS n'autorisant aucune app à toucher la Concentration, ça passe par un raccourci de l'app Raccourcis — le menu se règle dans Réglages › Concentration.")
-                    row("sparkles", "Nettoyage clavier", "Petite icône 🧽 de l'accueil : verrouille TOUTES les frappes pour nettoyer, l'encoche reste grande, seul le clic Déverrouiller libère.")
+                    row("keyboard", "Nettoyage clavier", "Petite icône 🧹 de l'accueil : verrouille TOUTES les frappes pour nettoyer, l'encoche reste grande, seul le clic Déverrouiller libère.")
                     row("camera.fill", "Miroir", "La caméra en petit, pour se recoiffer avant une visio.")
                     row("terminal.fill", "Inbox Claude Code", "Une demande de validation Claude Code apparaît dans l'encoche, approuve ou refuse d'un clic (~/.otterisland/inbox).")
                 }

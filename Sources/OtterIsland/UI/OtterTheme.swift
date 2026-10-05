@@ -354,6 +354,9 @@ struct OtterStatRow<Trailing: View>: View {
 struct OtterIconButton: View {
     let icon: String
     var tint: Color = Otter.textPrimary
+    /// Emoji à la place du symbole, quand aucun symbole système ne convient
+    /// (le balai du nettoyage : il n'y en a pas dans SF Symbols).
+    var emoji: String? = nil
     let help: String
     let action: () -> Void
 
@@ -361,8 +364,13 @@ struct OtterIconButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
+            Group {
+                if let emoji {
+                    Text(emoji).font(.system(size: 13))
+                } else {
+                    Image(systemName: icon).font(.system(size: 11, weight: .semibold))
+                }
+            }
                 .frame(width: 26, height: 26)
                 .foregroundStyle(tint)
                 // Le fond fait partie du label : il doit s'enfoncer AVEC la
