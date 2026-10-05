@@ -203,9 +203,15 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(volumeHUDEnabled, forKey: Keys.volumeHUD) }
     }
 
-    /// Onglet Musique : son coupé / curseur de volume.
-    @Published var musicShowVolume: Bool {
-        didSet { defaults.set(musicShowVolume, forKey: Keys.musicShowVolume) }
+    /// Onglet Musique : curseur de volume. Garde la clé de la 1.5.0, où il
+    /// allait de pair avec le bouton couper : le réglage existant est conservé.
+    @Published var musicShowVolumeSlider: Bool {
+        didSet { defaults.set(musicShowVolumeSlider, forKey: Keys.musicShowVolume) }
+    }
+
+    /// Onglet Musique : bouton couper / rétablir le son.
+    @Published var musicShowMuteButton: Bool {
+        didSet { defaults.set(musicShowMuteButton, forKey: Keys.musicShowMute) }
     }
 
     /// Onglet Musique : bouton pour ouvrir Spotify ou Musique.
@@ -290,6 +296,7 @@ final class OtterSettings: ObservableObject {
             Keys.mirrorFill: false,
             Keys.volumeHUD: true,
             Keys.musicShowVolume: true,
+            Keys.musicShowMute: true,
             Keys.musicShowOpenApp: true,
         ])
         otterEnabled = defaults.bool(forKey: Keys.otterEnabled)
@@ -326,7 +333,8 @@ final class OtterSettings: ObservableObject {
         tabOrder = defaults.stringArray(forKey: Keys.tabOrder) ?? NotchTab.allCases.map(\.rawValue)
         hiddenTabs = defaults.stringArray(forKey: Keys.hiddenTabs) ?? []
         volumeHUDEnabled = defaults.bool(forKey: Keys.volumeHUD)
-        musicShowVolume = defaults.bool(forKey: Keys.musicShowVolume)
+        musicShowVolumeSlider = defaults.bool(forKey: Keys.musicShowVolume)
+        musicShowMuteButton = defaults.bool(forKey: Keys.musicShowMute)
         musicShowOpenApp = defaults.bool(forKey: Keys.musicShowOpenApp)
         hiddenHomeItems = defaults.stringArray(forKey: Keys.hiddenHomeItems) ?? []
     }
@@ -385,6 +393,7 @@ final class OtterSettings: ObservableObject {
         static let hiddenTabs = "hiddenTabs"
         static let volumeHUD = "volumeHUDEnabled"
         static let musicShowVolume = "musicShowVolume"
+        static let musicShowMute = "musicShowMuteButton"
         static let musicShowOpenApp = "musicShowOpenApp"
         static let hiddenHomeItems = "hiddenHomeItems"
     }
