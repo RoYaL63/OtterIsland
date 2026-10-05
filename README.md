@@ -15,6 +15,8 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 
 <sub>Gratuit et open source · macOS 14 ou plus récent · Mac à encoche ou non</sub>
 
+<sub>macOS bloque le premier lancement ? C'est normal, l'app n'est pas notarisée : <a href="#installer">débloquez-la une fois</a>, sans Terminal ni mot de passe admin.</sub>
+
 </div>
 
 ---
@@ -39,7 +41,7 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 
 - [Installer](#installer)
 - [Fonctionnalités](#fonctionnalités)
-  - [L'île](#lîle) · [Presse-papier](#presse-papier) · [Captures d'écran](#captures-décran) · [Moniteur](#moniteur)
+  - [L'île](#lîle) · [La loutre de compagnie](#la-loutre-de-compagnie) · [Presse-papier](#presse-papier) · [Captures d'écran](#captures-décran) · [Moniteur](#moniteur)
   - [Live — mode présentateur](#live--mode-présentateur) · [Nettoyage du clavier](#nettoyage-du-clavier)
   - [Agenda, musique, étagère, miroir, Pomodoro](#agenda-musique-étagère-miroir-pomodoro) · [Inbox Claude Code](#inbox-claude-code)
 - [Autorisations macOS](#autorisations-macos)
@@ -78,8 +80,30 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 - **Pas d'ouverture intempestive** : il faut que le pointeur s'**arrête** sur l'encoche (délai réglable). Traverser la zone pour cliquer un onglet de navigateur n'ouvre rien.
 - **Molette** au-dessus de l'encoche pour ouvrir ou fermer.
 - **HUD de volume** dans l'encoche.
-- **Loutre de compagnie** en pixel-art (désactivée par défaut) : elle nage quand la musique joue, s'inquiète quand la batterie ou la mémoire saturent, fête un Pomodoro terminé.
+- **Loutre de compagnie** en option : voir [ci-dessous](#la-loutre-de-compagnie).
 - Design Liquid Glass, réglages fins de taille et de position par écran.
+
+### La loutre de compagnie
+
+Une petite loutre en pixel-art qui réagit à ce qui se passe sur ton Mac. **Désactivée par défaut** : active-la dans **Réglages › Général › Loutre de compagnie** (menu 🦦 de la barre des menus).
+
+Une fois activée, elle s'installe à gauche de l'île quand celle-ci s'ouvre, et son animation suit ton contexte :
+
+| Elle… | Quand… |
+|---|---|
+| joue | tu ouvres l'île |
+| nage | de la musique joue (Spotify, Musique) |
+| est contente | le Mac est en charge |
+| met son casque | un Pomodoro est en cours |
+| regarde l'heure | un rendez-vous commence dans moins de 5 min |
+| est curieuse | Claude Code attend ta réponse |
+| s'inquiète et se planque | la batterie est faible ou la mémoire sature |
+| passe un chiffon | le clavier est verrouillé pour le nettoyage |
+| s'endort, puis bâille sous la lune | tu es inactif, ou il fait nuit |
+
+Et elle réagit sur le moment : coquillage lancé quand tu approuves une action Claude Code, flash à chaque capture d'écran, fichier attrapé au vol sur l'étagère, étirement de soulagement à la fin d'un Pomodoro. Elle s'efface pendant le Live.
+
+> 🚧 Les animations vont être refaites dans une version plus compacte, mieux adaptée à la taille de l'île.
 
 ### Presse-papier
 
