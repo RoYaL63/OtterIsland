@@ -25,10 +25,11 @@ struct OtterSceneView: View {
 final class OtterSceneHolder: ObservableObject {
     let scene: OtterScene
 
-    /// Côté de la scène de la loutre. 56 et non 72 : elle mangeait un sixième
-    /// de la largeur de la carte pour un rôle d'indicateur d'ambiance. Le
-    /// contenu (indicateurs, calendrier, lecteur) reprend la place.
-    static let side: CGFloat = 56
+    /// Côté de la scène de la loutre. 30 : version compacte, logée dans la
+    /// rangée des onglets. À 56, elle prenait une colonne entière à la carte
+    /// pour un rôle d'indicateur d'ambiance. Les animations se règlent sur
+    /// cette taille (`OtterScene.u`).
+    static let side: CGFloat = 30
 
     init() {
         let scene = OtterScene(size: CGSize(width: OtterSceneHolder.side, height: OtterSceneHolder.side))

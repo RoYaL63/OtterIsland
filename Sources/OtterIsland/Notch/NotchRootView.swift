@@ -93,12 +93,6 @@ struct NotchRootView: View {
 
     private var expandedContent: some View {
         HStack(spacing: 12) {
-            // En Live, la barre d'outils prend toute la largeur.
-            if settings.otterEnabled && !viewModel.live.isActive {
-                OtterSceneView(mood: viewModel.otterMood, event: viewModel.otterEvent)
-                    .frame(width: OtterSceneHolder.side, height: OtterSceneHolder.side)
-            }
-
             VStack(alignment: .leading, spacing: 9) {
                 if viewModel.keyboardLocker.isLocked || viewModel.keyboardLocker.permissionDenied {
                     // Le nettoyage passe devant tout : le clavier est bloqué, la
@@ -122,7 +116,15 @@ struct NotchRootView: View {
                 } else if viewModel.live.isActive {
                     LiveToolbar(live: viewModel.live, style: viewModel.live.style)
                 } else {
-                    HStack {
+                    HStack(spacing: 8) {
+                        // Version compacte : la loutre loge dans la rangée des
+                        // onglets, où il reste ~95 pt libres, au lieu de
+                        // prendre une colonne de 68 pt à toute la carte.
+                        if settings.otterEnabled {
+                            OtterSceneView(mood: viewModel.otterMood, event: viewModel.otterEvent)
+                                .frame(width: OtterSceneHolder.side, height: OtterSceneHolder.side)
+                                .padding(.vertical, -3) // déborde un peu sur l'écart, sans grandir la rangée
+                        }
                         liveButton
                         Spacer(minLength: 0)
                         NotchTabBar(selection: $viewModel.selectedTab)

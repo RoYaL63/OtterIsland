@@ -90,7 +90,7 @@ Le code est sous licence MIT : forks, idées et retours bienvenus, ici ou dans l
 
 Une petite loutre en pixel-art qui réagit à ce qui se passe sur ton Mac. **Désactivée par défaut** : active-la dans **Réglages › Général › Loutre de compagnie** (menu 🦦 de la barre des menus).
 
-Une fois activée, elle s'installe à gauche de l'île quand celle-ci s'ouvre, et son animation suit ton contexte :
+Une fois activée, elle se loge en version compacte dans la rangée des onglets de l'île, à gauche du bouton Live, sans prendre de place au contenu. Son animation suit ton contexte :
 
 | Elle… | Quand… |
 |---|---|
@@ -105,8 +105,6 @@ Une fois activée, elle s'installe à gauche de l'île quand celle-ci s'ouvre, e
 | s'endort, puis bâille sous la lune | tu es inactif, ou il fait nuit |
 
 Et elle réagit sur le moment : coquillage lancé quand tu approuves une action Claude Code, flash à chaque capture d'écran, fichier attrapé au vol sur l'étagère, étirement de soulagement à la fin d'un Pomodoro. Elle s'efface pendant le Live.
-
-> 🚧 Les animations vont être refaites dans une version plus compacte, mieux adaptée à la taille de l'île.
 
 ### Presse-papier
 
