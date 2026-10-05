@@ -48,159 +48,171 @@ struct SettingsView: View {
                 .tabItem { Label("À propos", systemImage: "info.circle") }
                 .tag(SettingsTab.about)
         }
-        .frame(width: 440, height: 340)
+        // Formulaires groupés et défilants : rien ne déborde, et la fenêtre
+        // peut s'agrandir si l'utilisateur le souhaite.
+        .frame(minWidth: 560, idealWidth: 560, minHeight: 460, idealHeight: 620)
     }
 
     private var general: some View {
         Form {
-            Toggle("Lancer au démarrage", isOn: $launchAtLogin)
-                .onChange(of: launchAtLogin) { _, enabled in
-                    launchAtLoginError = LaunchAtLogin.set(enabled)
-                    launchAtLogin = LaunchAtLogin.isEnabled // resynchronise avec le vrai statut
-                    launchAtLoginNeedsApproval = LaunchAtLogin.needsApproval
+            Section("Démarrage") {
+                Toggle("Lancer au démarrage", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, enabled in
+                        launchAtLoginError = LaunchAtLogin.set(enabled)
+                        launchAtLogin = LaunchAtLogin.isEnabled // resynchronise avec le vrai statut
+                        launchAtLoginNeedsApproval = LaunchAtLogin.needsApproval
+                    }
+                if let error = launchAtLoginError {
+                    caption(error, color: .red)
+                } else if launchAtLoginNeedsApproval {
+                    caption("Approuve OtterIsland dans Réglages Système › Général › Éléments de connexion.", color: .orange)
                 }
-            if let error = launchAtLoginError {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            } else if launchAtLoginNeedsApproval {
-                Text("Approuve OtterIsland dans Réglages Système › Général › Éléments de connexion.")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
             }
+
             // L'ouverture intempestive est le reproche n°1 : ces deux réglages
             // vivent en haut de l'onglet, pas noyés en bas.
-            Toggle("Ouvrir au survol de l'encoche", isOn: $settings.hoverToOpen)
-            VStack(alignment: .leading) {
-                Text("Temps d'arrêt avant ouverture : \(String(format: "%.2f", settings.hoverOpenDelay)) s")
-                Slider(value: $settings.hoverOpenDelay, in: 0.1...1.5, step: 0.05)
+            Section("Ouverture de l'île") {
+                Toggle("Ouvrir au survol de l'encoche", isOn: $settings.hoverToOpen)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Temps d'arrêt avant ouverture : \(String(format: "%.2f", settings.hoverOpenDelay)) s")
+                    Slider(value: $settings.hoverOpenDelay, in: 0.1...1.5, step: 0.05)
+                    caption("Le pointeur doit rester IMMOBILE sur l'encoche pendant ce temps. Traverser la zone pour aller cliquer ailleurs — un onglet de navigateur, par exemple — n'ouvre rien, quelle que soit la lenteur du geste. Et après une fermeture, il faut ressortir de la zone avant de pouvoir rouvrir.")
+                }
+                .disabled(!settings.hoverToOpen)
+                toggle("Contrôle à la molette",
+                       "Molette vers le bas au-dessus de l'encoche pour l'ouvrir, vers le haut pour fermer.",
+                       isOn: $settings.gestureControl)
             }
-            .disabled(!settings.hoverToOpen)
-            Text("Le pointeur doit rester IMMOBILE sur l'encoche pendant ce temps. Traverser la zone pour aller cliquer ailleurs — un onglet de navigateur, par exemple — n'ouvre rien, quelle que soit la lenteur du geste. Et après une fermeture, il faut ressortir de la zone avant de pouvoir rouvrir.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
 
-            Toggle("Loutre de compagnie", isOn: $settings.otterEnabled)
-            Toggle("Afficher la batterie", isOn: $settings.showBattery)
-            Toggle("Inbox Claude Code", isOn: $settings.claudeCodeInboxEnabled)
-            Text("L'inbox surveille ~/.otterisland/inbox pour les demandes d'action.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Toggle("Suivi musique (la loutre nage)", isOn: $settings.musicFollow)
-            Text("Lit l'état de Spotify / Apple Music. macOS demandera l'autorisation Automatisation.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Toggle("Contrôle à la molette", isOn: $settings.gestureControl)
-            Text("Molette vers le bas au-dessus de l'encoche pour l'ouvrir, vers le haut pour fermer.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Divider()
-
-            Toggle("Presse-papier (raccourci global)", isOn: $settings.clipboardEnabled)
-            HStack {
-                Text("Raccourci d'ouverture")
-                Spacer()
-                ShortcutRecorderView(
-                    keyCode: $settings.clipboardHotKeyCode,
-                    modifiers: $settings.clipboardHotKeyModifiers
-                )
+            Section("Dans l'île") {
+                toggle("Loutre de compagnie",
+                       "Une petite loutre animée dans la rangée des onglets, qui réagit à ce qui se passe sur ton Mac.",
+                       isOn: $settings.otterEnabled)
+                Toggle("Afficher la batterie", isOn: $settings.showBattery)
+                toggle("Suivi musique (la loutre nage)",
+                       "Lit l'état de Spotify / Apple Music. macOS demandera l'autorisation Automatisation.",
+                       isOn: $settings.musicFollow)
+                toggle("Inbox Claude Code",
+                       "L'inbox surveille ~/.otterisland/inbox pour les demandes d'action.",
+                       isOn: $settings.claudeCodeInboxEnabled)
             }
-            Text("⌥V par défaut : ouvre l'historique depuis n'importe quel champ de texte, clique un item (texte ou capture d'écran) pour le coller. Clique pour enregistrer une nouvelle combinaison. Redémarre OtterIsland après changement.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            if settings.clipboardHotKeyRegistrationFailed {
-                Text("Cette combinaison n'a pas pu être enregistrée (déjà prise par une autre app ou le système) — la frappe passe telle quelle. Choisis-en une autre.")
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-            Button("Autoriser l'Accessibilité (collage auto)") {
-                Paster.ensureAccessibility()
-            }
-            .font(.caption)
 
-            Divider()
+            Section("Presse-papier") {
+                Toggle("Presse-papier (raccourci global)", isOn: $settings.clipboardEnabled)
+                LabeledContent("Raccourci d'ouverture") {
+                    ShortcutRecorderView(
+                        keyCode: $settings.clipboardHotKeyCode,
+                        modifiers: $settings.clipboardHotKeyModifiers
+                    )
+                }
+                caption("⌥V par défaut : ouvre l'historique depuis n'importe quel champ de texte, clique un item (texte ou capture d'écran) pour le coller. Clique pour enregistrer une nouvelle combinaison. Redémarre OtterIsland après changement.")
+                if settings.clipboardHotKeyRegistrationFailed {
+                    caption("Cette combinaison n'a pas pu être enregistrée (déjà prise par une autre app ou le système) — la frappe passe telle quelle. Choisis-en une autre.", color: .red)
+                }
+                Button("Autoriser l'Accessibilité (collage auto)") {
+                    Paster.ensureAccessibility()
+                }
+            }
 
             // Diagnostic permissions : l'endroit où comprendre pourquoi le
             // verrouillage clavier ou le collage auto ne répond pas.
-            LabeledContent("Emplacement") {
-                if AppInstall.needsRelocation {
-                    Button("Hors /Applications — installer et relancer") {
-                        AppInstall.installInApplications()
+            Section {
+                LabeledContent("Emplacement") {
+                    if AppInstall.needsRelocation {
+                        Button("Hors /Applications — installer et relancer") {
+                            AppInstall.installInApplications()
+                        }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.red)
+                        .help("Lancée depuis \(AppInstall.humanLocation), les permissions ne s'appliquent jamais (App Translocation).")
+                    } else {
+                        Text("✓ /Applications").font(.caption).foregroundStyle(.green)
                     }
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.red)
-                    .help("Lancée depuis \(AppInstall.humanLocation), les permissions ne s'appliquent jamais (App Translocation).")
-                } else {
-                    Text("✓ /Applications").font(.caption).foregroundStyle(.green)
                 }
+                LabeledContent("Accessibilité (collage auto)") {
+                    Text(Paster.hasAccessibility ? "✓ accordée" : "✗ manquante")
+                        .font(.caption)
+                        .foregroundStyle(Paster.hasAccessibility ? .green : .red)
+                }
+                LabeledContent("Surveillance des saisies (verrouillage)") {
+                    Text(CGPreflightListenEventAccess() ? "✓ accordée" : "✗ manquante")
+                        .font(.caption)
+                        .foregroundStyle(CGPreflightListenEventAccess() ? .green : .red)
+                }
+            } header: {
+                Text("Autorisations")
+            } footer: {
+                caption("Une permission cochée n'est lue qu'au prochain lancement de l'app. Après une mise à jour (signature ad-hoc), macOS peut la re-décocher : − puis + dans le panneau correspondant.")
             }
-            LabeledContent("Accessibilité (collage auto)") {
-                Text(Paster.hasAccessibility ? "✓ accordée" : "✗ manquante")
-                    .font(.caption)
-                    .foregroundStyle(Paster.hasAccessibility ? .green : .red)
+
+            Section("Captures d'écran") {
+                Toggle("Notification des captures d'écran (en bas à droite)", isOn: $settings.screenshotPreviewEnabled)
+                toggle("Copier la capture dans le presse-papier",
+                       "⌘⇧4 puis ⌘V directement : `screencapture` n'écrit que sur le disque, OtterIsland met la capture dans le presse-papier. Redémarre OtterIsland après changement de l'aperçu.",
+                       isOn: $settings.screenshotAutoCopy)
+                // LA cause du « ça met très longtemps » : tant que la vignette Apple
+                // est à l'écran, le fichier n'existe pas encore sur le disque.
+                Toggle("Vignette flottante de macOS", isOn: floatingThumbnailBinding)
+                caption(floatingThumbnail
+                        ? "Active : après ⌘⇧4, macOS garde la capture ~5 s le temps d'afficher sa vignette en bas à droite, et n'écrit le fichier qu'ensuite. Tant qu'elle est là, AUCUNE app ne peut voir la capture — d'où l'attente avant qu'elle arrive dans le presse-papier. Décoche pour que ce soit immédiat : la notification d'OtterIsland la remplace (clic pour modifier, glisser, copier)."
+                        : "Désactivée : la capture est écrite tout de suite, la notification et le presse-papier suivent dans la foulée. S'applique dès la prochaine capture.",
+                        color: floatingThumbnail ? .orange : .secondary)
             }
-            LabeledContent("Surveillance des saisies (verrouillage)") {
-                Text(CGPreflightListenEventAccess() ? "✓ accordée" : "✗ manquante")
-                    .font(.caption)
-                    .foregroundStyle(CGPreflightListenEventAccess() ? .green : .red)
+
+            Section {
+                Toggle("Suivre ce qui ralentit le Mac au fil des jours", isOn: $settings.monitorHistoryEnabled)
+                Toggle("Noter les pages web lors des emballements", isOn: $settings.monitorRecordPageTitles)
+                    .disabled(!settings.monitorHistoryEnabled)
+            } header: {
+                Text("Moniteur")
+            } footer: {
+                caption("Un relevé par minute, gardé 14 jours, uniquement sur ce Mac. Alimente l'onglet Historique et le diagnostic du Moniteur.")
             }
-            Text("Une permission cochée n'est lue qu'au prochain lancement de l'app. Après une mise à jour (signature ad-hoc), macOS peut la re-décocher : − puis + dans le panneau correspondant.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Divider()
-
-            Toggle("Notification des captures d'écran (en bas à droite)", isOn: $settings.screenshotPreviewEnabled)
-            Toggle("Copier la capture dans le presse-papier", isOn: $settings.screenshotAutoCopy)
-            Text("⌘⇧4 puis ⌘V directement : `screencapture` n'écrit que sur le disque, OtterIsland met la capture dans le presse-papier. Redémarre OtterIsland après changement de l'aperçu.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            // LA cause du « ça met très longtemps » : tant que la vignette Apple
-            // est à l'écran, le fichier n'existe pas encore sur le disque.
-            Toggle("Vignette flottante de macOS", isOn: floatingThumbnailBinding)
-            Text(floatingThumbnail
-                 ? "Active : après ⌘⇧4, macOS garde la capture ~5 s le temps d'afficher sa vignette en bas à droite, et n'écrit le fichier qu'ensuite. Tant qu'elle est là, AUCUNE app ne peut voir la capture — d'où l'attente avant qu'elle arrive dans le presse-papier. Décoche pour que ce soit immédiat : la notification d'OtterIsland la remplace (clic pour modifier, glisser, copier)."
-                 : "Désactivée : la capture est écrite tout de suite, la notification et le presse-papier suivent dans la foulée. S'applique dès la prochaine capture.")
-                .font(.caption)
-                .foregroundStyle(floatingThumbnail ? .orange : .secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Divider()
-
-            Toggle("Moniteur : suivre ce qui ralentit le Mac au fil des jours", isOn: $settings.monitorHistoryEnabled)
-            Toggle("Moniteur : noter les pages web lors des emballements", isOn: $settings.monitorRecordPageTitles)
-                .disabled(!settings.monitorHistoryEnabled)
-            Text("Un relevé par minute, gardé 14 jours, uniquement sur ce Mac. Alimente l'onglet Historique et le diagnostic du Moniteur.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
-        .padding()
+        .formStyle(.grouped)
     }
 
     private var notch: some View {
         Form {
-            Picker("Écran", selection: $selectedScreenID) {
-                ForEach(NSScreen.screens, id: \.self) { screen in
-                    Text(ScreenIdentifier.label(for: screen))
-                        .tag(ScreenIdentifier.stableID(for: screen))
+            Section {
+                Picker("Écran", selection: $selectedScreenID) {
+                    ForEach(NSScreen.screens, id: \.self) { screen in
+                        Text(ScreenIdentifier.label(for: screen))
+                            .tag(ScreenIdentifier.stableID(for: screen))
+                    }
                 }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Ajustement largeur : \(Int(settings.widthOffset(for: selectedScreenID))) pt")
+                    Slider(value: widthBinding, in: -40...40, step: 1)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Débordement carte étendue : \(Int(settings.dropOffset(for: selectedScreenID))) pt")
+                    Slider(value: dropBinding, in: 0...80, step: 1)
+                }
+            } footer: {
+                caption("Choisis l'écran dont tu ajustes la taille de l'île : ce menu ne déplace PAS l'île. Elle s'affiche toujours sur l'écran intégré du MacBook quand il est allumé, et sur l'écran sous le pointeur sinon (capot fermé, Mac de bureau). Redémarre l'affichage après un changement de largeur.")
             }
-
-            VStack(alignment: .leading) {
-                Text("Ajustement largeur : \(Int(settings.widthOffset(for: selectedScreenID))) pt")
-                Slider(value: widthBinding, in: -40...40, step: 1)
-            }
-            VStack(alignment: .leading) {
-                Text("Débordement carte étendue : \(Int(settings.dropOffset(for: selectedScreenID))) pt")
-                Slider(value: dropBinding, in: 0...80, step: 1)
-            }
-            Text("Réglages propres à l'écran sélectionné ci-dessus. Redémarre l'affichage après un changement de largeur.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
-        .padding()
+        .formStyle(.grouped)
+    }
+
+    /// Interrupteur avec son explication en sous-titre. Dans un formulaire
+    /// groupé, macOS l'affiche sous le titre et la fait passer à la ligne ; en
+    /// rangée séparée, l'ancienne mise en page la tronquait au bord droit.
+    private func toggle(_ title: String, _ detail: String, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) {
+            Text(title)
+            Text(detail)
+        }
+    }
+
+    /// Texte d'aide : petit, secondaire, et qui passe TOUJOURS à la ligne au
+    /// lieu de finir en « … ».
+    private func caption(_ text: String, color: Color = .secondary) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(color)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Miroir de la préférence système `com.apple.screencapture show-thumbnail`.

@@ -47,8 +47,8 @@ final class SettingsWindowController {
             .environmentObject(router)
         let host = NSHostingView(rootView: root)
         let win = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 440, height: 340),
-            styleMask: [.titled, .closable],
+            contentRect: NSRect(x: 0, y: 0, width: 560, height: 620),
+            styleMask: [.titled, .closable, .resizable],
             backing: .buffered,
             defer: false
         )

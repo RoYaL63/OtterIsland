@@ -18,36 +18,38 @@ struct UpdateSettingsView: View {
 
             Toggle("Vérifier au lancement", isOn: $settings.autoCheckUpdates)
 
-            Divider()
-
             // Le point qui fait toute la différence pour l'utilisateur : est-ce
             // qu'il va devoir re-cocher ses permissions après la mise à jour ?
             // Autant répondre avant, pas après.
-            LabeledContent("Permissions après mise à jour") {
-                if Updater.signatureIsStable {
-                    Text("✓ conservées")
-                        .font(.caption)
-                        .foregroundStyle(.green)
-                } else {
-                    Text("à re-cocher")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
+            Section {
+                LabeledContent("Permissions après mise à jour") {
+                    if Updater.signatureIsStable {
+                        Text("✓ conservées")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    } else {
+                        Text("à re-cocher")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
                 }
-            }
-            Text(Updater.signatureIsStable
-                 ? "Cette build est signée avec une identité stable : macOS reconnaît la même app d'une version à l'autre et garde tes autorisations."
-                 : "Cette build est signée en ad-hoc : macOS lui attribue une identité différente à chaque version et redemande donc l'Accessibilité et la Surveillance des saisies. Correctif côté CI, voir docs/SIGNING.md.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                Text(Updater.signatureIsStable
+                     ? "Cette build est signée avec une identité stable : macOS reconnaît la même app d'une version à l'autre et garde tes autorisations."
+                     : "Cette build est signée en ad-hoc : macOS lui attribue une identité différente à chaque version et redemande donc l'Accessibilité et la Surveillance des saisies. Correctif côté CI, voir docs/SIGNING.md.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            Text("La mise à jour remplace l'app à son emplacement actuel et ne passe pas par la quarantaine Gatekeeper : plus besoin de `spctl --add` ni de glisser le zip à la main.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                Text("La mise à jour remplace l'app à son emplacement actuel et ne passe pas par la quarantaine Gatekeeper : pas besoin de la débloquer à nouveau ni de glisser le zip à la main.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             Link("Voir toutes les versions sur GitHub", destination: updater.releasesPageURL)
                 .font(.caption)
         }
-        .padding()
+        .formStyle(.grouped)
         .onAppear {
             if case .idle = updater.state { updater.check() }
         }
