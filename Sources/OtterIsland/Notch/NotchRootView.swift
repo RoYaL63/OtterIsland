@@ -178,7 +178,7 @@ struct NotchRootView: View {
             .foregroundStyle(Otter.textPrimary)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
-            .background(Capsule().fill(Color.white.opacity(0.08)))
+            .background(Capsule().fill(Otter.ink(0.08)))
         }
         .buttonStyle(OtterPressStyle(scale: 0.93))
         .help("Mode présentateur : dessin, effets de curseur, touches, masquage (⌃⌥L)")

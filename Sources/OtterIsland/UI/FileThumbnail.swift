@@ -25,7 +25,7 @@ struct FileThumbnail: View {
             } else {
                 Image(systemName: "photo")
                     .font(.system(size: min(size.height * 0.5, 14)))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(Otter.textSecondary)
             }
         }
         .frame(width: size.width, height: size.height)

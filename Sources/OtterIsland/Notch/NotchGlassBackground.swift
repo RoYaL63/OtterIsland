@@ -38,8 +38,8 @@ struct NotchGlassBackground: View {
     private var scrim: LinearGradient {
         LinearGradient(
             colors: [
-                .black.opacity(min(0.9, (isExpanded ? 0.30 : 0.36) * appearance.readability)),
-                .black.opacity(min(0.9, (isExpanded ? 0.16 : 0.30) * appearance.readability)),
+                .black.opacity(min(0.9, (isExpanded ? 0.30 : 0.36) * appearance.effectiveReadability)),
+                .black.opacity(min(0.9, (isExpanded ? 0.16 : 0.30) * appearance.effectiveReadability)),
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -50,6 +50,11 @@ struct NotchGlassBackground: View {
         Group {
             if reduceTransparency {
                 shape.fill(Color.black.opacity(0.96))
+            } else if appearance.adaptive && !isExpanded {
+                // Style Système : repliée, l'île reste NOIRE quel que soit le
+                // mode — elle prolonge l'encoche physique de l'écran, qui ne
+                // devient pas claire en mode clair.
+                shape.fill(Color.black)
             } else {
                 Color.clear
                     .liquidGlassBackground(in: shape, tint: Otter.glassTint)

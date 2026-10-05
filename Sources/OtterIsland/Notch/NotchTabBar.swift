@@ -63,16 +63,16 @@ struct NotchTabBar: View {
         .padding(3)
         .background {
             ZStack {
-                Capsule().fill(Color.white.opacity(0.06))
+                Capsule().fill(Otter.ink(0.06))
                 SpecularRim(shape: Capsule(), strength: 0.5, lineWidth: 0.75)
             }
         }
     }
 
-    /// Icône sombre sur la pastille aqua (du blanc sur aqua serait illisible),
-    /// blanc franc au survol, gris en veille.
+    /// Icône contrastée sur la pastille d'accent (sombre sur l'aqua, blanche
+    /// sur un accent soutenu), franche au survol, en retrait en veille.
     private func tint(for tab: NotchTab) -> Color {
-        if selection == tab { return .black.opacity(0.8) }
+        if selection == tab { return Otter.onAccent }
         return hovered == tab ? Otter.textPrimary : Otter.textSecondary
     }
 }

@@ -75,7 +75,7 @@ struct ScreenshotsPanel: View {
                 if url == screenshot.history.first {
                     Text("Dernière")
                         .font(.otterMicro)
-                        .foregroundStyle(.black.opacity(0.8))
+                        .foregroundStyle(Otter.onAccent)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 2.5)
                         .background(

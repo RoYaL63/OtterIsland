@@ -44,11 +44,27 @@ enum Otter {
     // MARK: Texte — trois niveaux, pas un de plus
 
     /// Titres, valeurs, tout ce qui se lit vraiment.
-    static let textPrimary = Color.white
+    static var textPrimary: Color { ink(1) }
     /// Libellés, heures, unités : présents mais en retrait.
-    static let textSecondary = Color.white.opacity(0.72)
+    static var textSecondary: Color { ink(0.72) }
     /// Aides, états vides, contenu absent.
-    static let textTertiary = Color.white.opacity(0.50)
+    static var textTertiary: Color { ink(0.50) }
+
+    /// Encre de l'interface : blanc fixe sur le verre sombre (styles
+    /// OtterIsland et Personnalisé), couleur primaire du système en style
+    /// Système — noire en mode clair, blanche en mode sombre.
+    static func ink(_ opacity: Double) -> Color {
+        OtterAppearance.shared.adaptive ? Color.primary.opacity(opacity) : Color.white.opacity(opacity)
+    }
+
+    /// Encre posée sur une pastille de la couleur du texte : noire sur la
+    /// pastille blanche du verre sombre, couleur du fond en style Système.
+    static var inverseInk: Color {
+        OtterAppearance.shared.adaptive ? Color(nsColor: .textBackgroundColor) : Color.black.opacity(0.85)
+    }
+
+    /// Texte ou icône posé sur l'accent (onglet actif, pastille sélectionnée).
+    static var onAccent: Color { OtterAppearance.shared.onAccent }
 
     /// Correction de vibrance. Sur un matériau translucide, ce qui passe
     /// derrière change en permanence : un gris plat qui tenait sur fond sombre
@@ -72,17 +88,17 @@ enum Otter {
     static var glassTint: Color { OtterAppearance.shared.glassTint }
 
     /// Remplissage d'une tuile posée sur le verre (module du Centre de contrôle).
-    static let tileFill = Color.white.opacity(0.07)
+    static var tileFill: Color { ink(0.07) }
     /// La même, survolée ou active.
-    static let tileFillActive = Color.white.opacity(0.13)
+    static var tileFillActive: Color { ink(0.13) }
 
     /// Filet de séparation. À n'utiliser que DANS une tuile ; entre deux sujets,
     /// c'est l'écart entre les tuiles qui sépare, pas un trait.
-    static let separator = Color.white.opacity(0.12)
+    static var separator: Color { ink(0.12) }
     /// Remplissage des pastilles et boutons posés sur le verre.
-    static let chipFill = Color.white.opacity(0.11)
+    static var chipFill: Color { ink(0.11) }
     /// Liseré des mêmes pastilles.
-    static let chipStroke = Color.white.opacity(0.16)
+    static var chipStroke: Color { ink(0.16) }
 
     // MARK: Géométrie
 
@@ -236,7 +252,7 @@ struct OtterMeter: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.14))
+                Capsule().fill(Otter.ink(0.14))
                 Capsule()
                     .fill(
                         LinearGradient(
@@ -268,7 +284,7 @@ struct OtterEmptyState: View {
                 .background(
                     Circle()
                         .fill(Otter.tileFill)
-                        .overlay(Circle().stroke(.white.opacity(0.10), lineWidth: 0.75))
+                        .overlay(Circle().stroke(Otter.ink(0.10), lineWidth: 0.75))
                 )
             Text(title)
                 .font(.otterBody)
@@ -413,7 +429,7 @@ struct OtterPillButtonStyle: ButtonStyle {
             .font(.system(size: 11.5, weight: .semibold, design: .rounded))
             .padding(.vertical, 6)
             .padding(.horizontal, 12)
-            .foregroundStyle(prominent ? Color.black.opacity(0.84) : Otter.textPrimary)
+            .foregroundStyle(prominent ? Otter.onAccent : Otter.textPrimary)
             .background(
                 ZStack {
                     if prominent {

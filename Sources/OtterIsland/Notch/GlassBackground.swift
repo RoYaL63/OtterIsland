@@ -54,7 +54,7 @@ extension View {
     /// d'empiler du verre sur du verre. Utiliser `glassTile` / `chipBackground`.
     @ViewBuilder
     func liquidGlassBackground<S: Shape>(in shape: S, tint: Color = Otter.glassTint) -> some View {
-        switch OtterAppearance.shared.material {
+        switch OtterAppearance.shared.effectiveMaterial {
         case .solid:
             // Le plus sobre : la teinte seule, presque pleine, aucun reflet du
             // bureau. Plancher à 0,9 pour qu'« opaque » le reste même si le
@@ -74,7 +74,14 @@ extension View {
         if #available(macOS 26.0, *) {
             // .interactive() donne les reflets et le rebond « goutte d'eau » du
             // vrai Liquid Glass au survol et au clic.
-            self.glassEffect(.regular.tint(tint).interactive(), in: shape)
+            // Style Système : verre NU, sans teinte. macOS y applique alors
+            // lui-même le réglage Liquid Glass transparent / teinté et le
+            // mode clair / sombre.
+            if OtterAppearance.shared.adaptive {
+                self.glassEffect(.regular.interactive(), in: shape)
+            } else {
+                self.glassEffect(.regular.tint(tint).interactive(), in: shape)
+            }
         } else {
             self
                 .background(shape.fill(.ultraThinMaterial))

@@ -45,7 +45,7 @@ private struct TransportButton: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: size.symbol, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Otter.textPrimary)
                 .frame(width: size.button, height: size.button)
                 .background(
                     Circle()
