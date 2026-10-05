@@ -43,7 +43,7 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 - [Fonctionnalités](#fonctionnalités)
   - [L'île](#lîle) · [La loutre de compagnie](#la-loutre-de-compagnie) · [Presse-papier](#presse-papier) · [Captures d'écran](#captures-décran) · [Moniteur](#moniteur)
   - [Live — mode présentateur](#live--mode-présentateur) · [Nettoyage du clavier](#nettoyage-du-clavier)
-  - [Agenda, musique, étagère, miroir, Pomodoro](#agenda-musique-étagère-miroir-pomodoro) · [Assistants IA](#assistants-ia--claude-code-et-codex)
+  - [Agenda, musique, étagère, miroir, Pomodoro](#agenda-musique-étagère-miroir-pomodoro) · [Raccourcis et barre des menus](#raccourcis-et-barre-des-menus) · [Assistants IA](#assistants-ia--claude-code-et-codex)
 - [Autorisations macOS](#autorisations-macos)
 - [Confidentialité : clés, comptes, données personnelles](#confidentialité--clés-comptes-données-personnelles)
 - [Mettre à jour · désinstaller](#mettre-à-jour--désinstaller)
@@ -159,6 +159,11 @@ Un bouton de l'accueil **verrouille tout le clavier** le temps de le nettoyer : 
 - **Étagère** : glisse des fichiers sur l'encoche pour les garder sous la main, envoi **AirDrop**.
 - **Miroir** : la caméra, pour vérifier sa tête avant une visio. Choix de la caméra (intégrée, USB, iPhone), image en miroir ou telle que les autres te verront, cadrage plein ou complet. **Fond et effets…** ouvre le miroir en grand avec les effets vidéo de macOS — arrière-plan, mode Portrait, Lumière studio, Cadre centré — pour te préparer.
 - **Pomodoro** avec mode Concentration, pause de la musique et carillon.
+
+### Raccourcis et barre des menus
+
+- **Onglet Raccourcis** (éclair) : épingle des apps, des dossiers ou fichiers, des liens et des raccourcis de l'app Raccourcis de macOS, à lancer en un clic depuis l'île. À gérer dans **Réglages › Raccourcis et barre**.
+- **Plier la barre des menus** : quand une app a un long menu, macOS cache sans prévenir les icônes de droite qui ne tiennent plus. Active la flèche dans les réglages, range avec ⌘-glisser à gauche du trait │ les icônes dont tu n'as pas besoin en permanence : un clic sur la flèche (ou depuis l'onglet Raccourcis) les cache ou les montre. Aucune autorisation requise.
 
 ### Assistants IA : Claude Code et Codex
 
