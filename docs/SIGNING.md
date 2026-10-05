@@ -18,8 +18,8 @@ Pas besoin de compte Apple Developer payant. Un certificat auto-signé suffit :
 ce qui compte pour TCC, c'est que l'identité ne change plus.
 
 > Gatekeeper, lui, refusera toujours l'app au premier téléchargement (elle n'est
-> pas notarisée) : le `spctl --add` du README reste nécessaire **une fois**. Les
-> mises à jour suivantes passeront par l'app, sans quarantaine.
+> pas notarisée) : le déblocage décrit dans le README (« Ouvrir quand même » ou
+> `xattr -dr com.apple.quarantine`) reste nécessaire **une fois**. Les mises à jour suivantes passeront par l'app, sans quarantaine.
 
 ### 1. Créer le certificat (une seule fois, sur le Mac)
 

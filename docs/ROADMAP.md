@@ -52,6 +52,7 @@ Chaque feature demandée, son état, et comment on l'aborde. Un module = un doss
 | Nage sur la musique | ✅ fait: `AppleScriptNowPlaying` détecte Spotify/Music, la loutre passe en pose de nage. |
 | Actions rapides vibe coder | Raccourcis: lancer Claude Code, coller le presse-papier vers un prompt, timer pomodoro, snippet launcher |
 | Réactions Claude Code | La loutre apporte physiquement la carte de demande, animation dédiée |
+| Animations compactes | ✅ fait: loutre de 30 pt dans la rangée des onglets (plus de colonne de 56 pt), tous les déplacements et effets proportionnels à sa taille (`OtterScene.u`, `fs`, polices ≥ 7 pt). |
 
 ## Milestone 6 — Finition
 

@@ -15,6 +15,8 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 
 <sub>Gratuit et open source · macOS 14 ou plus récent · Mac à encoche ou non</sub>
 
+<sub>macOS bloque le premier lancement ? C'est normal, l'app n'est pas notarisée : <a href="#installer">débloquez-la une fois</a>, sans Terminal ni mot de passe admin.</sub>
+
 </div>
 
 ---
@@ -39,7 +41,7 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 
 - [Installer](#installer)
 - [Fonctionnalités](#fonctionnalités)
-  - [L'île](#lîle) · [Presse-papier](#presse-papier) · [Captures d'écran](#captures-décran) · [Moniteur](#moniteur)
+  - [L'île](#lîle) · [La loutre de compagnie](#la-loutre-de-compagnie) · [Presse-papier](#presse-papier) · [Captures d'écran](#captures-décran) · [Moniteur](#moniteur)
   - [Live — mode présentateur](#live--mode-présentateur) · [Nettoyage du clavier](#nettoyage-du-clavier)
   - [Agenda, musique, étagère, miroir, Pomodoro](#agenda-musique-étagère-miroir-pomodoro) · [Inbox Claude Code](#inbox-claude-code)
 - [Autorisations macOS](#autorisations-macos)
@@ -52,16 +54,24 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 
 ## Installer
 
-1. Télécharge **[OtterIsland.dmg](https://github.com/RoYaL63/OtterIsland/releases/latest/download/OtterIsland.dmg)**, ouvre-le et glisse la loutre sur **Applications**.
-2. Au premier lancement, macOS bloque l'app : elle n'est pas notarisée (pas de compte Apple Developer payant). Autorise-la **une seule fois**, dans le Terminal :
+1. **Télécharger** : récupérez [OtterIsland.dmg](https://github.com/RoYaL63/OtterIsland/releases/latest/download/OtterIsland.dmg), ouvrez-le et glissez la loutre sur le dossier **Applications**.
+2. **Lancer** : ouvrez OtterIsland depuis Applications. Si vous la lancez depuis ailleurs (Téléchargements, l'image disque), elle propose de s'installer toute seule dans Applications.
+3. **Débloquer l'app, une seule fois** : elle n'est pas notarisée par Apple, donc macOS affiche « Élément "OtterIsland" non ouvert ».
+   - Cliquez sur **Terminé** (surtout pas *Placer dans la corbeille*).
+   - Allez dans **Réglages Système › Confidentialité et sécurité** et descendez jusqu'à la section *Sécurité*.
+   - À côté de « L'ouverture de "OtterIsland" a été bloquée », cliquez sur **Ouvrir quand même**, validez avec Touch ID ou votre mot de passe, puis cliquez sur **Ouvrir**.
+   - Pour les adeptes du Terminal, une ligne suffit : `xattr -dr com.apple.quarantine /Applications/OtterIsland.app`
+4. **C'est parti** : la loutre vit dans l'encoche et dans la barre des menus (🦦), sans icône dans le Dock. Survolez l'encoche pour ouvrir l'île.
+5. **Autorisations, au fil de l'eau** : l'app ne demande un accès que quand une fonction en a besoin, et tous sont facultatifs. Ils se règlent dans Réglages Système › Confidentialité et sécurité :
+   - **Accessibilité** : coller depuis l'historique du presse-papier, masquer les clés pendant le Live, afficher les touches.
+   - **Surveillance des saisies** : verrouiller le clavier pour le nettoyer.
+   - **Calendriers / Rappels** : agenda et prochain rendez-vous.
+   - **Caméra** : le miroir.
+   - **Automatisation** : piloter Spotify ou Musique.
+   - Rien d'autre : pas d'enregistrement de l'écran, pas de micro, pas de localisation.
+6. **Mises à jour** : Réglages de l'app › Mise à jour › **Installer et redémarrer**. Le déblocage de l'étape 3 n'est plus à refaire.
 
-   ```bash
-   sudo spctl --add /Applications/OtterIsland.app
-   ```
-
-3. Lance OtterIsland. Elle vit dans l'encoche et dans la barre des menus (🦦) — pas d'icône dans le Dock.
-
-> Lancée ailleurs que dans `/Applications` (Téléchargements, l'image disque…), l'app **propose de s'y installer toute seule**. Ce n'est pas cosmétique : hors de `/Applications`, macOS ne lui donne pas d'identité stable et les autorisations ne tiennent pas.
+Le code est sous licence MIT : forks, idées et retours bienvenus, ici ou dans les [issues GitHub](https://github.com/RoYaL63/OtterIsland/issues). Je suis preneur de tous vos retours, surtout sur le mode Live si vous faites des démos ou des formations.
 
 ---
 
@@ -73,8 +83,29 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 - **Pas d'ouverture intempestive** : il faut que le pointeur s'**arrête** sur l'encoche (délai réglable). Traverser la zone pour cliquer un onglet de navigateur n'ouvre rien.
 - **Molette** au-dessus de l'encoche pour ouvrir ou fermer.
 - **HUD de volume** dans l'encoche.
-- **Loutre de compagnie** en pixel-art (désactivée par défaut) : elle nage quand la musique joue, s'inquiète quand la batterie ou la mémoire saturent, fête un Pomodoro terminé.
+- **Plusieurs écrans** : dans **Réglages › Encoche**, choisis où vit l'île — un écran fixe (celui du MacBook par défaut), l'écran sous le pointeur, ou tous les écrans. Sur un écran sans encoche, elle se replie en un petit onglet 🦦 au milieu de la barre des menus : survole-le ou clique-le pour l'ouvrir.
+- **Loutre de compagnie** en option : voir [ci-dessous](#la-loutre-de-compagnie).
 - Design Liquid Glass, réglages fins de taille et de position par écran.
+
+### La loutre de compagnie
+
+Une petite loutre en pixel-art qui réagit à ce qui se passe sur ton Mac. **Désactivée par défaut** : active-la dans **Réglages › Général › Loutre de compagnie** (menu 🦦 de la barre des menus).
+
+Une fois activée, elle se loge en version compacte dans la rangée des onglets de l'île, à gauche du bouton Live, sans prendre de place au contenu. Son animation suit ton contexte :
+
+| Elle… | Quand… |
+|---|---|
+| joue | tu ouvres l'île |
+| nage | de la musique joue (Spotify, Musique) |
+| est contente | le Mac est en charge |
+| met son casque | un Pomodoro est en cours |
+| regarde l'heure | un rendez-vous commence dans moins de 5 min |
+| est curieuse | Claude Code attend ta réponse |
+| s'inquiète et se planque | la batterie est faible ou la mémoire sature |
+| passe un chiffon | le clavier est verrouillé pour le nettoyage |
+| s'endort, puis bâille sous la lune | tu es inactif, ou il fait nuit |
+
+Et elle réagit sur le moment : coquillage lancé quand tu approuves une action Claude Code, flash à chaque capture d'écran, fichier attrapé au vol sur l'étagère, étirement de soulagement à la fin d'un Pomodoro. Elle s'efface pendant le Live.
 
 ### Presse-papier
 

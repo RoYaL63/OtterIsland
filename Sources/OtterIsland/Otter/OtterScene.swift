@@ -26,6 +26,15 @@ final class OtterScene: SKScene {
         CGPoint(x: size.width / 2, y: size.height / 2)
     }
 
+    /// Unité de distance : 1 à la taille d'origine (loutre de 50 pt), environ
+    /// 0,5 en version compacte. Tous les déplacements passent par elle, sinon
+    /// un saut de 8 pt pensé pour 50 pt fait sortir une loutre de 26 pt du cadre.
+    private var u: CGFloat { otterSide / 50 }
+
+    /// Taille de police d'un effet, réduite avec la loutre mais jamais sous
+    /// 7 pt : en dessous, un emoji n'est plus qu'une tache de couleur.
+    private func fs(_ points: CGFloat) -> CGFloat { max(7, points * u) }
+
     override func didMove(to view: SKView) {
         setupOtter()
         applyMood(.idle)
@@ -141,7 +150,7 @@ final class OtterScene: SKScene {
         guard let otter else { return }
         otter.removeAction(forKey: "bob")
         otter.position = center
-        let up = SKAction.moveBy(x: 0, y: 3, duration: mood.bobDuration / 2)
+        let up = SKAction.moveBy(x: 0, y: 3 * u, duration: mood.bobDuration / 2)
         up.timingMode = .easeInEaseOut
         otter.run(.repeatForever(.sequence([up, up.reversed()])), withKey: "bob")
     }
@@ -177,8 +186,8 @@ final class OtterScene: SKScene {
     private func hop() {
         guard let otter else { return }
         let hop = SKAction.sequence([
-            .moveBy(x: 0, y: 8, duration: 0.15),
-            .moveBy(x: 0, y: -8, duration: 0.15),
+            .moveBy(x: 0, y: 8 * u, duration: 0.15),
+            .moveBy(x: 0, y: -8 * u, duration: 0.15),
         ])
         otter.run(.repeat(hop, count: 2))
     }
@@ -195,9 +204,9 @@ final class OtterScene: SKScene {
     private func startSwim() {
         guard let otter else { return }
         let sway = SKAction.sequence([
-            .moveBy(x: 6, y: 0, duration: 0.6),
-            .moveBy(x: -12, y: 0, duration: 1.2),
-            .moveBy(x: 6, y: 0, duration: 0.6),
+            .moveBy(x: 6 * u, y: 0, duration: 0.6),
+            .moveBy(x: -12 * u, y: 0, duration: 1.2),
+            .moveBy(x: 6 * u, y: 0, duration: 0.6),
         ])
         sway.timingMode = .easeInEaseOut
         otter.run(.repeatForever(sway), withKey: "swim")
@@ -215,7 +224,7 @@ final class OtterScene: SKScene {
         let note = SKLabelNode(text: Bool.random() ? "♪" : "♫")
         note.name = "fx"
         note.fontName = "Menlo"
-        note.fontSize = 11
+        note.fontSize = fs(11)
         note.fontColor = SKColor(white: 1, alpha: 0.85)
         note.alpha = 0
         note.position = CGPoint(
@@ -226,7 +235,7 @@ final class OtterScene: SKScene {
         note.run(.sequence([
             .fadeIn(withDuration: 0.2),
             .group([
-                .moveBy(x: CGFloat.random(in: -6...6), y: 18, duration: 1.4),
+                .moveBy(x: CGFloat.random(in: -6...6) * u, y: 18 * u, duration: 1.4),
                 .sequence([.wait(forDuration: 0.7), .fadeOut(withDuration: 0.7)]),
             ]),
             .removeFromParent(),
@@ -237,9 +246,9 @@ final class OtterScene: SKScene {
     private func startCleaning() {
         guard let otter else { return }
         let wipe = SKAction.sequence([
-            .moveBy(x: 9, y: 0, duration: 0.16),
-            .moveBy(x: -18, y: 0, duration: 0.32),
-            .moveBy(x: 9, y: 0, duration: 0.16),
+            .moveBy(x: 9 * u, y: 0, duration: 0.16),
+            .moveBy(x: -18 * u, y: 0, duration: 0.32),
+            .moveBy(x: 9 * u, y: 0, duration: 0.16),
         ])
         wipe.timingMode = .easeInEaseOut
         otter.run(.repeatForever(wipe), withKey: "clean")
@@ -252,10 +261,10 @@ final class OtterScene: SKScene {
         // Alterne étincelles de propreté et bulles de savon.
         let label = SKLabelNode(text: Bool.random() ? "✨" : "🫧")
         label.name = "fx"
-        label.fontSize = 9
+        label.fontSize = fs(9)
         label.alpha = 0
         label.position = CGPoint(
-            x: size.width * 0.5 + CGFloat.random(in: -14...14),
+            x: size.width * 0.5 + CGFloat.random(in: -14...14) * u,
             y: size.height * 0.32
         )
         addChild(label)
@@ -273,9 +282,9 @@ final class OtterScene: SKScene {
         guard let otter else { return }
         // Petit tremblement latéral rapide, comme un moteur qui peine.
         let jitter = SKAction.sequence([
-            .moveBy(x: 2.5, y: 0, duration: 0.06),
-            .moveBy(x: -5, y: 0, duration: 0.12),
-            .moveBy(x: 2.5, y: 0, duration: 0.06),
+            .moveBy(x: 2.5 * u, y: 0, duration: 0.06),
+            .moveBy(x: -5 * u, y: 0, duration: 0.12),
+            .moveBy(x: 2.5 * u, y: 0, duration: 0.06),
             .wait(forDuration: 0.5),
         ])
         otter.run(.repeatForever(jitter), withKey: "jitter")
@@ -287,7 +296,7 @@ final class OtterScene: SKScene {
     private func spawnSweat() {
         let drop = SKLabelNode(text: "💦")
         drop.name = "fx"
-        drop.fontSize = 10
+        drop.fontSize = fs(10)
         drop.alpha = 0
         // Alternance des deux tempes.
         let side: CGFloat = Bool.random() ? 0.3 : 0.7
@@ -296,7 +305,7 @@ final class OtterScene: SKScene {
         drop.run(.sequence([
             .fadeIn(withDuration: 0.1),
             .group([
-                .moveBy(x: side < 0.5 ? -8 : 8, y: -6, duration: 0.7),
+                .moveBy(x: (side < 0.5 ? -8 : 8) * u, y: -6 * u, duration: 0.7),
                 .fadeOut(withDuration: 0.7),
             ]),
             .removeFromParent(),
@@ -312,7 +321,7 @@ final class OtterScene: SKScene {
         guard let otter else { return }
         let headphones = SKLabelNode(text: "🎧")
         headphones.name = "fx"
-        headphones.fontSize = 13
+        headphones.fontSize = fs(13)
         headphones.position = CGPoint(x: 0, y: otterSide * 0.30)
         headphones.zPosition = 2
         otter.addChild(headphones)
@@ -345,7 +354,7 @@ final class OtterScene: SKScene {
     private func spawnClock() {
         let clock = SKLabelNode(text: "⏰")
         clock.name = "fx"
-        clock.fontSize = 12
+        clock.fontSize = fs(12)
         clock.alpha = 0
         clock.position = CGPoint(x: size.width * 0.68, y: size.height * 0.66)
         addChild(clock)
@@ -368,7 +377,7 @@ final class OtterScene: SKScene {
     private func startNight() {
         let moon = SKLabelNode(text: "🌙")
         moon.name = "fx"
-        moon.fontSize = 12
+        moon.fontSize = fs(12)
         moon.alpha = 0.85
         moon.position = CGPoint(x: size.width * 0.76, y: size.height * 0.76)
         addChild(moon)
@@ -407,12 +416,12 @@ final class OtterScene: SKScene {
         let label = SKLabelNode(text: "z")
         label.name = "fx"
         label.fontName = "Menlo-Bold"
-        label.fontSize = 12
+        label.fontSize = fs(12)
         label.fontColor = SKColor(white: 1, alpha: 0.85)
         label.position = CGPoint(x: size.width * 0.62, y: size.height * 0.62)
         addChild(label)
         label.run(.sequence([
-            .group([.moveBy(x: 10, y: 20, duration: 1.6), .fadeOut(withDuration: 1.6)]),
+            .group([.moveBy(x: 10 * u, y: 20 * u, duration: 1.6), .fadeOut(withDuration: 1.6)]),
             .removeFromParent(),
         ]))
     }
@@ -425,7 +434,7 @@ final class OtterScene: SKScene {
     private func spawnSparkle() {
         let label = SKLabelNode(text: "✨")
         label.name = "fx"
-        label.fontSize = 12
+        label.fontSize = fs(12)
         label.alpha = 0
         label.position = CGPoint(x: size.width * 0.66, y: size.height * 0.66)
         addChild(label)
@@ -443,17 +452,17 @@ final class OtterScene: SKScene {
     }
 
     private func spawnBubble() {
-        let bubble = SKShapeNode(circleOfRadius: 2)
+        let bubble = SKShapeNode(circleOfRadius: max(1, 2 * u))
         bubble.name = "fx"
         bubble.strokeColor = SKColor(white: 1, alpha: 0.5)
         bubble.fillColor = .clear
         bubble.position = CGPoint(
-            x: size.width * 0.5 + CGFloat.random(in: -12...12),
+            x: size.width * 0.5 + CGFloat.random(in: -12...12) * u,
             y: size.height * 0.3
         )
         addChild(bubble)
         bubble.run(.sequence([
-            .group([.moveBy(x: 0, y: 24, duration: 1.4), .fadeOut(withDuration: 1.4)]),
+            .group([.moveBy(x: 0, y: 24 * u, duration: 1.4), .fadeOut(withDuration: 1.4)]),
             .removeFromParent(),
         ]))
     }
@@ -462,7 +471,7 @@ final class OtterScene: SKScene {
 
     private func startWorried() {
         guard let otter else { return }
-        otter.run(.moveBy(x: 0, y: -5, duration: 0.2)) // s'accroupit
+        otter.run(.moveBy(x: 0, y: -5 * u, duration: 0.2)) // s'accroupit
         let shiver = SKAction.sequence([
             .rotate(toAngle: 0.06, duration: 0.07),
             .rotate(toAngle: -0.06, duration: 0.07),
@@ -479,11 +488,11 @@ final class OtterScene: SKScene {
     private func spawnDrop() {
         let drop = SKLabelNode(text: "💧")
         drop.name = "fx"
-        drop.fontSize = 11
+        drop.fontSize = fs(11)
         drop.position = CGPoint(x: size.width * 0.64, y: size.height * 0.6)
         addChild(drop)
         drop.run(.sequence([
-            .group([.moveBy(x: 6, y: -2, duration: 0.8), .fadeOut(withDuration: 0.8)]),
+            .group([.moveBy(x: 6 * u, y: -2 * u, duration: 0.8), .fadeOut(withDuration: 0.8)]),
             .removeFromParent(),
         ]))
     }
@@ -515,12 +524,12 @@ final class OtterScene: SKScene {
 
         let camera = SKLabelNode(text: "📸")
         camera.name = "fx"
-        camera.fontSize = 14
+        camera.fontSize = fs(14)
         camera.position = CGPoint(x: size.width * 0.5, y: size.height * 0.72)
         camera.setScale(0.4)
         addChild(camera)
         camera.run(.sequence([
-            .group([.scale(to: 1, duration: 0.18), .moveBy(x: 0, y: 6, duration: 0.18)]),
+            .group([.scale(to: 1, duration: 0.18), .moveBy(x: 0, y: 6 * u, duration: 0.18)]),
             .wait(forDuration: 0.35),
             .fadeOut(withDuration: 0.25),
             .removeFromParent(),
@@ -532,7 +541,7 @@ final class OtterScene: SKScene {
     private func caught() {
         let parcel = SKLabelNode(text: "📦")
         parcel.name = "fx"
-        parcel.fontSize = 13
+        parcel.fontSize = fs(13)
         parcel.position = CGPoint(x: size.width * 0.5, y: size.height * 1.05)
         addChild(parcel)
 
@@ -546,8 +555,8 @@ final class OtterScene: SKScene {
         // Elle se baisse pour réceptionner, puis se redresse.
         otter?.run(.sequence([
             .wait(forDuration: 0.24),
-            .moveBy(x: 0, y: -5, duration: 0.08),
-            .moveBy(x: 0, y: 5, duration: 0.2),
+            .moveBy(x: 0, y: -5 * u, duration: 0.08),
+            .moveBy(x: 0, y: 5 * u, duration: 0.2),
         ]))
     }
 
@@ -560,12 +569,12 @@ final class OtterScene: SKScene {
         ]))
         let mark = SKLabelNode(text: "✅")
         mark.name = "fx"
-        mark.fontSize = 14
+        mark.fontSize = fs(14)
         mark.alpha = 0
         mark.position = CGPoint(x: size.width * 0.5, y: size.height * 0.74)
         addChild(mark)
         mark.run(.sequence([
-            .group([.fadeIn(withDuration: 0.15), .moveBy(x: 0, y: 8, duration: 0.5)]),
+            .group([.fadeIn(withDuration: 0.15), .moveBy(x: 0, y: 8 * u, duration: 0.5)]),
             .wait(forDuration: 0.5),
             .fadeOut(withDuration: 0.35),
             .removeFromParent(),
@@ -577,13 +586,13 @@ final class OtterScene: SKScene {
         wiggle()
         let shell = SKLabelNode(text: "🐚")
         shell.name = "fx"
-        shell.fontSize = 14
+        shell.fontSize = fs(14)
         shell.position = CGPoint(x: size.width * 0.5, y: size.height * 0.55)
         addChild(shell)
 
-        let up = SKAction.moveBy(x: 0, y: 22, duration: 0.4)
+        let up = SKAction.moveBy(x: 0, y: 22 * u, duration: 0.4)
         up.timingMode = .easeOut
-        let down = SKAction.moveBy(x: 0, y: -22, duration: 0.4)
+        let down = SKAction.moveBy(x: 0, y: -22 * u, duration: 0.4)
         down.timingMode = .easeIn
         let spin = SKAction.rotate(byAngle: .pi * 2, duration: 0.8)
         shell.run(.sequence([

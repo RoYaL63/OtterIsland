@@ -78,27 +78,36 @@ struct NotchRootView: View {
     }
 
     // Encoche au repos : noire, avec un signal discret si Claude Code attend.
+    // Sur un écran sans encoche, c'est un onglet 🦦 qu'on survole ou clique.
+    @ViewBuilder
     private var collapsedContent: some View {
-        VStack {
-            Spacer()
-            if viewModel.inbox.pending != nil {
-                Circle()
-                    .fill(Color.orange)
-                    .frame(width: 6, height: 6)
-                    .padding(.bottom, 2)
-                    .transition(.scale)
+        if viewModel.metrics?.hasRealNotch == false {
+            Text("🦦")
+                .font(.system(size: max(11, notchHeight * 0.55)))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(alignment: .topTrailing) {
+                    if viewModel.inbox.pending != nil {
+                        Circle().fill(Color.orange).frame(width: 6, height: 6).padding(3)
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture { viewModel.setExpanded(true) }
+        } else {
+            VStack {
+                Spacer()
+                if viewModel.inbox.pending != nil {
+                    Circle()
+                        .fill(Color.orange)
+                        .frame(width: 6, height: 6)
+                        .padding(.bottom, 2)
+                        .transition(.scale)
+                }
             }
         }
     }
 
     private var expandedContent: some View {
         HStack(spacing: 12) {
-            // En Live, la barre d'outils prend toute la largeur.
-            if settings.otterEnabled && !viewModel.live.isActive {
-                OtterSceneView(mood: viewModel.otterMood, event: viewModel.otterEvent)
-                    .frame(width: OtterSceneHolder.side, height: OtterSceneHolder.side)
-            }
-
             VStack(alignment: .leading, spacing: 9) {
                 if viewModel.keyboardLocker.isLocked || viewModel.keyboardLocker.permissionDenied {
                     // Le nettoyage passe devant tout : le clavier est bloqué, la
@@ -122,7 +131,15 @@ struct NotchRootView: View {
                 } else if viewModel.live.isActive {
                     LiveToolbar(live: viewModel.live, style: viewModel.live.style)
                 } else {
-                    HStack {
+                    HStack(spacing: 8) {
+                        // Version compacte : la loutre loge dans la rangée des
+                        // onglets, où il reste ~95 pt libres, au lieu de
+                        // prendre une colonne de 68 pt à toute la carte.
+                        if settings.otterEnabled {
+                            OtterSceneView(mood: viewModel.otterMood, event: viewModel.otterEvent)
+                                .frame(width: OtterSceneHolder.side, height: OtterSceneHolder.side)
+                                .padding(.vertical, -3) // déborde un peu sur l'écart, sans grandir la rangée
+                        }
                         liveButton
                         Spacer(minLength: 0)
                         NotchTabBar(selection: $viewModel.selectedTab)
