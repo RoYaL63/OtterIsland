@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Page des réglages, dans l'ordre du sommaire.
 enum SettingsTab: Hashable, CaseIterable, Identifiable {
-    case general, features, ai, appearance, notch, clipboard, screenshots, monitor, permissions, focus, update, about
+    case general, features, shortcuts, ai, appearance, notch, clipboard, screenshots, monitor, permissions, focus, update, about
 
     var id: Self { self }
 
@@ -10,6 +10,7 @@ enum SettingsTab: Hashable, CaseIterable, Identifiable {
         switch self {
         case .general: return "Général"
         case .features: return "Fonctionnalités"
+        case .shortcuts: return "Raccourcis et barre"
         case .ai: return "Assistants IA"
         case .appearance: return "Apparence"
         case .notch: return "Encoche et écrans"
@@ -27,6 +28,7 @@ enum SettingsTab: Hashable, CaseIterable, Identifiable {
         switch self {
         case .general: return "gearshape"
         case .features: return "switch.2"
+        case .shortcuts: return "bolt.fill"
         case .ai: return "sparkles"
         case .appearance: return "paintpalette"
         case .notch: return "macbook"
@@ -101,6 +103,7 @@ struct SettingsView: View {
         switch tab {
         case .general: general
         case .features: FeaturesSettingsView()
+        case .shortcuts: ShortcutsSettingsView()
         case .ai: AISettingsView()
         case .appearance: AppearanceSettingsView()
         case .notch: notch

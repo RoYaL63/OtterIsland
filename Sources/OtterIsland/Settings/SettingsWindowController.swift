@@ -65,4 +65,6 @@ final class SettingsWindowController {
 extension Notification.Name {
     /// Ouvre les réglages sur la page passée en `object` (`SettingsTab`).
     static let otterOpenSettings = Notification.Name("OtterIslandOpenSettings")
+    /// Plie ou déplie la barre des menus (`MenuBarManager`), depuis l'île.
+    static let otterToggleMenuBar = Notification.Name("OtterIslandToggleMenuBar")
 }

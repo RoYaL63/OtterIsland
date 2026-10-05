@@ -224,6 +224,23 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(hiddenHomeItems, forKey: Keys.hiddenHomeItems) }
     }
 
+    // MARK: Barre des menus (Réglages › Raccourcis et barre)
+
+    /// Flèche et séparateur pour plier la barre des menus (`MenuBarManager`).
+    @Published var menuBarManagerEnabled: Bool {
+        didSet { defaults.set(menuBarManagerEnabled, forKey: Keys.menuBarManager) }
+    }
+
+    /// Replier la barre au lancement d'OtterIsland.
+    @Published var menuBarCollapseAtLaunch: Bool {
+        didSet { defaults.set(menuBarCollapseAtLaunch, forKey: Keys.menuBarCollapseAtLaunch) }
+    }
+
+    /// Replier tout seul après ce délai (secondes). 0 = jamais.
+    @Published var menuBarAutoCollapseDelay: Double {
+        didSet { defaults.set(menuBarAutoCollapseDelay, forKey: Keys.menuBarAutoCollapse) }
+    }
+
     // MARK: Assistants IA (Réglages › Assistants IA)
 
     /// Surveiller Claude Code : tokens et session en cours.
@@ -323,6 +340,9 @@ final class OtterSettings: ObservableObject {
             Keys.musicShowMute: true,
             Keys.aiClaudeCode: false,
             Keys.aiCodex: false,
+            Keys.menuBarManager: false,
+            Keys.menuBarCollapseAtLaunch: true,
+            Keys.menuBarAutoCollapse: 15.0,
             Keys.musicShowOpenApp: true,
         ])
         otterEnabled = defaults.bool(forKey: Keys.otterEnabled)
@@ -365,6 +385,9 @@ final class OtterSettings: ObservableObject {
         hiddenHomeItems = defaults.stringArray(forKey: Keys.hiddenHomeItems) ?? []
         aiClaudeCodeEnabled = defaults.bool(forKey: Keys.aiClaudeCode)
         aiCodexEnabled = defaults.bool(forKey: Keys.aiCodex)
+        menuBarManagerEnabled = defaults.bool(forKey: Keys.menuBarManager)
+        menuBarCollapseAtLaunch = defaults.bool(forKey: Keys.menuBarCollapseAtLaunch)
+        menuBarAutoCollapseDelay = defaults.double(forKey: Keys.menuBarAutoCollapse)
     }
 
     /// Largeur pour un écran donné : son réglage propre s'il existe, sinon la valeur par défaut.
@@ -426,5 +449,8 @@ final class OtterSettings: ObservableObject {
         static let hiddenHomeItems = "hiddenHomeItems"
         static let aiClaudeCode = "aiClaudeCodeEnabled"
         static let aiCodex = "aiCodexEnabled"
+        static let menuBarManager = "menuBarManagerEnabled"
+        static let menuBarCollapseAtLaunch = "menuBarCollapseAtLaunch"
+        static let menuBarAutoCollapse = "menuBarAutoCollapseDelay"
     }
 }

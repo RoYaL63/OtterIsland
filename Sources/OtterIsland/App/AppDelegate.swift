@@ -25,6 +25,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// une version est disponible.
     private var updateMenuItem: NSMenuItem?
     private var cancellables = Set<AnyCancellable>()
+    /// Flèche et séparateur pour plier la barre des menus.
+    private lazy var menuBarManager = MenuBarManager(settings: settings)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Agent : ni Dock ni menu principal.
@@ -36,6 +38,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         clipboardWindow = ClipboardWindowController(clipboard: controller.viewModel.clipboard)
 
         setupStatusItem()
+        // Après la loutre : la flèche et le séparateur viennent se placer à sa gauche.
+        menuBarManager.start()
+        NotificationCenter.default.addObserver(forName: .otterToggleMenuBar, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.menuBarManager.toggle() }
+        }
 
         // Proposition d'installation dans /Applications, au premier lancement
         // seulement. Après le montage de l'encoche : la boîte de dialogue est

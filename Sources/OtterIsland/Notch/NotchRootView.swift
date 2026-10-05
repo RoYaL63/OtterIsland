@@ -226,6 +226,12 @@ struct NotchRootView: View {
                 showBattery: settings.showBattery,
                 onOpenWindow: { viewModel.openMonitorWindow() }
             )
+        case .shortcuts:
+            ShortcutsPanel(
+                store: QuickShortcutStore.shared,
+                onOpenSettings: { viewModel.openSettings(.shortcuts) },
+                onToggleMenuBar: { NotificationCenter.default.post(name: .otterToggleMenuBar, object: nil) }
+            )
         case .ai:
             AIPanel(monitor: viewModel.aiUsage, onOpenSettings: { viewModel.openSettings(.ai) })
         case .mirror:
