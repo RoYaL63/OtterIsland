@@ -168,6 +168,23 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(islandFixedScreenID, forKey: Keys.islandFixedScreenID) }
     }
 
+    /// Caméra du miroir (`AVCaptureDevice.uniqueID`). Vide = la caméra
+    /// frontale du Mac, ou à défaut la première trouvée.
+    @Published var mirrorCameraID: String {
+        didSet { defaults.set(mirrorCameraID, forKey: Keys.mirrorCameraID) }
+    }
+
+    /// Image inversée comme dans un miroir (ce que tu vois de toi), ou telle
+    /// que les autres la verront en visio.
+    @Published var mirrorFlipped: Bool {
+        didSet { defaults.set(mirrorFlipped, forKey: Keys.mirrorFlipped) }
+    }
+
+    /// Remplir le cadre (recadré) plutôt que montrer tout le champ (bandes).
+    @Published var mirrorFill: Bool {
+        didSet { defaults.set(mirrorFill, forKey: Keys.mirrorFill) }
+    }
+
     init() {
         defaults.register(defaults: [
             Keys.otterEnabled: false,
@@ -196,6 +213,9 @@ final class OtterSettings: ObservableObject {
             Keys.pomodoroChime: true,
             Keys.islandScreenMode: IslandScreenMode.fixed.rawValue,
             Keys.islandFixedScreenID: "",
+            Keys.mirrorCameraID: "",
+            Keys.mirrorFlipped: true,
+            Keys.mirrorFill: false,
         ])
         otterEnabled = defaults.bool(forKey: Keys.otterEnabled)
         showBattery = defaults.bool(forKey: Keys.showBattery)
@@ -225,6 +245,9 @@ final class OtterSettings: ObservableObject {
         pomodoroChime = defaults.bool(forKey: Keys.pomodoroChime)
         islandScreenMode = IslandScreenMode(rawValue: defaults.string(forKey: Keys.islandScreenMode) ?? "") ?? .fixed
         islandFixedScreenID = defaults.string(forKey: Keys.islandFixedScreenID) ?? ""
+        mirrorCameraID = defaults.string(forKey: Keys.mirrorCameraID) ?? ""
+        mirrorFlipped = defaults.bool(forKey: Keys.mirrorFlipped)
+        mirrorFill = defaults.bool(forKey: Keys.mirrorFill)
     }
 
     /// Largeur pour un écran donné : son réglage propre s'il existe, sinon la valeur par défaut.
@@ -274,5 +297,8 @@ final class OtterSettings: ObservableObject {
         static let pomodoroChime = "pomodoroChime"
         static let islandScreenMode = "islandScreenMode"
         static let islandFixedScreenID = "islandFixedScreenID"
+        static let mirrorCameraID = "mirrorCameraID"
+        static let mirrorFlipped = "mirrorFlipped"
+        static let mirrorFill = "mirrorFill"
     }
 }

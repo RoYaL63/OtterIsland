@@ -183,6 +183,16 @@ final class NotchViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
+    /// Fenêtre Miroir, créée à la première ouverture.
+    private lazy var mirrorWindow = MirrorWindowController(settings: settings)
+
+    /// Ouvre le miroir en grand, pour se préparer avant une visio ;
+    /// `withEffects` affiche aussi les effets vidéo de macOS (fond, Portrait…).
+    func openMirrorWindow(withEffects: Bool) {
+        setExpanded(false)
+        mirrorWindow.show(withEffects: withEffects)
+    }
+
     /// Ouvre le moniteur détaillé. La carte de l'encoche reste lisible d'un
     /// coup d'œil ; tout ce qui demande de la place vit dans cette fenêtre.
     func openMonitorWindow() {

@@ -214,7 +214,7 @@ struct NotchRootView: View {
                 onOpenWindow: { viewModel.openMonitorWindow() }
             )
         case .mirror:
-            MirrorPanel()
+            MirrorPanel { withEffects in viewModel.openMirrorWindow(withEffects: withEffects) }
         case .screenshots:
             ScreenshotsPanel(screenshot: viewModel.screenshot) { url in
                 viewModel.copyScreenshot(url)
