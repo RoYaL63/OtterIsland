@@ -156,7 +156,7 @@ Un bouton de l'accueil **verrouille tout le clavier** le temps de le nettoyer : 
 - **Agenda** : évènements des prochaines 24 h et rappels, à cocher depuis l'île.
 - **Musique** : titre, pochette, progression et contrôles pour **Spotify** et **Apple Music**.
 - **Étagère** : glisse des fichiers sur l'encoche pour les garder sous la main, envoi **AirDrop**.
-- **Miroir** : la caméra, pour vérifier sa tête avant une visio.
+- **Miroir** : la caméra, pour vérifier sa tête avant une visio. Choix de la caméra (intégrée, USB, iPhone), image en miroir ou telle que les autres te verront, cadrage plein ou complet. **Fond et effets…** ouvre le miroir en grand avec les effets vidéo de macOS — arrière-plan, mode Portrait, Lumière studio, Cadre centré — pour te préparer.
 - **Pomodoro** avec mode Concentration, pause de la musique et carillon.
 
 ### Inbox Claude Code
