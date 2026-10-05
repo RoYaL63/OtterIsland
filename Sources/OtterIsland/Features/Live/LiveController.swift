@@ -66,7 +66,11 @@ final class LiveController: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private lazy var customizeWindow = LiveCustomizeWindowController(live: self)
 
-    init(settings: OtterSettings, style: LiveStyle = LiveStyle()) {
+    /// `style` optionnel plutôt qu'un `= LiveStyle()` par défaut : un argument
+    /// par défaut est évalué hors du MainActor, et les compilateurs récents
+    /// refusent d'y construire un `LiveStyle`.
+    init(settings: OtterSettings, style: LiveStyle? = nil) {
+        let style = style ?? LiveStyle()
         self.settings = settings
         self.style = style
         self.lastPrefs = style.prefs

@@ -138,37 +138,33 @@ final class Updater: ObservableObject {
         }
     }
 
-    /// Téléchargement en flux, pour pouvoir afficher une progression : la
-    /// variante `URLSession.download` ne la donne pas sans délégué.
+    /// Téléchargement par `URLSessionDownloadTask` : le système écrit le
+    /// fichier et rapporte la progression par délégué.
+    ///
+    /// L'ancienne version lisait le zip OCTET PAR OCTET (`bytes(for:)`) sur le
+    /// thread principal : 4 millions de passages pour 4 Mo. La lecture était
+    /// si lente que la connexion restait inactive et finissait en « délai
+    /// dépassé », barre de progression figée vers 20 %.
     private func download(_ url: URL) async throws -> URL {
         var request = URLRequest(url: url)
         request.setValue("OtterIsland/\(currentVersion)", forHTTPHeaderField: "User-Agent")
 
-        let (bytes, response) = try await URLSession.shared.bytes(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw UpdateError.message("Téléchargement impossible.")
-        }
-        let expected = http.expectedContentLength
-
-        var data = Data()
-        if expected > 0 { data.reserveCapacity(Int(expected)) }
-        var lastReported = 0.0
-        for try await byte in bytes {
-            data.append(byte)
-            if expected > 0 {
-                let progress = Double(data.count) / Double(expected)
-                // Republier à chaque octet ferait ramer l'UI plus que le réseau.
-                if progress - lastReported > 0.01 {
-                    lastReported = progress
-                    state = .downloading(progress)
-                }
+        let delegate = DownloadDelegate { [weak self] progress in
+            Task { @MainActor in
+                guard let self, case .downloading = self.state else { return }
+                self.state = .downloading(progress)
             }
         }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 60   // silence max entre deux paquets
+        configuration.timeoutIntervalForResource = 600 // durée max du téléchargement entier
+        let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
+        defer { session.finishTasksAndInvalidate() }
 
-        let destination = FileManager.default.temporaryDirectory
-            .appendingPathComponent("OtterIsland-update-\(UUID().uuidString).zip")
-        try data.write(to: destination)
-        return destination
+        return try await withCheckedThrowingContinuation { continuation in
+            delegate.continuation = continuation
+            session.downloadTask(with: request).resume()
+        }
     }
 
     /// Dézippe à côté du bundle actuel (même volume, condition de
@@ -284,5 +280,55 @@ private struct GitHubRelease: Decodable {
     struct Asset: Decodable {
         let name: String
         let browser_download_url: String
+    }
+}
+
+/// Délégué d'un téléchargement unique : progression, puis fichier final.
+/// Appelé sur la file de la session, hors du thread principal.
+private final class DownloadDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
+    var continuation: CheckedContinuation<URL, Error>?
+    private let onProgress: @Sendable (Double) -> Void
+    private var lastReported = 0.0
+
+    init(onProgress: @escaping @Sendable (Double) -> Void) {
+        self.onProgress = onProgress
+    }
+
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+                    didWriteData bytesWritten: Int64, totalBytesWritten: Int64,
+                    totalBytesExpectedToWrite: Int64) {
+        guard totalBytesExpectedToWrite > 0 else { return }
+        let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
+        // Un point par pour-cent suffit à la barre.
+        guard progress - lastReported >= 0.01 || progress >= 1 else { return }
+        lastReported = progress
+        onProgress(progress)
+    }
+
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+                    didFinishDownloadingTo location: URL) {
+        // Le fichier temporaire disparaît au retour de cette méthode : on le
+        // déplace tout de suite.
+        guard let http = downloadTask.response as? HTTPURLResponse, http.statusCode == 200 else {
+            finish(.failure(Updater.UpdateError.message("Téléchargement impossible.")))
+            return
+        }
+        let destination = FileManager.default.temporaryDirectory
+            .appendingPathComponent("OtterIsland-update-\(UUID().uuidString).zip")
+        do {
+            try FileManager.default.moveItem(at: location, to: destination)
+            finish(.success(destination))
+        } catch {
+            finish(.failure(error))
+        }
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if let error { finish(.failure(error)) }
+    }
+
+    private func finish(_ result: Result<URL, Error>) {
+        continuation?.resume(with: result)
+        continuation = nil
     }
 }
