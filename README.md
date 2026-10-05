@@ -54,21 +54,24 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 
 ## Installer
 
-1. Télécharge **[OtterIsland.dmg](https://github.com/RoYaL63/OtterIsland/releases/latest/download/OtterIsland.dmg)**, ouvre-le et glisse la loutre sur **Applications**.
-2. Au premier lancement, macOS bloque l'app : elle n'est pas notarisée (pas de compte Apple Developer payant). Autorise-la **une seule fois** — sans `sudo` ni droits admin :
+1. **Télécharger** : récupérez [OtterIsland.dmg](https://github.com/RoYaL63/OtterIsland/releases/latest/download/OtterIsland.dmg), ouvrez-le et glissez la loutre sur le dossier **Applications**.
+2. **Lancer** : ouvrez OtterIsland depuis Applications. Si vous la lancez depuis ailleurs (Téléchargements, l'image disque), elle propose de s'installer toute seule dans Applications.
+3. **Débloquer l'app, une seule fois** : elle n'est pas notarisée par Apple, donc macOS affiche « Élément "OtterIsland" non ouvert ».
+   - Cliquez sur **Terminé** (surtout pas *Placer dans la corbeille*).
+   - Allez dans **Réglages Système › Confidentialité et sécurité** et descendez jusqu'à la section *Sécurité*.
+   - À côté de « L'ouverture de "OtterIsland" a été bloquée », cliquez sur **Ouvrir quand même**, validez avec Touch ID ou votre mot de passe, puis cliquez sur **Ouvrir**.
+   - Pour les adeptes du Terminal, une ligne suffit : `xattr -dr com.apple.quarantine /Applications/OtterIsland.app`
+4. **C'est parti** : la loutre vit dans l'encoche et dans la barre des menus (🦦), sans icône dans le Dock. Survolez l'encoche pour ouvrir l'île.
+5. **Autorisations, au fil de l'eau** : l'app ne demande un accès que quand une fonction en a besoin, et tous sont facultatifs. Ils se règlent dans Réglages Système › Confidentialité et sécurité :
+   - **Accessibilité** : coller depuis l'historique du presse-papier, masquer les clés pendant le Live, afficher les touches.
+   - **Surveillance des saisies** : verrouiller le clavier pour le nettoyer.
+   - **Calendriers / Rappels** : agenda et prochain rendez-vous.
+   - **Caméra** : le miroir.
+   - **Automatisation** : piloter Spotify ou Musique.
+   - Rien d'autre : pas d'enregistrement de l'écran, pas de micro, pas de localisation.
+6. **Mises à jour** : Réglages de l'app › Mise à jour › **Installer et redémarrer**. Le déblocage de l'étape 3 n'est plus à refaire.
 
-   - **Sans Terminal** : à l'alerte « Élément "OtterIsland" non ouvert », clique **Terminé** (surtout pas *Placer dans la corbeille*). Ouvre ensuite **Réglages Système › Confidentialité et sécurité**, descends jusqu'à la section *Sécurité* : à côté de « L'ouverture de "OtterIsland" a été bloquée », clique **Ouvrir quand même**, valide avec Touch ID ou ton mot de passe, puis **Ouvrir** à la nouvelle alerte. Depuis macOS 15, le clic droit › Ouvrir ne suffit plus.
-   - **Ou dans le Terminal** :
-
-     ```bash
-     xattr -dr com.apple.quarantine /Applications/OtterIsland.app
-     ```
-
-   > `sudo spctl --add` n'est plus supporté sur les macOS récents. Et `spctl -a -vv` affichera toujours `rejected` : il évalue l'app « comme si elle venait d'être téléchargée », alors qu'au lancement Gatekeeper ne contrôle que les apps marquées en quarantaine.
-
-3. Lance OtterIsland. Elle vit dans l'encoche et dans la barre des menus (🦦) — pas d'icône dans le Dock.
-
-> Lancée ailleurs que dans `/Applications` (Téléchargements, l'image disque…), l'app **propose de s'y installer toute seule**. Ce n'est pas cosmétique : hors de `/Applications`, macOS ne lui donne pas d'identité stable et les autorisations ne tiennent pas.
+Le code est sous licence MIT : forks, idées et retours bienvenus, ici ou dans les [issues GitHub](https://github.com/RoYaL63/OtterIsland/issues). Je suis preneur de tous vos retours, surtout sur le mode Live si vous faites des démos ou des formations.
 
 ---
 
