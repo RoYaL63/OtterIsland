@@ -23,6 +23,9 @@ struct NotchGlassBackground: View {
     /// « Réduire la transparence » (doc Adopting Liquid Glass) : repli en noir
     /// quasi opaque, sans matériau.
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    /// Observé directement : la teinte et l'opacité du verre se règlent en
+    /// direct depuis Réglages › Apparence.
+    @ObservedObject private var appearance = OtterAppearance.shared
 
     private var shape: NotchShape {
         NotchShape(topWidth: topWidth, topHeight: topHeight, bottomRadius: bottomRadius)
@@ -35,8 +38,8 @@ struct NotchGlassBackground: View {
     private var scrim: LinearGradient {
         LinearGradient(
             colors: [
-                .black.opacity(isExpanded ? 0.30 : 0.36),
-                .black.opacity(isExpanded ? 0.16 : 0.30),
+                .black.opacity(min(0.9, (isExpanded ? 0.30 : 0.36) * appearance.readability)),
+                .black.opacity(min(0.9, (isExpanded ? 0.16 : 0.30) * appearance.readability)),
             ],
             startPoint: .top,
             endPoint: .bottom

@@ -85,7 +85,7 @@ Le code est sous licence MIT : forks, idées et retours bienvenus, ici ou dans l
 - **HUD de volume** dans l'encoche.
 - **Plusieurs écrans** : dans **Réglages › Encoche**, choisis où vit l'île — un écran fixe (celui du MacBook par défaut), l'écran sous le pointeur, ou tous les écrans. Sur un écran sans encoche, elle se replie en un petit onglet 🦦 au milieu de la barre des menus : survole-le ou clique-le pour l'ouvrir.
 - **Loutre de compagnie** en option : voir [ci-dessous](#la-loutre-de-compagnie).
-- Design Liquid Glass, réglages fins de taille et de position par écran.
+- Design Liquid Glass, réglages fins de taille et de position par écran. **Apparence** personnalisable (Réglages › Apparence) : couleur d'accentuation (dont celle du système), teinte et opacité du verre, Liquid Glass / verre dépoli / opaque, contraste du texte — avec aperçu en direct.
 
 ### La loutre de compagnie
 

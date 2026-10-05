@@ -2,13 +2,14 @@ import SwiftUI
 
 /// Page des réglages, dans l'ordre du sommaire.
 enum SettingsTab: Hashable, CaseIterable, Identifiable {
-    case general, notch, clipboard, screenshots, monitor, permissions, focus, update, about
+    case general, appearance, notch, clipboard, screenshots, monitor, permissions, focus, update, about
 
     var id: Self { self }
 
     var title: String {
         switch self {
         case .general: return "Général"
+        case .appearance: return "Apparence"
         case .notch: return "Encoche et écrans"
         case .clipboard: return "Presse-papier"
         case .screenshots: return "Captures d'écran"
@@ -23,6 +24,7 @@ enum SettingsTab: Hashable, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .general: return "gearshape"
+        case .appearance: return "paintpalette"
         case .notch: return "macbook"
         case .clipboard: return "doc.on.clipboard"
         case .screenshots: return "camera.viewfinder"
@@ -94,6 +96,7 @@ struct SettingsView: View {
     private func page(_ tab: SettingsTab) -> some View {
         switch tab {
         case .general: general
+        case .appearance: AppearanceSettingsView()
         case .notch: notch
         case .clipboard: clipboard
         case .screenshots: screenshots
