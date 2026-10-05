@@ -53,11 +53,16 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 ## Installer
 
 1. Télécharge **[OtterIsland.dmg](https://github.com/RoYaL63/OtterIsland/releases/latest/download/OtterIsland.dmg)**, ouvre-le et glisse la loutre sur **Applications**.
-2. Au premier lancement, macOS bloque l'app : elle n'est pas notarisée (pas de compte Apple Developer payant). Autorise-la **une seule fois**, dans le Terminal :
+2. Au premier lancement, macOS bloque l'app : elle n'est pas notarisée (pas de compte Apple Developer payant). Autorise-la **une seule fois** — sans `sudo` ni droits admin :
 
-   ```bash
-   sudo spctl --add /Applications/OtterIsland.app
-   ```
+   - **Sans Terminal** : clique **OK** sur l'alerte, puis **Réglages Système › Confidentialité et sécurité**, tout en bas : **Ouvrir quand même**, et valide (Touch ID ou mot de passe de session). Depuis macOS 15, le clic droit › Ouvrir ne suffit plus.
+   - **Ou dans le Terminal** :
+
+     ```bash
+     xattr -dr com.apple.quarantine /Applications/OtterIsland.app
+     ```
+
+   > `sudo spctl --add` n'est plus supporté sur les macOS récents. Et `spctl -a -vv` affichera toujours `rejected` : il évalue l'app « comme si elle venait d'être téléchargée », alors qu'au lancement Gatekeeper ne contrôle que les apps marquées en quarantaine.
 
 3. Lance OtterIsland. Elle vit dans l'encoche et dans la barre des menus (🦦) — pas d'icône dans le Dock.
 
