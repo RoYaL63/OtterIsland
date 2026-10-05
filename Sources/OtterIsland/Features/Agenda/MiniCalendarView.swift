@@ -109,15 +109,16 @@ struct MiniCalendarView: View {
                 Text("\(day)")
                     .font(.system(size: 9, weight: today || selected ? .bold : .regular).monospacedDigit())
                     .foregroundStyle(
-                        selected ? Color.black.opacity(0.85)
-                        : today ? Color.black.opacity(0.85)
+                        selected ? Otter.onAccent
+                        : today ? Otter.inverseInk
                         : Otter.textPrimary.opacity(0.88)
                     )
                     .frame(width: 15, height: 13)
-                    // Sélection = pastille aqua (prioritaire), aujourd'hui = blanche.
+                    // Sélection = pastille d'accent (prioritaire), aujourd'hui =
+                    // pastille de la couleur du texte (blanche sur verre sombre).
                     .background(
                         selected ? Circle().fill(Otter.accent).frame(width: 13, height: 13)
-                        : today ? Circle().fill(.white).frame(width: 13, height: 13)
+                        : today ? Circle().fill(Otter.textPrimary).frame(width: 13, height: 13)
                         : nil
                     )
                     // Point d'évènement en surimpression (pas empilé : la grille

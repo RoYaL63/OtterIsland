@@ -14,6 +14,29 @@ struct AppearanceSettingsView: View {
             }
 
             Section {
+                Picker("Style", selection: $appearance.style) {
+                    ForEach(OtterAppearance.Style.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            } footer: {
+                caption(appearance.style.detail)
+            }
+
+            if appearance.style == .custom {
+                customSections
+            }
+
+            Section {
+                Button("Revenir à l'apparence d'origine") { appearance.reset() }
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    /// Réglages fins, seulement en style Personnalisé.
+    @ViewBuilder
+    private var customSections: some View {
+            Section {
                 swatches(OtterAppearance.accentPresets, selection: $appearance.accentHex)
                 ColorPicker("Couleur personnalisée", selection: accentBinding, supportsOpacity: false)
             } header: {
@@ -37,12 +60,6 @@ struct AppearanceSettingsView: View {
             } footer: {
                 caption("Liquid Glass laisse vivre le fond d'écran ; Verre dépoli le floute davantage ; Opaque n'en montre rien, pour l'harmonie la plus sobre. Plus d'opacité = un verre plus sombre et plus calme. Le flou du Liquid Glass est fixé par macOS : pour plus de flou, choisis Verre dépoli.")
             }
-
-            Section {
-                Button("Revenir à l'apparence d'origine") { appearance.reset() }
-            }
-        }
-        .formStyle(.grouped)
     }
 
     // MARK: Pièces
@@ -128,7 +145,7 @@ private struct IslandPreview: View {
                             Image(systemName: icon)
                                 .font(.system(size: 9.5, weight: .semibold))
                                 .frame(width: 22, height: 18)
-                                .foregroundStyle(icon == "music.note" ? Color.black.opacity(0.75) : Otter.textSecondary)
+                                .foregroundStyle(icon == "music.note" ? Otter.onAccent : Otter.textSecondary)
                                 .background {
                                     if icon == "music.note" { Capsule().fill(Otter.accentGradient) }
                                 }
