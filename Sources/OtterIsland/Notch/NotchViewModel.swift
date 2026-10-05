@@ -380,10 +380,13 @@ final class NotchViewModel: ObservableObject {
             mood = .focused
         } else if meetingIsImminent {
             mood = .meetingSoon
+        } else if musicPlaying {
+            // Avant l'île ouverte : la loutre ne se voit QUE dans l'île
+            // ouverte. Si « ouverte → elle joue » passait devant, on ne la
+            // voyait jamais nager.
+            mood = .swimming
         } else if isExpanded {
             mood = .playful
-        } else if musicPlaying {
-            mood = .swimming
         } else if battery.isCharging {
             mood = .happy
         } else if isSleepy {
