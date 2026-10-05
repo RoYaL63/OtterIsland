@@ -22,17 +22,16 @@ enum Otter {
     /// Aqua de l'icône (#5EE9D3) : la couleur de marque. Sélection, liens,
     /// actions. Choisie sur l'illustration elle-même — l'app et son icône
     /// doivent avoir l'air d'être du même monde.
-    static let accent = Color(red: 0.369, green: 0.914, blue: 0.827)
+    /// Personnalisable : Réglages › Apparence (`OtterAppearance`).
+    static var accent: Color { OtterAppearance.shared.accent }
     /// Cyan de l'icône (#3BCAE8), pour les dégradés d'accent.
-    static let accentDeep = Color(red: 0.231, green: 0.792, blue: 0.910)
+    static var accentDeep: Color { OtterAppearance.shared.accentDeep }
 
     /// Dégradé de marque. Un aplat de couleur reste plat ; un dégradé attrape la
     /// lumière comme le fait un contrôle actif du système.
-    static let accentGradient = LinearGradient(
-        colors: [accent, accentDeep],
-        startPoint: .top,
-        endPoint: .bottom
-    )
+    static var accentGradient: LinearGradient {
+        LinearGradient(colors: [accent, accentDeep], startPoint: .top, endPoint: .bottom)
+    }
 
     /// Quelque chose demande une action de l'utilisateur (permission manquante,
     /// demande Claude Code en attente).
@@ -69,7 +68,8 @@ enum Otter {
     /// Teinte du verre de premier niveau. Assez sombre pour poser un plancher de
     /// contraste sous le texte blanc, assez claire pour que le fond d'écran
     /// continue de vivre à travers — c'est tout l'intérêt du matériau.
-    static let glassTint = Color.black.opacity(0.60)
+    /// Personnalisable : teinte et opacité dans Réglages › Apparence.
+    static var glassTint: Color { OtterAppearance.shared.glassTint }
 
     /// Remplissage d'une tuile posée sur le verre (module du Centre de contrôle).
     static let tileFill = Color.white.opacity(0.07)

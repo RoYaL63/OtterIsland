@@ -6,6 +6,10 @@ struct NotchRootView: View {
     @ObservedObject var viewModel: NotchViewModel
     @EnvironmentObject var settings: OtterSettings
     @State private var isFileDragTargeted = false
+    /// Palette personnalisée (Réglages › Apparence). Les vues lisent
+    /// `Otter.accent` sans l'observer : l'île se reconstruit à chaque
+    /// changement de palette pour que tout reprenne la nouvelle couleur.
+    @ObservedObject private var appearance = OtterAppearance.shared
 
     private var notchWidth: CGFloat { viewModel.metrics?.notchSize.width ?? 200 }
     private var notchHeight: CGFloat { viewModel.metrics?.notchSize.height ?? 32 }
@@ -32,6 +36,7 @@ struct NotchRootView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(.easeOut(duration: 0.2), value: viewModel.hud)
+        .id(appearance.revision)
     }
 
     private var island: some View {
