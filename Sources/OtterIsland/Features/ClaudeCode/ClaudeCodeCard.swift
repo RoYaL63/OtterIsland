@@ -11,7 +11,7 @@ struct ClaudeCodeCard: View {
         OtterTile(horizontalPadding: 12, verticalPadding: 10) {
             VStack(alignment: .leading, spacing: 9) {
                 HStack(spacing: 8) {
-                    OtterIconBadge(icon: request.isNotice ? "bell.fill" : "sparkles", tint: Otter.warning)
+                    OtterIconBadge(icon: request.isNotice ? "bell.fill" : "brain", tint: Otter.warning)
                     Text(request.title)
                         .font(.system(size: 12.5, weight: .semibold, design: .rounded))
                         // Chasse négative sur le grand texte : les lettres se

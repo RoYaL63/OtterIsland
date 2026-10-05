@@ -16,7 +16,7 @@ struct AIPanel: View {
                 OtterTile {
                     VStack(spacing: 8) {
                         OtterEmptyState(
-                            icon: "sparkles",
+                            icon: "brain",
                             title: "Aucun assistant suivi",
                             subtitle: "Choisis Claude Code ou Codex pour suivre tokens et demandes."
                         )

@@ -29,7 +29,7 @@ enum SettingsTab: Hashable, CaseIterable, Identifiable {
         case .general: return "gearshape"
         case .features: return "switch.2"
         case .shortcuts: return "bolt.fill"
-        case .ai: return "sparkles"
+        case .ai: return "brain"
         case .appearance: return "paintpalette"
         case .notch: return "macbook"
         case .clipboard: return "doc.on.clipboard"

@@ -224,6 +224,12 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(hiddenHomeItems, forKey: Keys.hiddenHomeItems) }
     }
 
+    /// Onglet Raccourcis dédié dans l'île. Par défaut, les raccourcis vivent
+    /// en bas de l'accueil : un onglet de plus encombrait la barre.
+    @Published var shortcutsTabEnabled: Bool {
+        didSet { defaults.set(shortcutsTabEnabled, forKey: Keys.shortcutsTab) }
+    }
+
     // MARK: Barre des menus (Réglages › Raccourcis et barre)
 
     /// Flèche et séparateur pour plier la barre des menus (`MenuBarManager`).
@@ -269,7 +275,9 @@ final class OtterSettings: ObservableObject {
         let all = ordered + NotchTab.allCases.filter { !ordered.contains($0) }
         // L'onglet IA n'a rien à montrer tant qu'aucun assistant n'est suivi.
         let visible = all.filter {
-            !hiddenTabs.contains($0.rawValue) && ($0 != .ai || !enabledAssistants.isEmpty)
+            !hiddenTabs.contains($0.rawValue)
+                && ($0 != .ai || !enabledAssistants.isEmpty)
+                && ($0 != .shortcuts || shortcutsTabEnabled)
         }
         return visible.isEmpty ? [.home] : visible
     }
@@ -341,6 +349,7 @@ final class OtterSettings: ObservableObject {
             Keys.aiClaudeCode: false,
             Keys.aiCodex: false,
             Keys.menuBarManager: false,
+            Keys.shortcutsTab: false,
             Keys.menuBarCollapseAtLaunch: true,
             Keys.menuBarAutoCollapse: 15.0,
             Keys.musicShowOpenApp: true,
@@ -386,6 +395,7 @@ final class OtterSettings: ObservableObject {
         aiClaudeCodeEnabled = defaults.bool(forKey: Keys.aiClaudeCode)
         aiCodexEnabled = defaults.bool(forKey: Keys.aiCodex)
         menuBarManagerEnabled = defaults.bool(forKey: Keys.menuBarManager)
+        shortcutsTabEnabled = defaults.bool(forKey: Keys.shortcutsTab)
         menuBarCollapseAtLaunch = defaults.bool(forKey: Keys.menuBarCollapseAtLaunch)
         menuBarAutoCollapseDelay = defaults.double(forKey: Keys.menuBarAutoCollapse)
     }
@@ -450,6 +460,7 @@ final class OtterSettings: ObservableObject {
         static let aiClaudeCode = "aiClaudeCodeEnabled"
         static let aiCodex = "aiCodexEnabled"
         static let menuBarManager = "menuBarManagerEnabled"
+        static let shortcutsTab = "shortcutsTabEnabled"
         static let menuBarCollapseAtLaunch = "menuBarCollapseAtLaunch"
         static let menuBarAutoCollapse = "menuBarAutoCollapseDelay"
     }

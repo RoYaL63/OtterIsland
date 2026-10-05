@@ -162,7 +162,7 @@ Un bouton de l'accueil **verrouille tout le clavier** le temps de le nettoyer : 
 
 ### Raccourcis et barre des menus
 
-- **Onglet Raccourcis** (éclair) : épingle des apps, des dossiers ou fichiers, des liens et des raccourcis de l'app Raccourcis de macOS, à lancer en un clic depuis l'île. À gérer dans **Réglages › Raccourcis et barre**.
+- **Raccourcis** : épingle des apps, des dossiers ou fichiers, des liens et des raccourcis de l'app Raccourcis de macOS. Les trois premiers s'affichent en bas de l'accueil, une flèche › montre les autres ; un onglet dédié (éclair) est activable. À gérer dans **Réglages › Raccourcis et barre**.
 - **Plier la barre des menus** : quand une app a un long menu, macOS cache sans prévenir les icônes de droite qui ne tiennent plus. Active la flèche dans les réglages, range avec ⌘-glisser à gauche du trait │ les icônes dont tu n'as pas besoin en permanence : un clic sur la flèche (ou depuis l'onglet Raccourcis) les cache ou les montre. Aucune autorisation requise.
 
 ### Assistants IA : Claude Code et Codex

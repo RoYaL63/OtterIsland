@@ -32,6 +32,10 @@ struct OtterStatusPanel: View {
     /// Clic sur un jour du mini calendrier : bascule sur l'onglet Agenda,
     /// déjà positionné sur ce jour.
     let onOpenAgenda: () -> Void
+    /// Flèche › des raccourcis : affiche la liste complète.
+    var onShowAllShortcuts: () -> Void = {}
+    /// « + » quand aucun raccourci n'est épinglé.
+    var onAddShortcuts: () -> Void = {}
     /// Éléments affichés : Réglages › Fonctionnalités › Accueil.
     @EnvironmentObject private var settings: OtterSettings
 
@@ -44,7 +48,13 @@ struct OtterStatusPanel: View {
     }
 
     private var hasBottomRow: Bool {
-        shows(.music) || shows(.cleanup) || shows(.mirror)
+        shows(.music) || shows(.shortcuts) || shows(.cleanup) || showsMirrorButton
+    }
+
+    /// Le miroir a déjà son onglet en haut : le bouton de l'accueil ferait
+    /// doublon. Il ne revient que si l'onglet est masqué.
+    private var showsMirrorButton: Bool {
+        shows(.mirror) && !settings.visibleTabs.contains(.mirror)
     }
 
     var body: some View {
@@ -81,15 +91,22 @@ struct OtterStatusPanel: View {
                             musicRow
                         }
                         Spacer(minLength: 6)
+                        if shows(.shortcuts) {
+                            HomeShortcutsStrip(
+                                store: QuickShortcutStore.shared,
+                                onShowAll: onShowAllShortcuts,
+                                onAdd: onAddShortcuts
+                            )
+                        }
                         if shows(.cleanup) {
                             OtterIconButton(
-                                icon: "sparkles",
-                                tint: Otter.accent,
+                                icon: "keyboard",
+                                emoji: "🧹",
                                 help: "Verrouiller le clavier pour nettoyer",
                                 action: onToggleCleanup
                             )
                         }
-                        if shows(.mirror) {
+                        if showsMirrorButton {
                             OtterIconButton(
                                 icon: "camera.fill",
                                 help: "Mode miroir (caméra)",
@@ -274,5 +291,49 @@ struct OtterStatusPanel: View {
     private func timeText(_ minutes: Int) -> String {
         let h = minutes / 60, m = minutes % 60
         return h > 0 ? "\(h) h \(String(format: "%02d", m))" : "\(m) min"
+    }
+}
+
+/// Raccourcis en bas de l'accueil : les trois premiers, et une flèche › pour
+/// la liste complète. Un « + » s'il n'y en a encore aucun.
+private struct HomeShortcutsStrip: View {
+    @ObservedObject var store: QuickShortcutStore
+    let onShowAll: () -> Void
+    let onAdd: () -> Void
+
+    /// Au-delà, le titre du morceau n'aurait plus la place de se lire.
+    private let visibleCount = 3
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if store.items.isEmpty {
+                OtterIconButton(icon: "plus", tint: Otter.textSecondary, help: "Épingler des apps, dossiers ou liens", action: onAdd)
+            } else {
+                ForEach(store.items.prefix(visibleCount)) { item in
+                    Button { item.open() } label: {
+                        Group {
+                            if let icon = item.fileIcon {
+                                Image(nsImage: icon).resizable().aspectRatio(contentMode: .fit)
+                            } else {
+                                Image(systemName: item.symbol)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(Otter.textPrimary)
+                                    .frame(width: 26, height: 26)
+                                    .background(Circle().fill(Otter.chipFill))
+                            }
+                        }
+                        .frame(width: 26, height: 26)
+                        .opacity(item.isMissing ? 0.4 : 1)
+                    }
+                    .buttonStyle(OtterPressStyle(scale: 0.9))
+                    .disabled(item.isMissing)
+                    .help(item.title)
+                }
+                if store.items.count > visibleCount {
+                    OtterIconButton(icon: "chevron.right", tint: Otter.textSecondary,
+                                    help: "Tous les raccourcis (\(store.items.count))", action: onShowAll)
+                }
+            }
+        }
     }
 }

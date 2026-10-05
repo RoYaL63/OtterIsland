@@ -32,7 +32,7 @@ enum NotchTab: String, CaseIterable, Identifiable {
         case .clipboard: return "doc.on.clipboard"
         case .mirror: return "camera.fill"
         case .screenshots: return "camera.viewfinder"
-        case .ai: return "sparkles"
+        case .ai: return "brain"
         case .shortcuts: return "bolt.fill"
         }
     }
@@ -57,7 +57,7 @@ enum NotchTab: String, CaseIterable, Identifiable {
 /// (Réglages › Fonctionnalités). La batterie garde son réglage historique,
 /// `showBattery`.
 enum HomeItem: String, CaseIterable, Identifiable {
-    case memory, nextEvent, pomodoro, calendar, music, cleanup, mirror
+    case memory, nextEvent, pomodoro, calendar, music, shortcuts, cleanup, mirror
 
     var id: String { rawValue }
 
@@ -68,8 +68,9 @@ enum HomeItem: String, CaseIterable, Identifiable {
         case .pomodoro: return "Pomodoro"
         case .calendar: return "Mini calendrier"
         case .music: return "Lecture en cours"
+        case .shortcuts: return "Raccourcis"
         case .cleanup: return "Bouton Nettoyage du clavier"
-        case .mirror: return "Bouton Miroir"
+        case .mirror: return "Bouton Miroir (si l'onglet Miroir est masqué)"
         }
     }
 
@@ -80,7 +81,8 @@ enum HomeItem: String, CaseIterable, Identifiable {
         case .pomodoro: return "timer"
         case .calendar: return "calendar"
         case .music: return "music.note"
-        case .cleanup: return "sparkles"
+        case .shortcuts: return "bolt.fill"
+        case .cleanup: return "keyboard"
         case .mirror: return "camera.fill"
         }
     }

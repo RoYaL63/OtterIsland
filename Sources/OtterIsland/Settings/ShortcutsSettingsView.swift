@@ -24,7 +24,14 @@ struct ShortcutsSettingsView: View {
             } header: {
                 Text("Raccourcis de l'île")
             } footer: {
-                caption("Un clic dans l'onglet Raccourcis (éclair) ouvre l'app, le dossier ou le lien, ou exécute le raccourci macOS. Les flèches changent l'ordre.")
+                caption("Les trois premiers s'affichent en bas de l'accueil de l'île ; la flèche › à côté montre tous les autres. Un clic ouvre l'app, le dossier ou le lien, ou exécute le raccourci macOS. Les flèches ici changent l'ordre.")
+            }
+
+            Section {
+                Toggle(isOn: $settings.shortcutsTabEnabled) {
+                    Text("Onglet Raccourcis dédié")
+                    Text("Ajoute un onglet (éclair) dans la barre de l'île, en plus de l'accueil. Utile si tu as beaucoup de raccourcis.")
+                }
             }
 
             Section("Ajouter") {
