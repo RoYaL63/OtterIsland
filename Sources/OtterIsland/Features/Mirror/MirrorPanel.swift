@@ -256,6 +256,10 @@ private struct PillStyle: ViewModifier {
 final class CameraPreviewNSView: NSView {
     private let session = AVCaptureSession()
     private let previewLayer = AVCaptureVideoPreviewLayer()
+    /// File SÉRIE pour démarrer/arrêter : sur une file concurrente, un
+    /// « ouvrir puis fermer » rapide pouvait exécuter l'arrêt avant le
+    /// démarrage, et la caméra restait allumée.
+    private let sessionQueue = DispatchQueue(label: "OtterIsland.mirror.session")
     private var deviceID: String?
     private var mirrored = true
 
@@ -273,6 +277,17 @@ final class CameraPreviewNSView: NSView {
     override func layout() {
         super.layout()
         previewLayer.frame = bounds
+    }
+
+    /// Ceinture et bretelles : une vue retirée de sa fenêtre coupe la caméra,
+    /// quel que soit le chemin (onglet quitté, île repliée, fenêtre fermée).
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil {
+            stop()
+        } else if !session.inputs.isEmpty {
+            startSession()
+        }
     }
 
     /// Applique les réglages. Changer de caméra remplace l'entrée à chaud,
@@ -305,22 +320,25 @@ final class CameraPreviewNSView: NSView {
         if session.canAddInput(input) { session.addInput(input) }
         session.commitConfiguration()
         applyMirroring()
-        guard !session.isRunning else { return }
-        // start/stopRunning sont bloquants → file de fond, recommandé par Apple.
-        // On capture la session localement plutôt que self (isolé MainActor) ;
-        // AVCaptureSession est thread-safe pour ces deux appels.
+        // Vue déjà retirée de sa fenêtre pendant la demande d'accès : on ne
+        // rallume rien.
+        guard window != nil else { return }
+        startSession()
+    }
+
+    // start/stopRunning sont bloquants → file de fond, recommandé par Apple.
+    // On capture la session localement plutôt que self (isolé MainActor) ;
+    // AVCaptureSession est thread-safe pour ces deux appels. Les deux sont
+    // idempotents : pas de garde sur `isRunning`, qui ment tant que le
+    // démarrage n'a pas abouti.
+    private func startSession() {
         nonisolated(unsafe) let session = self.session
-        DispatchQueue.global(qos: .userInitiated).async {
-            session.startRunning()
-        }
+        sessionQueue.async { if !session.isRunning { session.startRunning() } }
     }
 
     func stop() {
-        guard session.isRunning else { return }
         nonisolated(unsafe) let session = self.session
-        DispatchQueue.global(qos: .userInitiated).async {
-            session.stopRunning()
-        }
+        sessionQueue.async { if session.isRunning { session.stopRunning() } }
     }
 }
 
@@ -348,7 +366,7 @@ struct CameraPreview: NSViewRepresentable {
 /// qui reste ouverte pendant qu'on règle fond et effets dans le Centre de
 /// contrôle (l'île, elle, se replierait dès que le pointeur la quitte).
 @MainActor
-final class MirrorWindowController {
+final class MirrorWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private let settings: OtterSettings
 
@@ -359,6 +377,11 @@ final class MirrorWindowController {
     func show(withEffects: Bool) {
         let win = window ?? makeWindow()
         window = win
+        // Contenu recréé à chaque ouverture : il est détruit à la fermeture
+        // pour éteindre la caméra (voir `windowWillClose`).
+        if win.contentView == nil {
+            win.contentView = makeContent()
+        }
         NSApp.activate(ignoringOtherApps: true)
         win.makeKeyAndOrderFront(nil)
         if withEffects {
@@ -368,8 +391,21 @@ final class MirrorWindowController {
         }
     }
 
+    /// Fermer la fenêtre DOIT éteindre la caméra. La fenêtre est gardée pour
+    /// rouvrir vite (`isReleasedWhenClosed = false`), mais son contenu, lui,
+    /// restait vivant : l'aperçu continuait de tourner, voyant vert allumé,
+    /// fenêtre pourtant fermée. On jette donc le contenu.
+    func windowWillClose(_ notification: Notification) {
+        window?.contentView = nil
+    }
+
+    private func makeContent() -> NSView {
+        let view = MirrorWindowView { [weak self] in self?.window?.close() }
+            .environmentObject(settings)
+        return NSHostingView(rootView: view)
+    }
+
     private func makeWindow() -> NSWindow {
-        let host = NSHostingView(rootView: MirrorWindowView().environmentObject(settings))
         let win = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 640, height: 480),
             styleMask: [.titled, .closable, .resizable],
@@ -377,7 +413,7 @@ final class MirrorWindowController {
             defer: false
         )
         win.title = "Miroir — OtterIsland"
-        win.contentView = host
+        win.delegate = self
         win.isReleasedWhenClosed = false
         win.center()
         return win
@@ -385,6 +421,8 @@ final class MirrorWindowController {
 }
 
 private struct MirrorWindowView: View {
+    /// Ferme la fenêtre, ce qui éteint la caméra.
+    let onDone: () -> Void
     @EnvironmentObject var settings: OtterSettings
     @State private var effects = VideoEffects.status
     @State private var authStatus = AVCaptureDevice.authorizationStatus(for: .video)
@@ -409,11 +447,18 @@ private struct MirrorWindowView: View {
                         .padding(10)
                 }
             }
-            Text("Fond et effets sont ceux de macOS (Centre de contrôle › Effets vidéo). macOS les retient app par app : pense à les activer aussi dans ton app de visio.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .center, spacing: 12) {
+                Text("Fond et effets sont ceux de macOS (Centre de contrôle › Effets vidéo). macOS les retient app par app : pense à les activer aussi dans ton app de visio.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                // Une fois prêt, on referme : la caméra s'éteint avec la fenêtre.
+                Button("Terminé — éteindre la caméra", action: onDone)
+                    .keyboardShortcut(.cancelAction)
+                    .controlSize(.large)
+                    .help("Ferme le miroir et coupe la caméra (Échap)")
+            }
         }
         .padding(12)
         .frame(minWidth: 420, minHeight: 320)
