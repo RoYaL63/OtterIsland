@@ -55,7 +55,7 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 1. Télécharge **[OtterIsland.dmg](https://github.com/RoYaL63/OtterIsland/releases/latest/download/OtterIsland.dmg)**, ouvre-le et glisse la loutre sur **Applications**.
 2. Au premier lancement, macOS bloque l'app : elle n'est pas notarisée (pas de compte Apple Developer payant). Autorise-la **une seule fois** — sans `sudo` ni droits admin :
 
-   - **Sans Terminal** : clique **OK** sur l'alerte, puis **Réglages Système › Confidentialité et sécurité**, tout en bas : **Ouvrir quand même**, et valide (Touch ID ou mot de passe de session). Depuis macOS 15, le clic droit › Ouvrir ne suffit plus.
+   - **Sans Terminal** : à l'alerte « Élément "OtterIsland" non ouvert », clique **Terminé** (surtout pas *Placer dans la corbeille*). Ouvre ensuite **Réglages Système › Confidentialité et sécurité**, descends jusqu'à la section *Sécurité* : à côté de « L'ouverture de "OtterIsland" a été bloquée », clique **Ouvrir quand même**, valide avec Touch ID ou ton mot de passe, puis **Ouvrir** à la nouvelle alerte. Depuis macOS 15, le clic droit › Ouvrir ne suffit plus.
    - **Ou dans le Terminal** :
 
      ```bash
