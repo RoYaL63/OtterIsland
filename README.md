@@ -140,7 +140,7 @@ Bouton **● Live** dans l'île, ou **⌃⌥L**. Le témoin ● apparaît sur la
 | **Pastilles numérotées** | Chaque clic pose ①, ②, ③… ; tape aussitôt une **étiquette** (↩ pour valider), ou reclique ailleurs pour la pastille seule. |
 | **Curseur** | Anneau fin, **comète**, **étincelles** ou **pointillés** ; animation différente au clic gauche, au double-clic et au clic droit ; projecteur qui assombrit tout sauf autour du curseur. |
 | **Touches affichées** | Les raccourcis tapés (⌘C, ⌘⇧4…) s'affichent en bas de l'écran — **jamais le texte tapé**. |
-| **Masquage** | Les **clés API et mots de passe visibles** sont recouverts (OpenAI, Anthropic, Stripe, GitHub, AWS, Google, Slack, Airtable, Notion, jetons JWT, webhooks Make, en-têtes `Authorization: Bearer …`, `?key=` dans les URL…). Les apps sensibles (1Password, Trousseau, Messages…) sont cachées entières. |
+| **Masquage** | Les **champs mot de passe sont couverts dès qu'ils s'affichent** (le bouton œil reste visible), et les **clés API et mots de passe visibles** sont recouverts (OpenAI, Anthropic, Stripe, GitHub, AWS, Google, Slack, Airtable, Notion, jetons JWT, webhooks Make, en-têtes `Authorization: Bearer …`, `?key=` dans les URL…). Les apps sensibles (1Password, Trousseau, Messages…) sont cachées entières. |
 | **Bureau caché** | Les icônes du bureau disparaissent derrière ton fond d'écran ; option pour masquer les autres apps. |
 | **Concentration** | Coupe les notifications pendant le Live (via tes raccourcis Concentration). |
 | **Personnaliser** | Palette et sélecteur de couleurs avec codes hexa, effets, tailles, apps à masquer, **raccourcis configurables**. |
