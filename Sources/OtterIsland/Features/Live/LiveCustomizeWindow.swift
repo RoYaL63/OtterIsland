@@ -254,7 +254,12 @@ struct LiveCustomizeView: View {
     private var privacySection: some View {
         Section("Confidentialité") {
             Toggle("Masquer les clés API et mots de passe visibles", isOn: binding(\.maskSecrets))
-            Text("OpenAI, Anthropic, Stripe, GitHub, AWS, Google, Slack, Airtable, Notion, jetons JWT, webhooks Make, et toute valeur après « password = », « api_key: »… Lu dans le champ actif via l'Accessibilité, deux fois par seconde.")
+            Text("OpenAI, Anthropic, Stripe, GitHub, AWS, Google, Slack, Airtable, Notion, jetons JWT, webhooks Make, et toute valeur après « password = », « api_key: »… Lu via l'Accessibilité quatre fois par seconde, et aussitôt après un clic, un collage ou un changement d'app.")
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Toggle("Anticiper les mots de passe et les clés repérées par leur libellé", isOn: binding(\.anticipateSecrets))
+                .disabled(!style.prefs.maskSecrets)
+            Text("Un champ qui se déclare « mot de passe », « secret » ou « clé API » (placeholder, identifiant, libellé) est couvert dès qu'il s'affiche, avant même que le mot de passe soit révélé par l'œil. Une valeur qui ressemble à un jeton et suit un libellé « API key », « Secret key »… est couverte même si sa forme est inconnue. Le bouton œil afficher / masquer n'est jamais recouvert.")
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Toggle("Masquer des applications entières", isOn: binding(\.maskApps))

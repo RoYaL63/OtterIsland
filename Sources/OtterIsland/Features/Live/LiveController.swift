@@ -44,6 +44,12 @@ final class LiveController: ObservableObject {
     private let scanQueue = DispatchQueue(label: "otterisland.live.secrets", qos: .userInitiated)
     private var scanInFlight = false
     private var scanTick = 0
+    /// Un relevé a été demandé (clic, collage…) pendant qu'un autre tournait :
+    /// on en relance un dès que le premier finit, au lieu de le perdre.
+    private var scanPending = false
+    private var pendingDeep = false
+    private var lastTrigger = Date.distantPast
+    private var activationObserver: NSObjectProtocol?
     /// Secrets du champ actif (remplacés à chaque scan) et de la fenêtre
     /// entière (remplacés seulement par les scans complets) : les deux
     /// restent affichés, sinon une clé trouvée dans la page réapparaissait
@@ -152,6 +158,12 @@ final class LiveController: ObservableObject {
         overlays = []
         monitors.forEach { NSEvent.removeMonitor($0) }
         monitors = []
+        if let activationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
+            self.activationObserver = nil
+        }
+        scanPending = false
+        pendingDeep = false
         liveHotKeys = []
         focusedSecretRects = []
         deepSecretRects = []
@@ -505,6 +517,12 @@ final class LiveController: ObservableObject {
     // MARK: - Souris et clavier
 
     private func installMonitors() {
+        // Un autre app passe au premier plan : une autre page, d'autres champs.
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.triggerSecretScan(deep: true) }
+        }
         let mouseMask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged]
         let clickMask: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown]
 
@@ -537,6 +555,7 @@ final class LiveController: ObservableObject {
     }
 
     private func globalClick(_ event: NSEvent) {
+        triggerSecretScan(deep: true)
         guard style.prefs.clickRipples, let overlay = overlay(containing: NSEvent.mouseLocation) else { return }
         overlay.canvas.spawnClick(Self.clickKind(event), at: overlay.local(NSEvent.mouseLocation), color: style.effectColor)
     }
@@ -547,6 +566,14 @@ final class LiveController: ObservableObject {
     }
 
     private func keyPressed(_ event: NSEvent) {
+        // Un collage (⌘V) ou une touche qui change de champ (Tab) peut faire
+        // apparaître un secret : relevé immédiat. Les autres frappes sont
+        // couvertes par le relevé périodique du champ actif.
+        let key = Int(event.keyCode)
+        if key == kVK_Tab || key == kVK_Return
+            || (key == kVK_ANSI_V && event.modifierFlags.contains(.command)) {
+            triggerSecretScan(deep: key != kVK_ANSI_V)
+        }
         // On tape une étiquette : ni Échap « tout effacer », ni bande des touches.
         if badgeEditor.isEditing { return }
         // Échap observé (pas intercepté) : l'app au premier plan le reçoit
@@ -693,10 +720,13 @@ final class LiveController: ObservableObject {
             return
         }
         guard maskTimer == nil else { refreshMasks(); return }
-        let t = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
+        // Relevé du champ actif toutes les 0,25 s, de la fenêtre entière toutes
+        // les 0,75 s (avant : 0,5 s et 1 s). Les clics, collages et changements
+        // d'app déclenchent un relevé immédiat en plus (`triggerSecretScan`).
+        let t = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshMasks() }
         }
-        t.tolerance = 0.05
+        t.tolerance = 0.03
         RunLoop.main.add(t, forMode: .common)
         maskTimer = t
         refreshMasks()
@@ -715,18 +745,32 @@ final class LiveController: ObservableObject {
 
     /// Le scan des secrets part en arrière-plan ; la fenêtre active entière
     /// n'est parcourue qu'un relevé sur deux (une fois par seconde).
-    private func startSecretScan() {
-        guard !scanInFlight else { return }
+    private func startSecretScan(forceDeep: Bool = false) {
+        guard !scanInFlight else {
+            // Un relevé tourne déjà : on retient la demande plutôt que de la perdre.
+            scanPending = true
+            pendingDeep = pendingDeep || forceDeep
+            return
+        }
         scanInFlight = true
         scanTick += 1
-        let deep = scanTick % 2 == 0
+        let deep = forceDeep || scanTick % 3 == 0
         let height = ScreenGeometry.primaryHeight
+        let anticipate = style.prefs.anticipateSecrets
         scanQueue.async { [weak self] in
-            let rects = SecretScanner.visibleSecretRects(primaryHeight: height, deep: deep)
+            let rects = SecretScanner.visibleSecretRects(primaryHeight: height, deep: deep, anticipate: anticipate)
             DispatchQueue.main.async { [weak self] in
                 MainActor.assumeIsolated {
                     guard let self else { return }
                     self.scanInFlight = false
+                    defer {
+                        if self.scanPending {
+                            let deep = self.pendingDeep
+                            self.scanPending = false
+                            self.pendingDeep = false
+                            self.startSecretScan(forceDeep: deep)
+                        }
+                    }
                     guard self.isActive, self.maskingOn, self.style.prefs.maskSecrets else { return }
                     if deep {
                         // Le scan complet couvre aussi le champ actif.
@@ -736,6 +780,26 @@ final class LiveController: ObservableObject {
                         self.focusedSecretRects = rects
                     }
                     self.renderAllMasks()
+                }
+            }
+        }
+    }
+
+    /// Relevé immédiat, puis deux relances rapprochées : après un clic (l'œil
+    /// d'un mot de passe) ou un collage, la page met quelques images à
+    /// changer. Limité à un déclenchement toutes les 60 ms : taper vite ne
+    /// doit pas saturer l'Accessibilité.
+    private func triggerSecretScan(deep: Bool) {
+        guard isActive, maskingOn, style.prefs.maskSecrets else { return }
+        let now = Date()
+        guard now.timeIntervalSince(lastTrigger) > 0.06 else { return }
+        lastTrigger = now
+        startSecretScan(forceDeep: deep)
+        for delay in [0.08, 0.22] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let self, self.isActive else { return }
+                    self.startSecretScan(forceDeep: deep)
                 }
             }
         }

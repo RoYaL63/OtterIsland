@@ -6,10 +6,17 @@ import ApplicationServices
 ///
 /// Passe par l'Accessibilité, pas par une lecture d'image : on demande à l'app
 /// le texte affiché et sa position. Deux passes :
-/// - le champ actif (celui où l'on tape), à chaque relevé — c'est là qu'une
+/// - le champ actif (celui où l'on tape), toutes les 0,25 s — c'est là qu'une
 ///   clé apparaît pendant qu'on la colle ;
-/// - toute la fenêtre active, une fois sur deux — une clé affichée dans une
-///   page (tableau de bord OpenAI, fichier .env ouvert…).
+/// - toute la fenêtre active, un relevé sur trois (0,75 s) — une clé affichée
+///   dans une page (tableau de bord OpenAI, fichier .env ouvert…).
+/// Un clic, un collage, Tab ou un changement d'app déclenchent un relevé
+/// immédiat en plus (voir `LiveController.triggerSecretScan`).
+///
+/// Au-delà des motifs de clés connus, le planificateur (`SecretPlanner`)
+/// ANTICIPE : un champ qui se déclare mot de passe ou secret est couvert dès
+/// qu'il s'affiche, et une valeur sous un libellé « API key » l'est aussi. Le
+/// bouton œil afficher / masquer n'est jamais recouvert.
 ///
 /// Chrome, Edge, Brave, Arc et les apps Electron ne publient le contenu de
 /// leurs pages qu'à la demande : on le leur demande (`AXManualAccessibility`),
@@ -20,39 +27,6 @@ import ApplicationServices
 /// ne bloque jamais l'île ni le dessin.
 enum SecretScanner {
 
-    /// Motifs de clés connues. Le groupe 1, quand il existe, est la seule
-    /// partie à masquer (la valeur, pas le nom de la variable).
-    private static let patterns: [NSRegularExpression] = [
-        #"sk-(?:proj-|ant-|svcacct-|admin-)?[A-Za-z0-9_\-]{16,}"#, // OpenAI, Anthropic
-        #"(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9]{16,}"#,       // Stripe
-        #"gh[pousr]_[A-Za-z0-9]{30,}"#,                         // GitHub
-        #"github_pat_[A-Za-z0-9_]{40,}"#,
-        #"AKIA[0-9A-Z]{16}"#,                                   // AWS
-        #"AIza[0-9A-Za-z_\-]{35}"#,                             // Google
-        #"xox[abposr]-[A-Za-z0-9\-]{10,}"#,                     // Slack
-        #"pat[A-Za-z0-9]{14}\.[a-f0-9]{40,}"#,                  // Airtable
-        #"(?:secret_|ntn_)[A-Za-z0-9]{30,}"#,                   // Notion
-        #"eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}"#, // JWT (Supabase…)
-        #"hooks\.slack\.com/services/[A-Za-z0-9/]{20,}"#,
-        #"hook\.[a-z0-9]+\.make\.com/([A-Za-z0-9]{12,})"#,      // webhook Make
-        #"(?i)\b(?:bearer|basic|token|digest)\s+([A-Za-z0-9._~+/=\-]{16,})"#,  // Authorization: Bearer …
-        // En-têtes HTTP d'authentification : on garde le nom (et « Bearer »),
-        // on masque la valeur.
-        #"(?i)(?:authorization|proxy-authorization|x-api-key|api-key|x-auth-token|x-access-token|x-goog-api-key|x-make-apikey|apikey|cookie|set-cookie)["']?\s*[:=]\s*["']?(?:(?:bearer|basic|token|digest)\s+)?([^\s"',;]{8,})"#,
-        // Paramètres d'URL : ?key=… &api_key=… &access_token=…
-        #"(?i)[?&](?:key|api_?key|apikey|token|access_token|auth|secret|password|sig|signature)=([^&\s"'#]{8,})"#,
-        // Identifiants dans une URL : https://user:motdepasse@hote
-        #"(?i)[a-z][a-z0-9+.\-]*://[^\s/:@]+:([^\s/@]{4,})@"#,
-        // Clés privées PEM
-        #"-----BEGIN [A-Z ]*PRIVATE KEY-----"#,
-        #"(?i)(?:password|passwd|pwd|secret|token|api[_\-]?key|access[_\-]?key|private[_\-]?key)["']?\s*[:=]\s*["']?([^\s"',;]{6,})"#,
-    ].compactMap { try? NSRegularExpression(pattern: $0) }
-
-    /// Rôles qui portent du texte lisible.
-    private static let textRoles: Set<String> = [
-        "AXStaticText", "AXTextField", "AXTextArea", "AXComboBox", "AXSearchField",
-    ]
-
     /// Processus à qui l'on a déjà demandé d'exposer leurs pages web. Lu et
     /// écrit uniquement depuis la file de scan (série).
     private static var webAccessibilityEnabled: Set<pid_t> = []
@@ -62,14 +36,16 @@ enum SecretScanner {
     ///   - primaryHeight: hauteur de l'écran principal, pour convertir le repère
     ///     « haut-gauche » de l'Accessibilité (lue sur le thread principal).
     ///   - deep: parcourir aussi toute la fenêtre active.
-    static func visibleSecretRects(primaryHeight: CGFloat, deep: Bool) -> [CGRect] {
+    ///   - anticipate: couvrir d'avance les champs qui se déclarent mot de
+    ///     passe ou secret, et les valeurs placées sous un libellé de clé.
+    static func visibleSecretRects(primaryHeight: CGFloat, deep: Bool, anticipate: Bool = true) -> [CGRect] {
         guard AXIsProcessTrusted() else { return [] }
         // Pas de délai réglé sur l'élément système : il deviendrait le défaut
         // de TOUTE l'app (collage, verrouillage clavier…). Les délais courts
         // sont posés sur chaque élément interrogé.
         let system = AXUIElementCreateSystemWide()
 
-        guard let app = element(system, kAXFocusedApplicationAttribute) else { return [] }
+        guard let app = AXScanNode.element(system, kAXFocusedApplicationAttribute) else { return [] }
         AXUIElementSetMessagingTimeout(app, 0.25)
         var pid: pid_t = 0
         AXUIElementGetPid(app, &pid)
@@ -81,34 +57,105 @@ enum SecretScanner {
         }
 
         var rects: [CGRect] = []
-        if let focused = element(app, kAXFocusedUIElementAttribute) {
-            AXUIElementSetMessagingTimeout(focused, 0.25)
-            rects += scanFocused(focused, primaryHeight: primaryHeight)
+        if let focused = AXScanNode.element(app, kAXFocusedUIElementAttribute),
+           let node = AXScanNode(element: focused, parent: nil, primaryHeight: primaryHeight, timeout: 0.25) {
+            rects += SecretPlanner.planFocused(node, anticipate: anticipate)
         }
-        if deep, let window = element(app, kAXFocusedWindowAttribute) {
-            rects += scanTree(window, primaryHeight: primaryHeight)
+        if deep, let window = AXScanNode.element(app, kAXFocusedWindowAttribute),
+           let node = AXScanNode(element: window, parent: nil, primaryHeight: primaryHeight, timeout: 0.1) {
+            rects += SecretPlanner.planTree(root: node, anticipate: anticipate)
         }
         return Array(rects.prefix(60))
     }
+}
 
-    // MARK: Champ actif
+/// Élément de l'interface lu par l'Accessibilité. Tous ses attributs sont
+/// récupérés en UN aller-retour : c'est le coût qui compte sur une page lourde.
+final class AXScanNode: ScanNode {
+    let element: AXUIElement
+    private let primaryHeight: CGFloat
+    private let timeout: Float
+    private var parentNode: AXScanNode?
+    private var childElements: [AXUIElement] = []
+    private var childNodes: [ScanNode]?
 
-    private static func scanFocused(_ element: AXUIElement, primaryHeight: CGFloat) -> [CGRect] {
-        // Un vrai champ mot de passe affiche déjà des points : rien à faire.
-        if stringAttribute(element, kAXRoleAttribute) == "AXSecureTextField" { return [] }
-        guard let visible = visibleText(of: element), !visible.text.isEmpty else { return [] }
-        return rects(in: visible.text, offset: visible.offset, element: element, primaryHeight: primaryHeight, fallbackToFrame: true)
+    let role: String
+    let subrole: String
+    let value: String?
+    let descriptors: [String]
+    let frame: CGRect?
+
+    private static let attributes = [
+        kAXRoleAttribute, kAXSubroleAttribute, kAXValueAttribute, kAXChildrenAttribute,
+        kAXPositionAttribute, kAXSizeAttribute,
+        "AXPlaceholderValue", kAXDescriptionAttribute, kAXTitleAttribute, kAXHelpAttribute,
+        "AXDOMIdentifier", "AXDOMClassList",
+    ] as CFArray
+
+    init?(element: AXUIElement, parent: AXScanNode?, primaryHeight: CGFloat, timeout: Float) {
+        self.element = element
+        self.primaryHeight = primaryHeight
+        self.timeout = timeout
+        parentNode = parent
+        AXUIElementSetMessagingTimeout(element, timeout)
+
+        var valuesRef: CFArray?
+        guard AXUIElementCopyMultipleAttributeValues(element, Self.attributes, AXCopyMultipleAttributeOptions(rawValue: 0), &valuesRef) == .success,
+              let values = valuesRef as? [AnyObject], values.count == 12
+        else { return nil }
+
+        role = values[0] as? String ?? ""
+        subrole = values[1] as? String ?? ""
+        value = values[2] as? String
+        childElements = (values[3] as? [AXUIElement]) ?? []
+        frame = Self.rect(position: values[4], size: values[5], primaryHeight: primaryHeight)
+        var texts = [6, 7, 8, 9, 10].compactMap { values[$0] as? String }
+        if let classes = values[11] as? [String] { texts.append(contentsOf: classes) }
+        descriptors = texts.filter { !$0.isEmpty }
+    }
+
+    var parent: ScanNode? {
+        if let parentNode { return parentNode }
+        guard let parentElement = Self.element(element, kAXParentAttribute) else { return nil }
+        parentNode = AXScanNode(element: parentElement, parent: nil, primaryHeight: primaryHeight, timeout: timeout)
+        return parentNode
+    }
+
+    var children: [ScanNode] {
+        if let childNodes { return childNodes }
+        let nodes = childElements.prefix(300).compactMap {
+            AXScanNode(element: $0, parent: self, primaryHeight: primaryHeight, timeout: timeout) as ScanNode?
+        }
+        childNodes = nodes
+        return nodes
+    }
+
+    func isSame(as other: ScanNode) -> Bool {
+        guard let other = other as? AXScanNode else { return false }
+        return CFEqual(element, other.element)
+    }
+
+    func textBounds(location: Int, length: Int) -> CGRect? {
+        var range = CFRange(location: location, length: length)
+        guard let param = AXValueCreate(.cfRange, &range) else { return nil }
+        var boundsRef: CFTypeRef?
+        guard AXUIElementCopyParameterizedAttributeValue(element, kAXBoundsForRangeParameterizedAttribute as CFString, param, &boundsRef) == .success,
+              let boundsRef, CFGetTypeID(boundsRef) == AXValueGetTypeID()
+        else { return nil }
+        var rect = CGRect.zero
+        guard AXValueGetValue(boundsRef as! AXValue, .cgRect, &rect), rect.width > 0, rect.height > 0 else { return nil }
+        return ScreenGeometry.cocoaRect(fromTopLeft: rect, primaryHeight: primaryHeight)
     }
 
     /// Le texte À L'ÉCRAN seulement : un terminal garde des milliers de lignes
-    /// d'historique, inutile de toutes les relire deux fois par seconde.
-    private static func visibleText(of element: AXUIElement) -> (text: String, offset: Int)? {
+    /// d'historique, inutile de toutes les relire plusieurs fois par seconde.
+    func visibleText() -> (text: String, offset: Int)? {
         var rangeRef: CFTypeRef?
         var range = CFRange(location: 0, length: 0)
         if AXUIElementCopyAttributeValue(element, kAXVisibleCharacterRangeAttribute as CFString, &rangeRef) == .success,
            let rangeRef, CFGetTypeID(rangeRef) == AXValueGetTypeID() {
             AXValueGetValue(rangeRef as! AXValue, .cfRange, &range)
-        } else if let count = intAttribute(element, kAXNumberOfCharactersAttribute), count <= 20_000 {
+        } else if let count = Self.int(element, kAXNumberOfCharactersAttribute), count <= 20_000 {
             range = CFRange(location: 0, length: count)
         }
         if range.length > 0, range.length <= 60_000, let param = AXValueCreate(.cfRange, &range) {
@@ -120,7 +167,7 @@ enum SecretScanner {
         }
         // Repli : la valeur complète (champs web, qui n'exposent pas toujours
         // la plage visible), découpée à 20 000 caractères.
-        guard let value = stringAttribute(element, kAXValueAttribute) else { return nil }
+        guard let value else { return nil }
         let ns = value as NSString
         let length = min(ns.length, 20_000)
         let start = range.length > 0 ? min(range.location, ns.length) : 0
@@ -128,47 +175,7 @@ enum SecretScanner {
         return (ns.substring(with: safe), safe.location)
     }
 
-    // MARK: Fenêtre active
-
-    /// Parcours en largeur de la fenêtre, limité à ce qui est À L'ÉCRAN : un
-    /// sous-arbre dont le cadre ne touche pas la fenêtre (le bas d'une page de
-    /// résultats, un onglet caché) n'est pas visité. Sans cet élagage, une page
-    /// Google épuisait le budget dans son en-tête avant d'atteindre le bloc de
-    /// code affiché. Un seul aller-retour par élément.
-    private static func scanTree(_ root: AXUIElement, primaryHeight: CGFloat) -> [CGRect] {
-        let windowFrame = frame(of: root, primaryHeight: primaryHeight, limitSize: false)
-        var queue: [AXUIElement] = [root]
-        var head = 0
-        var rects: [CGRect] = []
-        let attributes = [kAXRoleAttribute, kAXValueAttribute, kAXChildrenAttribute, kAXPositionAttribute, kAXSizeAttribute] as CFArray
-
-        while head < queue.count, head < 2500, rects.count < 40 {
-            let node = queue[head]
-            head += 1
-            AXUIElementSetMessagingTimeout(node, 0.1)
-            var valuesRef: CFArray?
-            guard AXUIElementCopyMultipleAttributeValues(node, attributes, AXCopyMultipleAttributeOptions(rawValue: 0), &valuesRef) == .success,
-                  let values = valuesRef as? [AnyObject], values.count == 5
-            else { continue }
-
-            // Élagage : hors de la fenêtre visible, on ne descend pas.
-            if let windowFrame, let nodeFrame = rect(position: values[3], size: values[4], primaryHeight: primaryHeight),
-               nodeFrame.width > 0, nodeFrame.height > 0, !nodeFrame.intersects(windowFrame) {
-                continue
-            }
-
-            let role = values[0] as? String ?? ""
-            if role == "AXSecureTextField" { continue }
-            if textRoles.contains(role), let text = values[1] as? String, text.count >= 8 {
-                let clipped = String(text.prefix(4000))
-                rects += self.rects(in: clipped, offset: 0, element: node, primaryHeight: primaryHeight, fallbackToFrame: true)
-            }
-            if let children = values[2] as? [AXUIElement] {
-                queue.append(contentsOf: children.prefix(300))
-            }
-        }
-        return rects
-    }
+    // MARK: Aides
 
     /// Cadre écran à partir des valeurs AXPosition / AXSize déjà lues.
     private static func rect(position: AnyObject, size: AnyObject, primaryHeight: CGFloat) -> CGRect? {
@@ -176,67 +183,13 @@ enum SecretScanner {
         guard CFGetTypeID(posRef) == AXValueGetTypeID(), CFGetTypeID(sizeRef) == AXValueGetTypeID() else { return nil }
         var origin = CGPoint.zero, extent = CGSize.zero
         guard AXValueGetValue(posRef as! AXValue, .cgPoint, &origin),
-              AXValueGetValue(sizeRef as! AXValue, .cgSize, &extent)
+              AXValueGetValue(sizeRef as! AXValue, .cgSize, &extent),
+              extent.width > 0, extent.height > 0
         else { return nil }
         return ScreenGeometry.cocoaRect(fromTopLeft: CGRect(origin: origin, size: extent), primaryHeight: primaryHeight)
     }
 
-    // MARK: Correspondances
-
-    private static func rects(in text: String, offset: Int, element: AXUIElement, primaryHeight: CGFloat, fallbackToFrame: Bool) -> [CGRect] {
-        let ns = text as NSString
-        var out: [CGRect] = []
-        var usedFrame = false
-        for regex in patterns {
-            for match in regex.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
-                let range = match.numberOfRanges > 1 && match.range(at: 1).location != NSNotFound
-                    ? match.range(at: 1) : match.range
-                if let rect = bounds(of: CFRange(location: range.location + offset, length: range.length), in: element, primaryHeight: primaryHeight) {
-                    out.append(rect.insetBy(dx: -3, dy: -2))
-                } else if fallbackToFrame, !usedFrame, let frame = frame(of: element, primaryHeight: primaryHeight) {
-                    // L'app ne sait pas situer un caractère : on couvre tout
-                    // l'élément. Moins élégant, mais rien ne fuit.
-                    usedFrame = true
-                    out.append(frame.insetBy(dx: -2, dy: -2))
-                }
-                if out.count >= 20 { return out }
-            }
-        }
-        return out
-    }
-
-    private static func bounds(of range: CFRange, in element: AXUIElement, primaryHeight: CGFloat) -> CGRect? {
-        var r = range
-        guard let param = AXValueCreate(.cfRange, &r) else { return nil }
-        var boundsRef: CFTypeRef?
-        guard AXUIElementCopyParameterizedAttributeValue(element, kAXBoundsForRangeParameterizedAttribute as CFString, param, &boundsRef) == .success,
-              let boundsRef, CFGetTypeID(boundsRef) == AXValueGetTypeID()
-        else { return nil }
-        var rect = CGRect.zero
-        guard AXValueGetValue(boundsRef as! AXValue, .cgRect, &rect), rect.width > 0, rect.height > 0 else { return nil }
-        return ScreenGeometry.cocoaRect(fromTopLeft: rect, primaryHeight: primaryHeight)
-    }
-
-    private static func frame(of element: AXUIElement, primaryHeight: CGFloat, limitSize: Bool = true) -> CGRect? {
-        var posRef: CFTypeRef?, sizeRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &posRef) == .success,
-              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeRef) == .success,
-              let posRef, let sizeRef,
-              CFGetTypeID(posRef) == AXValueGetTypeID(), CFGetTypeID(sizeRef) == AXValueGetTypeID()
-        else { return nil }
-        var origin = CGPoint.zero, size = CGSize.zero
-        AXValueGetValue(posRef as! AXValue, .cgPoint, &origin)
-        AXValueGetValue(sizeRef as! AXValue, .cgSize, &size)
-        guard size.width > 0, size.height > 0 else { return nil }
-        // Masquer tout un élément n'a de sens que pour une ligne ou un champ :
-        // un bloc de 600 pt couvrirait la moitié de l'écran.
-        if limitSize, size.width >= 4000 || size.height >= 600 { return nil }
-        return ScreenGeometry.cocoaRect(fromTopLeft: CGRect(origin: origin, size: size), primaryHeight: primaryHeight)
-    }
-
-    // MARK: Attributs
-
-    private static func element(_ parent: AXUIElement, _ name: String) -> AXUIElement? {
+    static func element(_ parent: AXUIElement, _ name: String) -> AXUIElement? {
         var ref: CFTypeRef?
         guard AXUIElementCopyAttributeValue(parent, name as CFString, &ref) == .success,
               let ref, CFGetTypeID(ref) == AXUIElementGetTypeID()
@@ -244,13 +197,7 @@ enum SecretScanner {
         return (ref as! AXUIElement)
     }
 
-    private static func stringAttribute(_ element: AXUIElement, _ name: String) -> String? {
-        var ref: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, name as CFString, &ref) == .success else { return nil }
-        return ref as? String
-    }
-
-    private static func intAttribute(_ element: AXUIElement, _ name: String) -> Int? {
+    private static func int(_ element: AXUIElement, _ name: String) -> Int? {
         var ref: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, name as CFString, &ref) == .success else { return nil }
         return (ref as? NSNumber)?.intValue

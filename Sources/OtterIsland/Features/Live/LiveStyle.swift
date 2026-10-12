@@ -142,6 +142,10 @@ struct LivePreferences: Codable, Equatable {
     var keysScale: Double = 1
 
     var maskSecrets: Bool = true
+    /// Couvre d'avance les champs qui se déclarent mot de passe ou secret, et
+    /// les valeurs placées sous un libellé de clé, au lieu d'attendre qu'une
+    /// clé reconnaissable apparaisse.
+    var anticipateSecrets: Bool = true
     var maskApps: Bool = true
     var maskedBundleIDs: [String] = [
         "com.1password.1password", "com.agilebits.onepassword7", "com.apple.keychainaccess",
@@ -190,6 +194,7 @@ struct LivePreferences: Codable, Equatable {
         keysPosition = (try? c.decode(LiveKeysPosition.self, forKey: .keysPosition)) ?? d.keysPosition
         keysScale = (try? c.decode(Double.self, forKey: .keysScale)) ?? d.keysScale
         maskSecrets = (try? c.decode(Bool.self, forKey: .maskSecrets)) ?? d.maskSecrets
+        anticipateSecrets = (try? c.decode(Bool.self, forKey: .anticipateSecrets)) ?? d.anticipateSecrets
         maskApps = (try? c.decode(Bool.self, forKey: .maskApps)) ?? d.maskApps
         maskedBundleIDs = (try? c.decode([String].self, forKey: .maskedBundleIDs)) ?? d.maskedBundleIDs
         focusDuringLive = (try? c.decode(Bool.self, forKey: .focusDuringLive)) ?? d.focusDuringLive
