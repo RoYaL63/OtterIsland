@@ -12,7 +12,7 @@ const DOWNLOAD_URL = "https://github.com/RoYaL63/OtterIsland/releases/latest/dow
 // 2. La vidéo de présentation. Laisse les deux vides pour masquer la section.
 //    - mp4 : chemin d'un fichier posé dans site/assets (ex. "assets/presentation.mp4")
 //    - youtube : l'identifiant de la vidéo (ex. "dQw4w9WgXcQ"), lue via youtube-nocookie.com
-const VIDEO = { mp4: "", poster: "", youtube: "" };
+const VIDEO = { mp4: "assets/presentation.mp4", poster: "assets/presentation-poster.jpg", youtube: "" };
 
 // 3. (Rien à faire) La version affichée est écrite au déploiement, depuis project.yml.
 
