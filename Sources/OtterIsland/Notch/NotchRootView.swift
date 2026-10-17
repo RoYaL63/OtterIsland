@@ -67,6 +67,9 @@ struct NotchRootView: View {
             }
         }
         .frame(width: currentWidth, height: currentHeight)
+        // Plein écran sur un écran sans encoche : rien ne doit dépasser sur le film.
+        .opacity(viewModel.fullscreenHidden && !viewModel.isExpanded ? 0 : 1)
+        .animation(.easeOut(duration: 0.25), value: viewModel.fullscreenHidden)
         .contentShape(Rectangle())
         // Ce onHover ne sert plus qu'à REFERMER. L'ouverture est décidée par
         // `NotchWindowController`, qui exige un pointeur immobile : la laisser

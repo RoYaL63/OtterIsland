@@ -227,6 +227,10 @@ struct SettingsView: View {
                         }
                     }
                 }
+                Toggle(isOn: $settings.hideInFullscreen) {
+                    Text("Masquer l'onglet 🦦 en plein écran")
+                    Text("Film, présentation, jeu : sur un écran sans encoche, l'onglet disparaît et l'île ne s'ouvre plus au survol ni à la molette tant qu'une app y est en plein écran. Sans effet pendant un Live.")
+                }
             } header: {
                 Text("Écran de l'île")
             } footer: {

@@ -7,6 +7,10 @@ import Combine
 @MainActor
 final class NotchViewModel: ObservableObject {
     @Published var isExpanded = false
+    /// Une app est en plein écran sur l'écran de l'île, qui n'a pas d'encoche :
+    /// l'onglet 🦦 s'efface et l'île ne s'ouvre plus d'elle-même, pour ne pas
+    /// passer par-dessus un film (voir `FullscreenDetector`).
+    @Published var fullscreenHidden = false
     @Published var metrics: NotchMetrics?
     /// Identifiant stable de l'écran actif, pour appliquer les réglages par écran.
     @Published var currentScreenID: String?
