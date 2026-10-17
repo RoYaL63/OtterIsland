@@ -409,6 +409,9 @@ struct OtterActionLink: View {
                 Text(title)
                     .font(.system(size: 10, weight: .semibold))
                     .tracking(Otter.trackingSmall)
+                    // Un libellé ne passe jamais sur deux lignes (« Approuve / r »).
+                    .lineLimit(1)
+                    .fixedSize()
             }
             .foregroundStyle(isHovering ? Otter.textPrimary : tint)
             // 6 pt et pas 8 : trois de ces pastilles doivent tenir côte à côte

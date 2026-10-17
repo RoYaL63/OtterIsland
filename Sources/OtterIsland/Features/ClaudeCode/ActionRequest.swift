@@ -40,7 +40,9 @@ struct ActionRequest: Codable, Identifiable, Equatable {
                 title: Self.translateClaude(message),
                 detail: project.map { "Claude Code · \($0)" } ?? "Claude Code",
                 kind: "notice",
-                createdAt: Date()
+                // Sans date : l'inbox prend celle du fichier. Un « maintenant » écrit ici
+                // remettrait l'âge à zéro à chaque relevé.
+                createdAt: nil
             )
         }
         if (json["type"] as? String)?.hasPrefix("agent-turn") == true {
@@ -52,7 +54,9 @@ struct ActionRequest: Codable, Identifiable, Equatable {
                 detail: [project.map { "Codex · \($0)" }, last.map { String($0.prefix(140)) }]
                     .compactMap { $0 }.joined(separator: " — "),
                 kind: "notice",
-                createdAt: Date()
+                // Sans date : l'inbox prend celle du fichier. Un « maintenant » écrit ici
+                // remettrait l'âge à zéro à chaque relevé.
+                createdAt: nil
             )
         }
         return nil

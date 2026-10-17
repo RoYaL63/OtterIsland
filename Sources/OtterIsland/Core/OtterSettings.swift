@@ -275,6 +275,17 @@ final class OtterSettings: ObservableObject {
         }
     }
 
+    /// Période affichée dans les statistiques de l'onglet Assistants IA.
+    @Published var aiPeriod: AIPeriod {
+        didSet { defaults.set(aiPeriod.rawValue, forKey: Keys.aiPeriod) }
+    }
+
+    /// Des demandes d'assistant attendent dans l'inbox. État d'exécution (pas
+    /// enregistré), tenu à jour par le view model : l'onglet Assistants IA
+    /// apparaît alors, même si aucun assistant n'est suivi, pour qu'on puisse
+    /// les lire et les ignorer.
+    @Published var inboxHasPending = false
+
     /// Onglets visibles, dans l'ordre choisi. Jamais vide : si tout est
     /// masqué, l'accueil reste, sinon l'île n'aurait plus rien à montrer.
     var visibleTabs: [NotchTab] {
@@ -283,7 +294,7 @@ final class OtterSettings: ObservableObject {
         // L'onglet IA n'a rien à montrer tant qu'aucun assistant n'est suivi.
         let visible = all.filter {
             !hiddenTabs.contains($0.rawValue)
-                && ($0 != .ai || !enabledAssistants.isEmpty)
+                && ($0 != .ai || !enabledAssistants.isEmpty || inboxHasPending)
                 && ($0 != .shortcuts || shortcutsTabEnabled)
         }
         return visible.isEmpty ? [.home] : visible
@@ -403,6 +414,7 @@ final class OtterSettings: ObservableObject {
         hiddenHomeItems = defaults.stringArray(forKey: Keys.hiddenHomeItems) ?? []
         aiClaudeCodeEnabled = defaults.bool(forKey: Keys.aiClaudeCode)
         aiCodexEnabled = defaults.bool(forKey: Keys.aiCodex)
+        aiPeriod = AIPeriod(rawValue: defaults.string(forKey: Keys.aiPeriod) ?? "") ?? .today
         menuBarManagerEnabled = defaults.bool(forKey: Keys.menuBarManager)
         shortcutsTabEnabled = defaults.bool(forKey: Keys.shortcutsTab)
         menuBarCollapseAtLaunch = defaults.bool(forKey: Keys.menuBarCollapseAtLaunch)
@@ -469,6 +481,7 @@ final class OtterSettings: ObservableObject {
         static let hiddenHomeItems = "hiddenHomeItems"
         static let aiClaudeCode = "aiClaudeCodeEnabled"
         static let aiCodex = "aiCodexEnabled"
+        static let aiPeriod = "aiPeriod"
         static let menuBarManager = "menuBarManagerEnabled"
         static let shortcutsTab = "shortcutsTabEnabled"
         static let menuBarCollapseAtLaunch = "menuBarCollapseAtLaunch"

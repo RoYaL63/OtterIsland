@@ -15,7 +15,7 @@ struct AISettingsView: View {
             Section {
                 Toggle(isOn: $settings.aiClaudeCodeEnabled) {
                     Text("Suivre Claude Code")
-                    Text("Tokens de la journée et de la session en cours, projet actif. Lu dans ~/.claude/projects, sur ce Mac : rien n'est envoyé nulle part.")
+                    Text("Temps actif, conversations, tokens et temps par projet, sur le jour, 7 jours ou 30 jours. Lu dans ~/.claude/projects, sur ce Mac : rien n'est envoyé nulle part, et les journaux ne sont relus que quand tu ouvres l'onglet.")
                 }
                 installStatus(.claudeCode)
                 VStack(alignment: .leading, spacing: 6) {
@@ -29,7 +29,7 @@ struct AISettingsView: View {
                             Button("Brancher") { run { try AIHookInstaller.installClaudeHook() } }
                         }
                     }
-                    caption("« Claude veut utiliser Bash », « Claude attend ta réponse » : ces messages apparaissent dans l'île, et la loutre lève la tête. « Brancher » ajoute un hook Notification à ~/.claude/settings.json (une copie de sauvegarde est faite à côté, settings.json.otterisland-backup) ; il vaut pour les nouvelles sessions. Tu réponds toujours dans Claude Code, l'île te prévient.")
+                    caption("« Claude veut utiliser Bash », « Claude attend ta réponse » : ces messages apparaissent dans l'onglet Assistants IA (sous-menu Demandes, avec une pastille sur l'onglet), sans jamais bloquer le reste de l'île. Tu peux les approuver, les refuser ou les ignorer ; elles disparaissent seules après une heure. La loutre lève la tête. « Brancher » ajoute un hook Notification à ~/.claude/settings.json (une copie de sauvegarde est faite à côté, settings.json.otterisland-backup) ; il vaut pour les nouvelles sessions. Tu réponds toujours dans Claude Code, l'île te prévient.")
                 }
             } header: {
                 Text("Claude Code")
@@ -45,7 +45,7 @@ struct AISettingsView: View {
                             .background(Capsule().fill(Color.orange.opacity(0.2)))
                             .foregroundStyle(.orange)
                     }
-                    Text("Tokens de la journée et de la session en cours, lus dans ~/.codex/sessions. Écrit d'après la documentation de Codex CLI, sans avoir pu l'essayer : dis-nous si les chiffres te semblent faux.")
+                    Text("Temps actif, conversations, tokens et projets, lus dans ~/.codex/sessions. Écrit d'après la documentation de Codex CLI, sans avoir pu l'essayer : dis-nous si les chiffres te semblent faux.")
                 }
                 installStatus(.codex)
                 VStack(alignment: .leading, spacing: 6) {
