@@ -49,6 +49,12 @@ final class NotchWindowController {
     /// Onglets 🦦 des écrans sans encoche où l'île n'est pas (mode « Tous les
     /// écrans »), par identifiant d'écran.
     private var handleWindows: [String: IslandHandleWindow] = [:]
+    /// Écrans qui montrent une app en plein écran (voir `FullscreenDetector`).
+    private var fullscreenScreens: Set<String> = []
+    private var fullscreenTimer: Timer?
+    /// État à partir duquel les onglets ont été posés pour la dernière fois :
+    /// on ne les recrée que s'il change (la relecture tourne chaque seconde).
+    private var fullscreenSignature = ""
     private var cancellables = Set<AnyCancellable>()
 
     init(settings: OtterSettings) {
@@ -63,6 +69,30 @@ final class NotchWindowController {
         if settings.clipboardEnabled {
             installClipboardHotKey(viewModel: viewModel)
         }
+        // Plein écran : on relit l'état à chaque changement d'espace ou d'app
+        // active (c'est là qu'il change), et une fois par seconde par sécurité.
+        let center = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didActivateApplicationNotification] {
+            center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.updateFullscreenState() }
+            }
+        }
+        let fullscreenTimer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.updateFullscreenState() }
+        }
+        RunLoop.main.add(fullscreenTimer, forMode: .common)
+        self.fullscreenTimer = fullscreenTimer
+        // Pendant un Live, l'île reste disponible : c'est elle qui porte la barre d'outils.
+        viewModel.live.$isActive
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.updateFullscreenState() }
+            .store(in: &cancellables)
+        settings.$hideInFullscreen
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.updateFullscreenState() }
+            .store(in: &cancellables)
+
         // Changer d'écran dans les réglages déplace l'île tout de suite. Le
         // `receive(on:)` laisse passer le didSet : @Published émet AVANT.
         Publishers.Merge(
@@ -111,6 +141,32 @@ final class NotchWindowController {
         window = win
         hoverTicks = 0
         refreshHandles()
+        // L'île vient peut-être d'arriver sur un écran déjà en plein écran :
+        // inutile d'attendre la prochaine relecture pour l'effacer.
+        updateFullscreenState()
+    }
+
+    // MARK: Plein écran
+
+    /// L'onglet de cet écran doit-il s'effacer ? Seulement si l'option est
+    /// active, qu'une app y est en plein écran, et hors Live.
+    private func isHiddenByFullscreen(_ screenID: String) -> Bool {
+        settings.hideInFullscreen && !viewModel.live.isActive && fullscreenScreens.contains(screenID)
+    }
+
+    private func updateFullscreenState() {
+        let current = settings.hideInFullscreen ? FullscreenDetector.screensInFullscreen() : []
+        fullscreenScreens = current
+        let signature = "\(current.sorted())|\(viewModel.live.isActive)|\(settings.hideInFullscreen)|\(viewModel.currentScreenID ?? "")"
+        // L'île elle-même : seulement sur un écran sans encoche (une vraie
+        // encoche reste noire sur un film, elle ne gêne pas).
+        let hideIsland = viewModel.metrics?.hasRealNotch == false
+            && viewModel.currentScreenID.map(isHiddenByFullscreen) == true
+        if viewModel.fullscreenHidden != hideIsland { viewModel.fullscreenHidden = hideIsland }
+        if signature != fullscreenSignature {
+            fullscreenSignature = signature
+            refreshHandles()
+        }
     }
 
     /// Mode « Tous les écrans » : un onglet 🦦 sur chaque écran sans encoche,
@@ -123,6 +179,7 @@ final class NotchWindowController {
                 guard id != viewModel.currentScreenID else { continue }
                 let metrics = NotchMetrics.current(for: screen)
                 guard !metrics.hasRealNotch else { continue }
+                guard !isHiddenByFullscreen(id) else { continue }
                 wanted[id] = metrics.notchRect
             }
         }
@@ -201,6 +258,15 @@ final class NotchWindowController {
            let screen = NotchMetrics.screenUnderPointer(),
            ScreenIdentifier.stableID(for: screen) != viewModel.currentScreenID {
             place(on: screen)
+            return
+        }
+
+        // Plein écran sur un écran sans encoche : l'île n'est pas là. On ne
+        // s'ouvre pas non plus au survol : le pointeur en haut de l'écran sert
+        // à faire apparaître la barre des menus de macOS.
+        if viewModel.fullscreenHidden {
+            hoverTicks = 0
+            setIgnoresMouse(true, on: window)
             return
         }
 

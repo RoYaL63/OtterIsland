@@ -157,6 +157,13 @@ final class OtterSettings: ObservableObject {
         didSet { defaults.set(perScreenDropOffset, forKey: Keys.perScreenDropOffset) }
     }
 
+    /// Sur un écran sans encoche, masquer l'onglet 🦦 (et l'ouverture au survol
+    /// ou à la molette) tant qu'une app y est en plein écran : film,
+    /// présentation, jeu. Sans effet pendant un Live.
+    @Published var hideInFullscreen: Bool {
+        didSet { defaults.set(hideInFullscreen, forKey: Keys.hideInFullscreen) }
+    }
+
     /// Sur quel écran vit l'île (voir `IslandScreenMode`).
     @Published var islandScreenMode: IslandScreenMode {
         didSet { defaults.set(islandScreenMode.rawValue, forKey: Keys.islandScreenMode) }
@@ -340,6 +347,7 @@ final class OtterSettings: ObservableObject {
             Keys.pomodoroChime: true,
             Keys.islandScreenMode: IslandScreenMode.fixed.rawValue,
             Keys.islandFixedScreenID: "",
+            Keys.hideInFullscreen: true,
             Keys.mirrorCameraID: "",
             Keys.mirrorFlipped: true,
             Keys.mirrorFill: false,
@@ -382,6 +390,7 @@ final class OtterSettings: ObservableObject {
         pomodoroChime = defaults.bool(forKey: Keys.pomodoroChime)
         islandScreenMode = IslandScreenMode(rawValue: defaults.string(forKey: Keys.islandScreenMode) ?? "") ?? .fixed
         islandFixedScreenID = defaults.string(forKey: Keys.islandFixedScreenID) ?? ""
+        hideInFullscreen = defaults.bool(forKey: Keys.hideInFullscreen)
         mirrorCameraID = defaults.string(forKey: Keys.mirrorCameraID) ?? ""
         mirrorFlipped = defaults.bool(forKey: Keys.mirrorFlipped)
         mirrorFill = defaults.bool(forKey: Keys.mirrorFill)
@@ -447,6 +456,7 @@ final class OtterSettings: ObservableObject {
         static let pomodoroChime = "pomodoroChime"
         static let islandScreenMode = "islandScreenMode"
         static let islandFixedScreenID = "islandFixedScreenID"
+        static let hideInFullscreen = "hideInFullscreen"
         static let mirrorCameraID = "mirrorCameraID"
         static let mirrorFlipped = "mirrorFlipped"
         static let mirrorFill = "mirrorFill"

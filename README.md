@@ -84,7 +84,7 @@ Le code est sous licence MIT : forks, idées et retours bienvenus, ici ou dans l
 - **Molette** au-dessus de l'encoche pour ouvrir ou fermer.
 - **HUD de volume** dans l'encoche (désactivable : macOS affiche déjà le sien).
 - **Tout se règle** dans Réglages › Fonctionnalités : onglets affichés et leur ordre, éléments de l'accueil (Pomodoro, RAM, calendrier…), options de l'onglet Musique.
-- **Plusieurs écrans** : dans **Réglages › Encoche**, choisis où vit l'île — un écran fixe (celui du MacBook par défaut), l'écran sous le pointeur, ou tous les écrans. Sur un écran sans encoche, elle se replie en un petit onglet 🦦 au milieu de la barre des menus : survole-le ou clique-le pour l'ouvrir.
+- **Plusieurs écrans** : dans **Réglages › Encoche**, choisis où vit l'île — un écran fixe (celui du MacBook par défaut), l'écran sous le pointeur, ou tous les écrans. Sur un écran sans encoche, elle se replie en un petit onglet 🦦 au milieu de la barre des menus : survole-le ou clique-le pour l'ouvrir. L'onglet s'efface tant qu'une app est en plein écran sur cet écran (film, présentation, jeu), sauf pendant un Live.
 - **Loutre de compagnie** en option : voir [ci-dessous](#la-loutre-de-compagnie).
 - Design Liquid Glass, réglages fins de taille et de position par écran. **Apparence** (Réglages › Apparence) : style OtterIsland, style **Système** qui suit le mode clair / sombre, le Liquid Glass transparent / teinté et la couleur du thème de macOS, ou Personnalisé : couleur d'accentuation (dont celle du système), teinte et opacité du verre, Liquid Glass / verre dépoli / opaque, contraste du texte — avec aperçu en direct.
 

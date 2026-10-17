@@ -26,7 +26,7 @@ final class GestureController {
     }
 
     private func handle(deltaY: CGFloat) {
-        guard let metrics = viewModel.metrics else { return }
+        guard let metrics = viewModel.metrics, !viewModel.fullscreenHidden else { return }
         // Zone d'activation : l'encoche plus une marge autour.
         let zone = metrics.notchRect.insetBy(dx: -50, dy: -50)
         guard zone.contains(NSEvent.mouseLocation) else { return }
