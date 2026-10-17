@@ -111,7 +111,6 @@ final class NotchViewModel: ObservableObject {
             .filter { $0 || $1 }
             .sink { [weak self] _, _ in self?.inbox.start() }
             .store(in: &cancellables)
-        aiUsage.start()
         if settings.musicFollow {
             nowPlaying.start()
         }
@@ -143,6 +142,7 @@ final class NotchViewModel: ObservableObject {
             .store(in: &cancellables)
         wireMood()
         wireCelebrations()
+        wireInboxBadge()
         wireHUD()
         wireScreenshot()
 
@@ -226,7 +226,7 @@ final class NotchViewModel: ObservableObject {
         let core = Publishers.CombineLatest4(
             battery.$isCharging,
             battery.$percentage,
-            inbox.$pending,
+            inbox.$requests.map { !$0.isEmpty }.removeDuplicates(),
             $isExpanded
         )
         core.combineLatest(nowPlaying.$current)
@@ -265,6 +265,16 @@ final class NotchViewModel: ObservableObject {
         // le view model : sans republication, la jauge resterait figée.
         pomodoro.objectWillChange
             .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+    }
+
+    /// Des demandes en attente rendent l'onglet Assistants IA visible.
+    private func wireInboxBadge() {
+        inbox.$requests
+            .map { !$0.isEmpty }
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] has in self?.settings.inboxHasPending = has }
             .store(in: &cancellables)
     }
 

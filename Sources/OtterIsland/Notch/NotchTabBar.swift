@@ -20,6 +20,8 @@ struct NotchTabBar: View {
     /// selon la place restante. Au-delà, les onglets passent sur une page
     /// suivante, atteinte par une flèche ›.
     var maxSlots: Int = .max
+    /// Onglets qui portent une pastille d'attention (des demandes à traiter).
+    var badges: Set<NotchTab> = []
 
     @Namespace private var indicator
     @State private var hovered: NotchTab?
@@ -83,6 +85,13 @@ struct NotchTabBar: View {
                             }
                         }
                         .contentShape(Rectangle())
+                        .overlay(alignment: .topTrailing) {
+                            if badges.contains(tab) {
+                                Circle().fill(Otter.warning).frame(width: 7, height: 7)
+                                    .overlay(Circle().stroke(Color.black.opacity(0.35), lineWidth: 0.5))
+                                    .offset(x: -2, y: 2)
+                            }
+                        }
                 }
                 // Le retour part à l'appui, pas au relâchement : sans lui, il ne
                 // se passe rien entre le clic et le glissement de la pastille.

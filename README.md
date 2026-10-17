@@ -169,8 +169,8 @@ Un bouton de l'accueil **verrouille tout le clavier** le temps de le nettoyer : 
 
 Dans **Réglages › Assistants IA**, choisis les assistants à suivre :
 
-- **Tokens** de la journée et de la session en cours, projet actif : un onglet **Assistants IA** apparaît dans l'île. Lu dans les journaux de session sur ce Mac (`~/.claude/projects`, `~/.codex/sessions`), rien n'est envoyé nulle part.
-- **Demandes dans l'île** : « Claude veut utiliser Bash », « Claude attend ta réponse », « Codex a terminé » s'affichent dans l'île et la loutre lève la tête. Pour Claude Code, un clic sur **Brancher** ajoute le hook nécessaire (avec copie de sauvegarde de `~/.claude/settings.json`) ; pour Codex, une ligne à coller dans `~/.codex/config.toml`.
+- **Statistiques** dans l'onglet **Assistants IA**, sur la journée, 7 jours ou 30 jours : **temps actif**, **conversations**, **tokens** et **temps par projet** (un dépôt git = un projet, les worktrees de Claude Code sont rattachés à leur dépôt), avec le détail jour par jour. Le temps actif compte les échanges séparés de moins de 5 minutes. Lu dans les journaux de session sur ce Mac (`~/.claude/projects`, `~/.codex/sessions`), rien n'est envoyé nulle part. Les journaux ne sont relus **que quand tu ouvres l'onglet** (ou au clic sur ↻) : un premier relevé de 600 Mo prend moins de 2 secondes, les suivants ne lisent que ce qui a été ajouté.
+- **Demandes** : « Claude veut utiliser Bash », « Claude attend ta réponse », « Codex a terminé » s'affichent dans le sous-menu **Demandes** de cet onglet, avec une pastille sur l'onglet et la loutre qui lève la tête, **sans jamais bloquer le reste de l'île**. Tu peux approuver, refuser, **ignorer** une demande périmée, ou tout ignorer ; elles disparaissent seules après une heure. Pour Claude Code, un clic sur **Brancher** ajoute le hook nécessaire (avec copie de sauvegarde de `~/.claude/settings.json`) ; pour Codex, une ligne à coller dans `~/.codex/config.toml`.
 
 Le suivi de Codex est écrit d'après sa documentation, sans avoir pu l'essayer. L'app ChatGPT ne laisse rien de lisible sur le Mac : elle ne peut pas être suivie.
 

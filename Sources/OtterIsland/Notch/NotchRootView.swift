@@ -38,7 +38,7 @@ struct NotchRootView: View {
         .animation(.easeOut(duration: 0.2), value: viewModel.hud)
         .id(appearance.revision)
         // Onglet affiché masqué depuis les réglages : on retombe sur le premier visible.
-        .onChange(of: settings.hiddenTabs) { _, _ in
+        .onChange(of: settings.visibleTabs) { _, _ in
             if !settings.visibleTabs.contains(viewModel.selectedTab), let first = settings.visibleTabs.first {
                 viewModel.selectedTab = first
             }
@@ -129,13 +129,6 @@ struct NotchRootView: View {
                     CleaningCard(permissionDenied: viewModel.keyboardLocker.permissionDenied) {
                         viewModel.unlockCleanup()
                     }
-                } else if let request = viewModel.inbox.pending {
-                    // Une demande Claude Code passe devant tout le reste.
-                    ClaudeCodeCard(request: request, onDecision: { approved in
-                        viewModel.inbox.resolve(request, approved: approved)
-                    }, onDismiss: {
-                        viewModel.inbox.dismiss(request)
-                    })
                 } else if viewModel.live.isActive, viewModel.liveDetour != nil {
                     HStack {
                         OtterActionLink(title: "Barre Live", icon: "chevron.left", tint: Otter.textSecondary) {
@@ -158,7 +151,13 @@ struct NotchRootView: View {
                         }
                         liveButton
                         Spacer(minLength: 0)
-                        NotchTabBar(selection: $viewModel.selectedTab, maxSlots: tabSlots)
+                        NotchTabBar(
+                            selection: $viewModel.selectedTab,
+                            maxSlots: tabSlots,
+                            // Pastille sur l'onglet IA : des demandes y attendent,
+                            // sans qu'elles prennent la place du reste de l'île.
+                            badges: viewModel.inbox.requests.isEmpty ? [] : [.ai]
+                        )
                     }
                     panel
                 }
@@ -251,7 +250,7 @@ struct NotchRootView: View {
                 onToggleMenuBar: { NotificationCenter.default.post(name: .otterToggleMenuBar, object: nil) }
             )
         case .ai:
-            AIPanel(monitor: viewModel.aiUsage, onOpenSettings: { viewModel.openSettings(.ai) })
+            AIPanel(monitor: viewModel.aiUsage, inbox: viewModel.inbox, onOpenSettings: { viewModel.openSettings(.ai) })
         case .mirror:
             MirrorPanel { withEffects in viewModel.openMirrorWindow(withEffects: withEffects) }
         case .screenshots:
