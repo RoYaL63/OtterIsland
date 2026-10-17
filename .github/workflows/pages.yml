@@ -1,0 +1,58 @@
+name: Site
+
+# Publie la page de présentation (dossier site/) sur GitHub Pages :
+# https://royal63.github.io/OtterIsland/
+#
+# À faire une seule fois : Réglages du dépôt › Pages › Source : « GitHub Actions »
+# (ou : gh api -X POST repos/RoYaL63/OtterIsland/pages -f build_type=workflow).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "project.yml"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un seul déploiement à la fois ; le plus récent l'emporte.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # La page affiche la dernière version : on l'écrit au déploiement, depuis
+      # project.yml, plutôt que de la demander à un serveur depuis le navigateur.
+      - name: Injecter la version
+        run: |
+          VERSION=$(grep -E '^\s*MARKETING_VERSION:' project.yml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "Version : $VERSION"
+          test -n "$VERSION"
+          sed -i "s/{{VERSION}}/$VERSION/g" site/index.html
+          grep -c "$VERSION" site/index.html
+
+      - name: Configurer Pages
+        uses: actions/configure-pages@v5
+
+      - name: Préparer l'artefact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Déployer
+        id: deployment
+        uses: actions/deploy-pages@v4

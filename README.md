@@ -11,11 +11,13 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
-### [⬇️ Télécharger OtterIsland.dmg](https://github.com/RoYaL63/OtterIsland/releases/latest/download/OtterIsland.dmg)
+### [🌐 Découvrir et télécharger sur le site](https://royal63.github.io/OtterIsland/)
 
-<sub>Gratuit et open source · macOS 14 ou plus récent · Mac à encoche ou non</sub>
+<sub>Les fonctions en images, les autorisations expliquées une à une, l'installation pas à pas : <a href="https://royal63.github.io/OtterIsland/"><b>royal63.github.io/OtterIsland</b></a></sub>
 
-<sub>macOS bloque le premier lancement ? C'est normal, l'app n'est pas notarisée : <a href="#installer">débloquez-la une fois</a>, sans Terminal ni mot de passe admin.</sub>
+<sub>Gratuit et open source · macOS 14 ou plus récent · Mac à encoche ou non · <a href="https://github.com/RoYaL63/OtterIsland/releases/latest/download/OtterIsland.dmg">téléchargement direct du .dmg</a></sub>
+
+<sub>macOS bloque le premier lancement ? C'est normal, l'app n'est pas notarisée : <a href="https://royal63.github.io/OtterIsland/#installer">le site explique comment la débloquer</a> en deux clics, sans Terminal ni mot de passe admin.</sub>
 
 </div>
 
@@ -53,6 +55,8 @@ mode présentateur, agenda, musique… et une petite loutre de compagnie.
 ---
 
 ## Installer
+
+> 💡 Cette page est la version technique. **Le [site](https://royal63.github.io/OtterIsland/)** présente l'app avec des images et guide l'installation pas à pas.
 
 1. **Télécharger** : récupérez [OtterIsland.dmg](https://github.com/RoYaL63/OtterIsland/releases/latest/download/OtterIsland.dmg), ouvrez-le et glissez la loutre sur le dossier **Applications**.
 2. **Lancer** : ouvrez OtterIsland depuis Applications. Si vous la lancez depuis ailleurs (Téléchargements, l'image disque), elle propose de s'installer toute seule dans Applications.

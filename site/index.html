@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OtterIsland — L'encoche de ton Mac devient un tableau de bord</title>
+  <meta name="description" content="Presse-papier, captures, moniteur système, mode présentateur, suivi de Claude Code… tout dans l'encoche de ton MacBook. Gratuit, pour macOS 14 et plus, avec ou sans encoche.">
+  <meta name="theme-color" content="#0a1730">
+  <link rel="canonical" href="https://royal63.github.io/OtterIsland/">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/icon.png">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:title" content="OtterIsland — L'encoche de ton Mac devient un tableau de bord">
+  <meta property="og:description" content="Presse-papier, captures, moniteur, mode présentateur, suivi de Claude Code. Gratuit, pour macOS 14+.">
+  <meta property="og:url" content="https://royal63.github.io/OtterIsland/">
+  <meta property="og:image" content="https://royal63.github.io/OtterIsland/assets/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip" href="#contenu">Aller au contenu</a>
+
+  <header class="top" id="haut">
+    <div class="wrap top-inner">
+      <a class="brand" href="#haut" aria-label="OtterIsland, haut de page">
+        <img src="assets/icon.png" width="32" height="32" alt="">
+        <span>OtterIsland</span>
+      </a>
+      <nav class="nav" aria-label="Sections">
+        <a href="#fonctions">Fonctions</a>
+        <a href="#video" data-needs-video hidden>Vidéo</a>
+        <a href="#sur-mesure">Sur mesure</a>
+        <a href="#autorisations">Autorisations</a>
+        <a href="#installer">Installer</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <a class="btn btn-small" href="https://github.com/RoYaL63/OtterIsland/releases/latest/download/OtterIsland.dmg" data-download>Télécharger</a>
+    </div>
+  </header>
+
+  <main id="contenu">
+
+    <!-- ——— Accueil ——— -->
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div class="hero-text">
+          <p class="eyebrow">Gratuit · macOS 14+ · avec ou sans encoche</p>
+          <h1>L'encoche de ton Mac devient un <em>tableau de bord</em>.</h1>
+          <p class="lead">
+            OtterIsland vit dans l'encoche de ton MacBook, ou en haut de n'importe quel écran.
+            Un survol, et tout est sous la main : presse-papier, captures, moniteur système, musique,
+            agenda, mode présentateur, suivi de ton assistant IA.
+          </p>
+          <div class="cta">
+            <a class="btn btn-big" href="https://github.com/RoYaL63/OtterIsland/releases/latest/download/OtterIsland.dmg" data-download>
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 3a1 1 0 0 1 1 1v9.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.4L11 13.6V4a1 1 0 0 1 1-1ZM5 19a1 1 0 1 1 0-2h14a1 1 0 1 1 0 2H5Z"/></svg>
+              Télécharger pour Mac
+            </a>
+            <a class="btn btn-ghost btn-big" href="#fonctions">Voir ce qu'elle fait</a>
+          </div>
+          <p class="meta">
+            <span data-version-line hidden>Version <strong data-version>{{VERSION}}</strong> · </span>.dmg, environ 6 Mo · Apple Silicon et Intel
+          </p>
+          <p class="meta soft">Pas de compte, pas de clé, aucun serveur : <a href="#autorisations">ce qui sort du Mac, en détail</a>.</p>
+        </div>
+        <div class="hero-visual">
+          <div class="glow" aria-hidden="true"></div>
+          <img class="shot shot-hero" src="assets/shot-home.png" width="840" height="552"
+               alt="L'île ouverte sur l'accueil : mémoire, batterie, Pomodoro, calendrier, lecture en cours et raccourcis">
+        </div>
+      </div>
+    </section>
+
+    <!-- ——— En un coup d'œil ——— -->
+    <section class="strip" aria-label="En bref">
+      <div class="wrap strip-grid">
+        <div><strong>Au survol</strong><span>L'encoche s'ouvre en carte, sans clic.</span></div>
+        <div><strong>Sans encoche aussi</strong><span>Un petit onglet 🦦 en haut de l'écran.</span></div>
+        <div><strong>Rien à créer</strong><span>Aucun compte, aucune clé API.</span></div>
+        <div><strong>À ton goût</strong><span>Onglets, modules, couleurs : tout se règle.</span></div>
+      </div>
+    </section>
+
+    <!-- ——— Vidéo (affichée seulement si une vidéo est configurée dans script.js) ——— -->
+    <section class="section" id="video" hidden>
+      <div class="wrap narrow">
+        <h2>La présentation en vidéo</h2>
+        <div class="video" id="video-box"></div>
+      </div>
+    </section>
+
+    <!-- ——— Fonctions ——— -->
+    <section class="section" id="fonctions">
+      <div class="wrap">
+        <h2>Tout ce qu'il te faut, à portée de pointeur</h2>
+        <p class="section-lead">Chaque fonction a sa place dans l'île. Elles s'activent, se masquent et se réordonnent à ta façon.</p>
+
+        <article class="row">
+          <div class="row-text">
+            <h3>Un moniteur qui parle français</h3>
+            <p>Un verdict en une ligne (« Tout va bien », « Redémarrage conseillé », « Fais de la place sur le disque »), et pour chaque constat, sa cause et l'action en un clic.</p>
+            <ul class="ticks">
+              <li><strong>Mémoire détaillée</strong> : apps, système, compressée, cache, libre, swap.</li>
+              <li><strong>Applications regroupées</strong> : les 30 processus de Chrome comptent comme une app.</li>
+              <li><strong>Historique sur 14 jours</strong> : ce qui ralentit ton Mac régulièrement.</li>
+              <li><strong>Rapport Markdown</strong> exportable.</li>
+            </ul>
+          </div>
+          <div class="row-visual"><img class="shot" src="assets/shot-monitor.png" width="840" height="552" loading="lazy" alt="L'onglet Moniteur : état thermique, CPU, mémoire, et les apps les plus gourmandes"></div>
+        </article>
+
+        <article class="row reverse">
+          <div class="row-text">
+            <h3>Le mode présentateur, pour les démos et les visios</h3>
+            <p>Un bouton <strong>● Live</strong> (ou <kbd>⌃</kbd><kbd>⌥</kbd><kbd>L</kbd>) transforme l'île en barre d'outils : tu dessines sur l'écran, tu pointes, tu masques ce qui ne doit pas se voir.</p>
+            <ul class="ticks">
+              <li><strong>Dessin</strong> : stylo, flèche, rectangle, cercle, surligneur, laser. Les traits s'estompent, et une flèche ou un cercle tracés à main levée sont redressés.</li>
+              <li><strong>Masquage</strong> : les champs mot de passe sont couverts dès qu'ils s'affichent (le bouton œil reste visible), ainsi que les clés API (OpenAI, Anthropic, Stripe, GitHub, AWS…).</li>
+              <li><strong>Touches affichées</strong> : les raccourcis tapés, jamais le texte.</li>
+              <li><strong>Curseur et projecteur</strong>, pastilles numérotées, bureau caché, notifications coupées.</li>
+            </ul>
+          </div>
+          <div class="row-visual">
+            <img class="shot" src="assets/shot-live.png" width="1120" height="288" loading="lazy" alt="La barre d'outils du mode Live : couleurs, durée des traits, outils de dessin et raccourcis">
+            <div class="mask-demo" aria-label="Illustration du masquage d'une clé API" role="img">
+              <code><span class="k">OPENAI_API_KEY</span>=<span class="masked">sk-proj-••••••••••••••••••</span></code>
+              <small>Illustration : la clé reste couverte pendant que tu partages ton écran.</small>
+            </div>
+          </div>
+        </article>
+
+        <article class="row">
+          <div class="row-text">
+            <h3>Ton assistant IA, sous surveillance bienveillante</h3>
+            <p>Suis <strong>Claude Code</strong> sans rien configurer : tokens de la journée et de la session en cours, projet actif. Et quand il attend ta réponse, l'île te prévient.</p>
+            <ul class="ticks">
+              <li>Lu sur ton Mac, dans les journaux de session : rien n'est envoyé nulle part.</li>
+              <li>« Claude veut utiliser Bash », « Claude attend ta réponse » apparaissent dans l'île.</li>
+              <li>Codex est pris en charge de façon expérimentale.</li>
+            </ul>
+          </div>
+          <div class="row-visual"><img class="shot" src="assets/shot-ai.png" width="840" height="552" loading="lazy" alt="L'onglet Assistants IA : tokens du jour et de la session de Claude Code"></div>
+        </article>
+
+        <article class="row reverse">
+          <div class="row-text">
+            <h3>Musique, agenda, raccourcis</h3>
+            <p>Titre, pochette, progression et contrôles pour <strong>Spotify</strong> et <strong>Apple Music</strong>, avec le volume et la coupure du son. Épingle tes apps, dossiers, liens et raccourcis macOS pour les lancer d'un clic.</p>
+            <ul class="ticks">
+              <li>Évènements des prochaines 24 h et rappels, à cocher depuis l'île.</li>
+              <li>Raccourcis en bas de l'accueil, une flèche pour voir les autres.</li>
+              <li>Une flèche pour plier la barre des menus quand elle déborde.</li>
+            </ul>
+          </div>
+          <div class="row-visual duo">
+            <img class="shot" src="assets/shot-music.png" width="840" height="552" loading="lazy" alt="L'onglet Musique : morceau en cours, progression, volume et commandes">
+            <img class="shot" src="assets/shot-shortcuts.png" width="840" height="552" loading="lazy" alt="L'onglet Raccourcis : apps et liens épinglés">
+          </div>
+        </article>
+
+        <h3 class="mini-title">Et aussi</h3>
+        <div class="cards">
+          <div class="card"><div class="ico">📋</div><h4>Presse-papier</h4><p><kbd>⌥</kbd><kbd>V</kbd> depuis n'importe quel champ : l'historique s'ouvre, un clic colle. Les mots de passe copiés depuis un gestionnaire ne sont jamais enregistrés.</p></div>
+          <div class="card"><div class="ico">📸</div><h4>Captures d'écran</h4><p>Une notification cliquable ouvre la capture dans Aperçu. Elle part aussi directement dans le presse-papier : ⌘⇧4 puis ⌘V.</p></div>
+          <div class="card"><div class="ico">🧹</div><h4>Nettoyage du clavier</h4><p>Un bouton verrouille tout le clavier le temps de le nettoyer. Un clic dans l'île le déverrouille.</p></div>
+          <div class="card"><div class="ico">🪞</div><h4>Miroir</h4><p>Vérifie ta tête avant une visio : choix de la caméra, image en miroir, et accès aux effets vidéo de macOS (arrière-plan, Portrait).</p></div>
+          <div class="card"><div class="ico">🍅</div><h4>Pomodoro</h4><p>Avec mode Concentration, pause de la musique et carillon à la fin de chaque phase.</p></div>
+          <div class="card"><div class="ico">🗂️</div><h4>Étagère</h4><p>Glisse des fichiers sur l'encoche pour les garder sous la main, avec envoi AirDrop.</p></div>
+          <div class="card"><div class="ico">🦦</div><h4>Loutre de compagnie</h4><p>En option, une petite loutre en pixel-art réagit à ton Mac : elle nage avec la musique, s'inquiète quand la batterie baisse, s'endort la nuit.</p></div>
+          <div class="card"><div class="ico">🖥️</div><h4>Plusieurs écrans</h4><p>Choisis où vit l'île. Sur un écran sans encoche, elle s'efface même quand un film passe en plein écran.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ——— Sur mesure ——— -->
+    <section class="section alt" id="sur-mesure">
+      <div class="wrap">
+        <h2>Du sur mesure, jusque dans les détails</h2>
+        <p class="section-lead">OtterIsland est née d'un besoin précis : un outil qui fasse exactement ce qu'on attend. Alors presque tout se règle.</p>
+
+        <div class="tailor">
+          <div class="tailor-visual">
+            <img class="shot" src="assets/shot-settings.png" width="1440" height="1280" loading="lazy" alt="La fenêtre des réglages d'OtterIsland, page Fonctionnalités, avec son sommaire de 13 pages">
+          </div>
+          <div class="tailor-text">
+            <ul class="ticks big">
+              <li><strong>Onglets</strong> : affichés ou masqués, dans l'ordre que tu veux.</li>
+              <li><strong>Accueil</strong> : chaque module (mémoire, batterie, calendrier, Pomodoro, lecture, raccourcis…) s'active ou se coupe.</li>
+              <li><strong>Écrans</strong> : un écran fixe, l'écran sous le pointeur, ou tous.</li>
+              <li><strong>Ouverture</strong> : au survol avec un délai réglable, à la molette, ou jamais seule.</li>
+              <li><strong>Raccourcis clavier</strong> : celui du presse-papier et ceux du Live se changent.</li>
+            </ul>
+            <p class="colors-title">Et les couleurs</p>
+            <div class="accents">
+              <figure><img src="assets/shot-accent-aqua.png" width="840" height="552" loading="lazy" alt="L'île avec l'accent aqua"><figcaption>Aqua</figcaption></figure>
+              <figure><img src="assets/shot-accent-violet.png" width="840" height="552" loading="lazy" alt="L'île avec l'accent violet"><figcaption>Violet</figcaption></figure>
+              <figure><img src="assets/shot-accent-orange.png" width="840" height="552" loading="lazy" alt="L'île avec l'accent orange"><figcaption>Orange</figcaption></figure>
+            </div>
+            <p class="small">Trois styles (OtterIsland, <strong>Système</strong> qui suit le mode clair ou sombre de macOS, ou Personnalisé), une roue des couleurs, le verre Liquid Glass, dépoli ou opaque, l'opacité, l'arrondi, l'ombre… avec un mode avancé pour ne pas se perdre.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ——— Autorisations ——— -->
+    <section class="section" id="autorisations">
+      <div class="wrap narrow">
+        <h2>Chaque autorisation, expliquée</h2>
+        <p class="section-lead">OtterIsland ne demande un accès <strong>qu'au moment où une fonction en a besoin</strong>. Tous sont facultatifs : sans eux, la fonction concernée est simplement indisponible.</p>
+
+        <div class="perms">
+          <details>
+            <summary><span class="p-name">Accessibilité</span><span class="p-short">coller, masquer, afficher les touches</span></summary>
+            <dl>
+              <dt>Pourquoi</dt><dd>Simuler ⌘V, lire le texte affiché et les titres de fenêtres.</dd>
+              <dt>Fonctions concernées</dt><dd>Collage depuis le presse-papier, masquage des clés pendant le Live, touches affichées, titres de pages dans le Moniteur.</dd>
+              <dt>Où l'activer</dt><dd>Réglages Système › Confidentialité et sécurité › Accessibilité</dd>
+            </dl>
+          </details>
+          <details>
+            <summary><span class="p-name">Surveillance des saisies</span><span class="p-short">nettoyer le clavier</span></summary>
+            <dl>
+              <dt>Pourquoi</dt><dd>Bloquer le clavier (avec l'Accessibilité).</dd>
+              <dt>Fonctions concernées</dt><dd>Nettoyage du clavier.</dd>
+              <dt>Où l'activer</dt><dd>Réglages Système › Confidentialité et sécurité › Surveillance des saisies</dd>
+            </dl>
+          </details>
+          <details>
+            <summary><span class="p-name">Calendriers et Rappels</span><span class="p-short">agenda de l'île</span></summary>
+            <dl>
+              <dt>Pourquoi</dt><dd>Lire tes évènements et tes rappels.</dd>
+              <dt>Fonctions concernées</dt><dd>Agenda, prochain rendez-vous de l'accueil.</dd>
+              <dt>Où l'activer</dt><dd>Réglages Système › Confidentialité et sécurité › Calendriers / Rappels</dd>
+            </dl>
+          </details>
+          <details>
+            <summary><span class="p-name">Caméra</span><span class="p-short">miroir</span></summary>
+            <dl>
+              <dt>Pourquoi</dt><dd>Afficher l'image de la caméra. Elle s'éteint dès que tu quittes le miroir ou fermes sa fenêtre.</dd>
+              <dt>Fonctions concernées</dt><dd>Miroir.</dd>
+              <dt>Où l'activer</dt><dd>Réglages Système › Confidentialité et sécurité › Caméra</dd>
+            </dl>
+          </details>
+          <details>
+            <summary><span class="p-name">Automatisation</span><span class="p-short">Spotify, Musique, redémarrage</span></summary>
+            <dl>
+              <dt>Pourquoi</dt><dd>Lire le morceau en cours, piloter la lecture, demander un redémarrage.</dd>
+              <dt>Fonctions concernées</dt><dd>Musique, bouton « Redémarrer » du Moniteur.</dd>
+              <dt>Où l'activer</dt><dd>Réglages Système › Confidentialité et sécurité › Automatisation (coche Spotify, Musique et Événements Système sous OtterIsland)</dd>
+            </dl>
+          </details>
+          <details>
+            <summary><span class="p-name">Ouverture au démarrage</span><span class="p-short">se lancer à l'ouverture de session</span></summary>
+            <dl>
+              <dt>Pourquoi</dt><dd>Lancer OtterIsland quand tu ouvres ta session.</dd>
+              <dt>Où l'activer</dt><dd>Réglages d'OtterIsland › Général, puis Réglages Système › Général › Ouverture</dd>
+            </dl>
+          </details>
+        </div>
+
+        <p class="callout good">
+          <strong>Aucune autre autorisation</strong> : pas d'enregistrement de l'écran, pas de micro, pas de localisation, pas de contacts.
+        </p>
+        <p class="small">Dans l'app, <strong>Réglages › Autorisations</strong> montre l'état de chacune et ouvre directement le bon panneau des Réglages Système.</p>
+
+        <div class="privacy">
+          <div>
+            <h3>Ce qui sort du Mac</h3>
+            <p>Uniquement :</p>
+            <ul>
+              <li>la recherche de mise à jour : une requête à l'API publique de GitHub, au lancement si l'option est cochée ;</li>
+              <li>la pochette d'album, téléchargée depuis l'adresse fournie par Spotify, pour l'afficher.</li>
+            </ul>
+            <p class="small">Il n'y a pas de compte, pas de clé, pas de serveur OtterIsland.</p>
+          </div>
+          <div>
+            <h3>Ce qui reste sur le Mac</h3>
+            <ul>
+              <li>Les 30 derniers éléments du presse-papier (hors mots de passe des gestionnaires).</li>
+              <li>Les chemins des dernières captures et des fichiers de l'étagère.</li>
+              <li>L'historique de consommation sur 14 jours (désactivable).</li>
+            </ul>
+            <p class="small">Aucun mot de passe, aucune clé, aucun jeton n'est stocké. Le masquage du Live lit le texte à l'écran pour le recouvrir, sans jamais l'enregistrer.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ——— Installer ——— -->
+    <section class="section alt" id="installer">
+      <div class="wrap narrow">
+        <h2>Installer en 2 minutes</h2>
+        <ol class="steps">
+          <li>
+            <div class="num">1</div>
+            <div>
+              <h3>Télécharger</h3>
+              <p>Récupère <strong>OtterIsland.dmg</strong>, ouvre-le et glisse la loutre sur le dossier <strong>Applications</strong>.</p>
+              <p><a class="btn" href="https://github.com/RoYaL63/OtterIsland/releases/latest/download/OtterIsland.dmg" data-download>Télécharger le .dmg</a></p>
+            </div>
+          </li>
+          <li>
+            <div class="num">2</div>
+            <div>
+              <h3>Lancer</h3>
+              <p>Ouvre OtterIsland depuis Applications. Si tu la lances depuis ailleurs (Téléchargements, l'image disque), elle propose de s'installer toute seule dans Applications.</p>
+            </div>
+          </li>
+          <li>
+            <div class="num">3</div>
+            <div>
+              <h3>La débloquer, une seule fois</h3>
+              <p>L'app n'est pas notarisée par Apple (cela demande un compte développeur payant) : macOS affiche donc « Élément “OtterIsland” non ouvert ». Ce n'est pas une erreur, voici comment l'autoriser :</p>
+              <ol class="sub">
+                <li>Clique sur <strong>Terminé</strong> (surtout pas sur <em>Placer dans la corbeille</em>).</li>
+                <li>Ouvre <strong>Réglages Système › Confidentialité et sécurité</strong> et descends jusqu'à la section <em>Sécurité</em>.</li>
+                <li>À côté de « L'ouverture de “OtterIsland” a été bloquée », clique sur <strong>Ouvrir quand même</strong>, valide avec Touch ID ou ton mot de passe, puis clique sur <strong>Ouvrir</strong>.</li>
+              </ol>
+              <p class="small">Tu préfères le Terminal ? Une ligne suffit, sans <code>sudo</code> :</p>
+              <div class="code">
+                <code id="cmd">xattr -dr com.apple.quarantine /Applications/OtterIsland.app</code>
+                <button type="button" class="copy" data-copy="#cmd" aria-label="Copier la commande">Copier</button>
+              </div>
+            </div>
+          </li>
+          <li>
+            <div class="num">4</div>
+            <div>
+              <h3>C'est parti</h3>
+              <p>La loutre vit dans l'encoche et dans la barre des menus (🦦), sans icône dans le Dock. Survole l'encoche pour ouvrir l'île. Les mises à jour suivantes se font depuis l'app : <strong>Réglages › Mise à jour › Installer et redémarrer</strong>, sans nouveau déblocage.</p>
+            </div>
+          </li>
+        </ol>
+        <p class="small">Configuration requise : macOS 14 (Sonoma) ou plus récent. Fonctionne sur Apple Silicon et sur Intel, avec ou sans encoche.</p>
+      </div>
+    </section>
+
+    <!-- ——— FAQ ——— -->
+    <section class="section" id="faq">
+      <div class="wrap narrow">
+        <h2>Questions fréquentes</h2>
+        <div class="faq">
+          <details>
+            <summary>Pourquoi macOS bloque-t-il l'app au premier lancement ?</summary>
+            <p>Parce qu'elle n'est pas notarisée par Apple, ce qui nécessite un compte développeur payant. Le blocage est normal pour une app indépendante : il se lève une seule fois (voir <a href="#installer">l'installation</a>). Le code source est public, sous licence MIT, pour que chacun puisse le vérifier.</p>
+          </details>
+          <details>
+            <summary>Ça marche sur un Mac sans encoche, ou sur un écran externe ?</summary>
+            <p>Oui. Sur un écran sans encoche, l'île se replie en un petit onglet 🦦 au milieu de la barre des menus : survole-le ou clique-le pour l'ouvrir. Dans les réglages, tu choisis si l'île vit sur l'écran du MacBook, sur l'écran où se trouve le pointeur, ou sur tous. L'onglet s'efface tant qu'une app est en plein écran sur cet écran.</p>
+          </details>
+          <details>
+            <summary>Mes données partent-elles quelque part ?</summary>
+            <p>Non. Il n'y a ni compte ni serveur. Seules deux choses sortent du Mac : la recherche de mise à jour (une requête à l'API publique de GitHub) et la pochette d'album d'un morceau Spotify. Le détail est dans <a href="#autorisations">la section Autorisations</a>.</p>
+          </details>
+          <details>
+            <summary>Et si je ne veux pas donner l'Accessibilité ?</summary>
+            <p>L'app fonctionne quand même. Seules les fonctions qui en ont besoin sont indisponibles : le collage automatique depuis le presse-papier, le masquage et les touches affichées du Live, et le nettoyage du clavier.</p>
+          </details>
+          <details>
+            <summary>Comment la mettre à jour ?</summary>
+            <p>Depuis l'app : <strong>Réglages › Mise à jour › Installer et redémarrer</strong>. Elle récupère la dernière version, se remplace elle-même et se relance, sans repasser par le blocage de macOS.</p>
+          </details>
+          <details>
+            <summary>Comment la désinstaller ?</summary>
+            <p>Quitte OtterIsland (menu 🦦 › Quitter), mets l'app à la corbeille, puis supprime si tu veux ses données :</p>
+            <div class="code">
+              <code id="cmd2">rm -rf ~/Library/Application\ Support/OtterIsland ~/.otterisland
+defaults delete com.otterwise.otterisland</code>
+              <button type="button" class="copy" data-copy="#cmd2" aria-label="Copier les commandes">Copier</button>
+            </div>
+          </details>
+          <details>
+            <summary>L'app est-elle gratuite ? Qui est derrière ?</summary>
+            <p>Elle est gratuite et libre (licence MIT). Elle est née d'un besoin personnel après un passage de Windows à Mac : des fonctions manquaient, et ce qui existait ne faisait pas tout à fait ce qu'il fallait. Elle a été construite avec Claude Code et améliorée au fil des retours de ses utilisateurs.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ——— Appel final ——— -->
+    <section class="final">
+      <div class="wrap narrow center">
+        <img src="assets/icon.png" width="84" height="84" alt="">
+        <h2>Prête en deux minutes.</h2>
+        <p class="section-lead">Gratuite, pour macOS 14 et plus.</p>
+        <a class="btn btn-big" href="https://github.com/RoYaL63/OtterIsland/releases/latest/download/OtterIsland.dmg" data-download>Télécharger pour Mac</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-inner">
+      <p>© 2026 Otterwise Solutions · Logiciel libre sous <a href="https://github.com/RoYaL63/OtterIsland/blob/main/LICENSE">licence MIT</a>.</p>
+      <p class="links">
+        <a href="https://github.com/RoYaL63/OtterIsland/releases">Notes de version</a>
+        <a href="https://github.com/RoYaL63/OtterIsland/issues">Signaler un problème</a>
+        <a href="https://github.com/RoYaL63/OtterIsland">Code source</a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
